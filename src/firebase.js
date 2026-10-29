@@ -5,6 +5,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect,
   getRedirectResult, signOut, setPersistence, browserLocalPersistence,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, collection, getDocs,
@@ -75,8 +76,15 @@ window.claude = {
 function messageFor(err) {
   const code = (err && err.code) || "";
   if (code === "auth/unauthorized-domain") return "Firebase 승인된 도메인에 이 사이트 주소가 없어요. Authentication 설정에서 도메인을 추가해 주세요.";
-  if (code === "auth/operation-not-allowed") return "Firebase에서 Google 로그인이 아직 꺼져 있어요. Authentication의 로그인 방법에서 Google을 켜 주세요.";
+  if (code === "auth/operation-not-allowed") return "Firebase에서 이 로그인 방법이 아직 꺼져 있어요. Authentication → 로그인 방법에서 이메일/비밀번호(또는 Google)를 켜 주세요.";
   if (code === "auth/network-request-failed") return "인터넷 연결을 확인하고 다시 시도해 주세요.";
+  if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found" || code === "auth/invalid-login-credentials")
+    return "이메일 또는 비밀번호가 맞지 않아요. 처음이면 '회원가입'에서 계정을 만들어 주세요.";
+  if (code === "auth/email-already-in-use") return "이미 가입된 이메일이에요. '로그인'에서 로그인하거나, Google로 가입했다면 Google로 로그인해 주세요.";
+  if (code === "auth/weak-password") return "비밀번호는 6자 이상이어야 해요.";
+  if (code === "auth/invalid-email") return "이메일 주소를 확인해 주세요.";
+  if (code === "auth/too-many-requests") return "시도가 너무 많아 잠시 막혔어요. 몇 분 뒤 다시 시도하거나 비밀번호를 재설정해 주세요.";
+  if (code === "auth/account-exists-with-different-credential") return "이 이메일은 다른 방법(이메일 또는 Google)으로 가입되어 있어요. 그 방법으로 로그인해 주세요.";
   if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "";
   return "로그인하지 못했어요 (" + (code || "알 수 없는 오류") + ").";
 }
@@ -99,6 +107,19 @@ function start() {
     } finally { A.busy = false; app.renderAuth(); }
   };
   A.signOut = async () => { await signOut(auth); };
+  const run = async (fn, okMsg) => {
+    A.busy = true; A.error = ""; A.ok = false; app.renderAuth();
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      await fn();
+      if (okMsg) { A.error = okMsg; A.ok = true; }
+    } catch (e) { A.error = messageFor(e); A.ok = false; }
+    finally { A.busy = false; app.renderAuth(); }
+  };
+  A.emailSignIn = (email, pw) => run(() => signInWithEmailAndPassword(auth, email, pw));
+  A.emailSignUp = (email, pw) => run(() => createUserWithEmailAndPassword(auth, email, pw));
+  A.resetPassword = (email) => run(() => sendPasswordResetEmail(auth, email),
+    "재설정 메일을 보냈어요. 메일의 링크에서 새 비밀번호를 정한 뒤 로그인해 주세요. 메일이 안 보이면 스팸함도 확인해 주세요.");
   getRedirectResult(auth).catch((e) => { A.error = messageFor(e); app.renderAuth(); });
   onAuthStateChanged(auth, (u) => {
     currentUser = u;
