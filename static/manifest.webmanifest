@@ -1,0 +1,17 @@
+{
+  "name": "민법 두문자 복습장",
+  "short_name": "두문자",
+  "description": "민법 두문자를 간격 반복(FSRS)으로 복습하는 암기장",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef0ea",
+  "theme_color": "#24564d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
