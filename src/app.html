@@ -214,7 +214,8 @@ function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
 function cs(id){return state.cards[id];}
 var LEECH_LAPSES=2, LEECH_FAILS=4;
-function isLeech(id){var s=cs(id);return !!s&&s.st!=="new"&&((s.lapses||0)>=LEECH_LAPSES||(s.fails||0)>=LEECH_FAILS);}
+var LEECH_CLEAR=2; // 하루 이상 간격을 둔 복습에서 연속으로 이만큼 떠올리면 딱지를 뗀다
+function isLeech(id){var s=cs(id);return !!s&&s.st!=="new"&&((s.lapses||0)>=LEECH_LAPSES||(s.fails||0)>=LEECH_FAILS)&&(s.ok||0)<LEECH_CLEAR;}
 function leechIds(){return CARDS.filter(function(c){return cardOn(c)&&isLeech(c.id);}).map(function(c){return c.id;});}
 function backfillFails(logs){ // 예전 기록에는 '다시' 횟수가 없어서 복습 이력에서 채운다
   var cnt={};
@@ -554,6 +555,7 @@ function rate(g){
   if(!was||was.st==="new"){state.daily[dk]=state.daily[dk]||{n:0};state.daily[dk].n++;}
   n.first=(was&&was.first)||((!was||was.st==="new")?now():undefined);
   n.mt=now();n.fails=((was&&was.fails)||0)+(g===1?1:0);if(!n.fails)delete n.fails;
+  n.ok=g===1?0:(was&&was.st==="review")?((was.ok||0)+1):((was&&was.ok)||0);if(!n.ok)delete n.ok;
   if(!n.first)delete n.first;
   state.cards[id]=n;
   logAdd(id,g);
@@ -594,7 +596,7 @@ function renderStats(){
   var today=state.hist[dayKey(t)]||{r:0,a:0,n:0};
   var max=Math.max(1,Math.max.apply(null,fc));
   var bars=fc.map(function(v,i){var dd=new Date(end-DAY+i*DAY);return '<div class="bar" title="'+v+'장"><em>'+(v||"")+'</em><i style="height:'+Math.round(v/max*90)+'px"></i><small>'+(i===0?"오늘":(i%2===0?(dd.getMonth()+1)+"/"+dd.getDate():"&nbsp;"))+'</small></div>';}).join("");
-  var prog=PARTS.map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p)return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("");
+  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 한 줄이 (가) 주제 → 두문자, (나) 두문자 → 뜻 두 장이라 두 방향을 모두 켜면 434장이에요.</p>';
   // 연속 공부 일수
   function rOn(k){return (state.hist[k]&&state.hist[k].r)||0;}
   var noon=end-DAY+12*3600000, streak=0, d0=rOn(dayKey(t))?0:1;
