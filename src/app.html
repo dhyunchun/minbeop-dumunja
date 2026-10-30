@@ -429,7 +429,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&am
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
-function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?"주제 → 두문자":"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
+function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?(r.q?"쟁점 → 결론":"주제 → 두문자"):"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
   if(r.sub)h+='<span class="tag">'+esc(r.sub.replace(/^판례 두문자 — /,"판례 · ").replace(/ \(표준판례\)$/,"").replace(/^보충 단원 — /,"보충 · "))+'</span>';
   r.tags.forEach(function(t){h+='<span class="tag'+(t==="전합"?" jh":"")+'">'+esc(t==="전합"?"전원합의체":t)+'</span>';});return h;}
 var toastT=null;function toast(t){var el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},1800);}
@@ -476,7 +476,8 @@ var editing=false, undoStack=[];
 function faceHtml(c,isRevealed,tools){
   var r=c.row,front,back='',acr=dispAcr(r),cu=custom(r);
   if(c.dir==="g"){
-    if(r.topic)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
+    if(r.q)front='<div class="prompt">'+esc(r.q)+'</div><div class="ask">결론과 두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
+    else if(r.topic)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
     else front='<div class="prompt cloze">'+cloze(r.mean,r.acr)+'</div><div class="ask">빈칸 글자를 모은 두문자는? <span class="muted">(X·O는 부정·긍정 표시)</span></div>';
   }else{
     front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.tags.indexOf("판례")>=0?'판례 법리를':'요건·효과를')+' 떠올려 보세요.</div>';
@@ -575,7 +576,7 @@ function renderCards(){
 }
 function drawList(){
   var t=filterText.trim(), list=document.getElementById("list");
-  var rows=ROWS.filter(function(r){if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+r.topic).indexOf(t)>=0;});
+  var rows=ROWS.filter(function(r){if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
   list.innerHTML=rows.length?rows.map(function(r){
     var cu=custom(r),sus=!!state.susp[r.id];
     return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r))+'</span><span class="st">'+(sus?'보류 중':'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
