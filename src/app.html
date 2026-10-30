@@ -47,7 +47,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 h1{font-family:var(--f-display);font-weight:800;font-size:1.35rem;margin:0;letter-spacing:-.01em}
 .sync{font-size:.75rem;color:var(--ink-2)}
 nav{display:flex;gap:4px;margin-top:10px}
-nav button{flex:1;font:inherit;font-size:.9rem;font-weight:500;padding:8px 6px;border:1px solid transparent;background:transparent;color:var(--ink-2);border-radius:8px;cursor:pointer}
+nav button{flex:1;white-space:nowrap;font:inherit;font-size:.9rem;font-weight:500;padding:8px 6px;border:1px solid transparent;background:transparent;color:var(--ink-2);border-radius:8px;cursor:pointer}
 nav button[aria-selected="true"]{background:var(--sheet);color:var(--ink);border-color:var(--rule)}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-top:16px}
@@ -61,6 +61,16 @@ main{padding-top:16px}
 .tag.dir{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .tag.jh{color:var(--seal);font-weight:600}
 .tag.leech{background:var(--again);color:var(--sheet);font-weight:600}
+.burden{font-size:.86rem;padding:8px 10px;border-radius:8px;background:var(--paper);color:var(--ink-2)}
+.burden b{color:var(--ink);margin-right:4px}
+.exq{font-size:1.05rem;line-height:1.7;margin:4px 0 10px}
+.exa{border-top:1px dashed var(--rule);padding-top:14px;line-height:1.7;font-size:.95rem}
+.exa b{color:var(--accent)}
+.exrel{margin-top:10px;font-size:.82rem;color:var(--ink-2)}
+.exhome{display:grid;gap:10px}
+.exbox{padding:14px;border-radius:12px;background:var(--paper)}
+.exbox h3{margin:0 0 4px;font-size:1rem}
+.exbox p{margin:0 0 10px;font-size:.85rem;color:var(--ink-2)}
 .leechtip{margin-top:12px;font-size:.86rem;padding:8px 10px;border-radius:8px;border:1px dashed var(--again);color:var(--ink-2)}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;max-width:520px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--chip);display:block}
@@ -163,8 +173,9 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
   <header>
     <div class="brand"><h1>민법 두문자 복습장</h1><span class="sync"><span id="sync">이 기기에 저장 중</span> <button class="link" id="authbtn" hidden>로그인</button></span></div>
     <nav role="tablist">
-      <button role="tab" id="tab-study" aria-selected="true" data-v="study">오늘 복습</button>
-      <button role="tab" id="tab-cards" aria-selected="false" data-v="cards">카드 목록</button>
+      <button role="tab" id="tab-study" aria-selected="true" data-v="study">복습</button>
+      <button role="tab" id="tab-cards" aria-selected="false" data-v="cards">카드</button>
+      <button role="tab" id="tab-ex" aria-selected="false" data-v="ex">연습</button>
       <button role="tab" id="tab-stats" aria-selected="false" data-v="stats">기록</button>
       <button role="tab" id="tab-set" aria-selected="false" data-v="set">설정</button>
     </nav>
@@ -174,6 +185,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 <div class="toast" id="toast" hidden></div>
 
 <script type="application/json" id="cards-data">__DATA__</script>
+<script type="application/json" id="ex-data">__EXDATA__</script>
 <script>
 (function(){
 "use strict";
@@ -273,6 +285,7 @@ function mergeStates(a,b){
       if(ta||tb)out.meta[mk][k]=Math.max(ta,tb);
     });
   });
+  var ea=a.ex||{},eb=b.ex||{};Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){var x=ea[k],y=eb[k];out.ex=out.ex||{};out.ex[k]=!x?y:!y?x:((x.last||0)>=(y.last||0)?x:y);});
   return out;
 }
 function sameState(x,y){var a=JSON.parse(JSON.stringify(x)),b=JSON.parse(JSON.stringify(y));delete a.updatedAt;delete b.updatedAt;return JSON.stringify(a)===JSON.stringify(b);}
@@ -439,7 +452,7 @@ var view="study";
 var main=document.getElementById("main");
 function render(){
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.v===view));});
-  if(view==="study")renderStudy();else if(view==="cards")renderCards();else if(view==="stats")renderStats();else renderSettings();
+  if(view==="study")renderStudy();else if(view==="cards")renderCards();else if(view==="ex")renderEx();else if(view==="stats")renderStats();else renderSettings();
 }
 function renderStudy(){
   if(practice){renderPractice();return;}
@@ -483,7 +496,7 @@ function faceHtml(c,isRevealed,tools){
     front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.tags.indexOf("판례")>=0?'판례 법리를':'요건·효과를')+' 떠올려 보세요.</div>';
   }
   if(isRevealed){
-    back='<div class="answer">'+(c.dir==="g"?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
+    back='<div class="answer">'+(c.dir==="g"?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
     if(tools&&isLeech(c.id)&&!cu.acr&&!cu.memo&&!editing)back+='<div class="leechtip">자주 잊는 카드예요. 나만의 두문자나 연상 메모를 붙이면 훨씬 잘 붙어요. <button class="link" id="edit2">지금 만들기</button></div>';
     if(tools)back+='<div class="tools"><button class="link" id="edit">내 두문자·메모</button><button class="link" id="susp">이 카드 보류</button></div>'+(editing?editForm(r):'');
   }
@@ -579,7 +592,7 @@ function drawList(){
   var rows=ROWS.filter(function(r){if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
   list.innerHTML=rows.length?rows.map(function(r){
     var cu=custom(r),sus=!!state.susp[r.id];
-    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r))+'</span><span class="st">'+(sus?'보류 중':'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
+    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r))+'</span><span class="st">'+(sus?'보류 중':'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
       '<div class="tools"><button class="link" data-act="edit">내 두문자·메모</button><button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+'</div></details>';
   }).join(""):'<p class="muted">찾는 카드가 없어요. 검색어를 줄여 보세요.</p>';
   list.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(){
@@ -699,8 +712,83 @@ function renderSettings(){
   document.getElementById("reset").onclick=function(){if(!resetArm){resetArm=true;render();setTimeout(function(){resetArm=false;if(view==="set")render();},4000);return;}resetArm=false;var keep=state.settings;state={v:1,base:now(),settings:keep,cards:{},daily:{},hist:{},custom:state.custom||{},susp:state.susp||{},meta:{cu:(state.meta||{}).cu||{},su:(state.meta||{}).su||{}},updatedAt:0};resetSession();scheduleSave();toast("기록을 지웠어요");render();};
 }
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){view=b.dataset.v;render();window.scrollTo(0,0);};});
+/* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
+var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];}catch(e){EX=[];}
+var exSess=null, EX_N=10;
+function exState(){if(!state.ex)state.ex={};return state.ex;}
+function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
+function exOpen(x){return !!settings().exAll||x.rel.some(rowStarted);}
+function exPool(kind,onlyWrong){return EX.filter(function(x){if(x.kind!==kind||!exOpen(x))return false;var st=exState()[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
+function exStart(kind,onlyWrong){
+  // 순서: 틀렸던 문제(오늘 이미 본 것 제외) → 안 풀어 본 문제 → 맞혔던 문제(오래된 것부터) → 오늘 틀린 문제
+  var pool=exPool(kind,onlyWrong),S=exState(),dk=dayKey(now()),t=now();
+  pool.forEach(function(x){var st=S[x.id],g;
+    if(!st)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
+    var age=st&&st.last?Math.min(365,(t-st.last)/DAY):0;
+    x._k=g*1000+(g===2?(365-age):Math.random()*100);});
+  pool.sort(function(a,b){return a._k-b._k;});
+  var q=pool.slice(0,EX_N);
+  for(var i=q.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=q[i];q[i]=q[j];q[j]=tmp;}
+  q=q.map(function(x){return x.id;});
+  if(!q.length)return;
+  exSess={kind:kind,wrong:!!onlyWrong,queue:q,total:q.length,ok:0,shown:false};render();window.scrollTo(0,0);
+}
+function exAnswer(ok){
+  var id=exSess.queue.shift(),S=exState(),st=S[id]||{n:0,w:0};
+  st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[id]=st;if(ok)exSess.ok++;
+  exSess.shown=false;scheduleSave();render();window.scrollTo(0,0);
+}
+function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
+function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
+function renderEx(){
+  if(exSess){
+    var p=exSess,label=p.kind==="case"?"미니 사례":"헷갈리는 쌍";
+    var pos=p.total-p.queue.length+(p.queue.length?1:0);
+    var bar='<div class="undo"><span class="muted">'+label+(p.wrong?' · 틀린 문제':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="exq">그만 풀기</button></div>';
+    if(!p.queue.length){
+      main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+p.ok+' / '+p.total+' 맞혔어요</h2><p>'+(p.ok===p.total?'모두 맞혔어요.':'틀린 문제는 다음에 먼저 나와요.')+'</p><p class="muted">연습문제는 오늘 복습 일정에 영향을 주지 않아요.</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="exagain">한 번 더</button><button class="btn" id="exback">돌아가기</button></div></div></div>';
+      document.getElementById("exagain").onclick=function(){exStart(p.kind,p.wrong);};
+      document.getElementById("exback").onclick=document.getElementById("exq").onclick=function(){exSess=null;render();};
+      return;
+    }
+    var x=null;for(var i=0;i<EX.length;i++)if(EX[i].id===p.queue[0])x=EX[i];
+    var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||""):"";}).filter(Boolean);
+    var front='<div class="meta"><span class="tag dir">'+(x.kind==="case"?"사례 → 쟁점·결론":"비교")+'</span><span class="tag">'+esc(x.part.replace(/^제\d편 /,""))+'</span></div>'+
+      (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
+      '<div class="exq">'+esc(x.q)+'</div><div class="ask">'+(x.kind==="case"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.')+'</div>';
+    var back=p.shown?'<div class="exa">'+(x.kind==="case"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div></div>':'';
+    var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">스페이스바로도 열 수 있어요</div>'
+      :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>쟁점을 놓쳤거나 결론이 달라요</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>쟁점과 결론 모두</small></button></div><div class="hint">키보드 1 · 2</div>';
+    main.innerHTML=bar+'<article class="card" aria-live="polite">'+front+back+'</article><div class="actions">'+acts+'</div>';
+    document.getElementById("exq").onclick=function(){exSess=null;render();};
+    var rv=document.getElementById("exreveal");if(rv)rv.onclick=function(){p.shown=true;render();};
+    var a=document.getElementById("exno");if(a)a.onclick=function(){exAnswer(false);};
+    var o=document.getElementById("exok");if(o)o.onclick=function(){exAnswer(true);};
+    return;
+  }
+  var S=exState();
+  function box(kind,name,desc){
+    var all=EX.filter(function(x){return x.kind===kind;}),open=exPool(kind),wrong=exPool(kind,true);
+    var done=all.filter(function(x){return S[x.id];}).length;
+    return '<div class="exbox"><h3>'+name+'</h3><p>'+desc+'<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all.length+'문제 열림 · '+done+'문제 풀어 봄</span></p><div class="row">'+
+      (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">관련 두문자를 하나라도 배우면 열려요</span>')+
+      (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div></div>';
+  }
+  main.innerHTML='<section class="panel"><h2>연습문제</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
+    box("case","미니 사례","짧은 사실관계를 읽고 쟁점을 찾아 결론까지 내 보는 문제예요.")+
+    box("pair","헷갈리는 쌍","비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
+    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>';
+  main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
+  main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
+  document.getElementById("exall").onchange=function(e){settings().exAll=e.target.checked;scheduleSave();render();};
+}
 document.addEventListener("keydown",function(e){
-  if(view!=="study"||e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT")return;
+  if(view==="ex"){if(!exSess||!exSess.queue.length)return;
+    if((e.key===" "||e.key==="Enter")&&!exSess.shown){e.preventDefault();exSess.shown=true;render();}
+    else if(exSess.shown&&(e.key==="1"||e.key==="2")){exAnswer(e.key==="2");}
+    return;}
+  if(view!=="study")return;
   if(practice){
     if((e.key===" "||e.key==="Enter")&&!revealed&&practice.queue.length){e.preventDefault();revealed=true;render();}
     else if(revealed&&(e.key==="1"||e.key==="2")){practiceAnswer(e.key==="2");}

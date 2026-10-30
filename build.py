@@ -25,9 +25,18 @@ for c in cards:
 data = json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 html = (root / "src" / "app.html").read_text(encoding="utf-8")
 assert "__DATA__" in html
-(out / "index.html").write_text(html.replace("__DATA__", data), encoding="utf-8")
+ex = json.loads((root / "src" / "practice.json").read_text(encoding="utf-8"))
+row_ids = set(ids)
+for x in ex:
+    for k in ("id", "kind", "part", "rel", "title", "q", "a", "acr"):
+        assert k in x, f"연습문제 {x.get('id')}에 {k} 가 없어요"
+    assert all(r in row_ids for r in x["rel"]), f"연습문제 {x['id']}의 관련 카드 id가 없어요"
+assert len({x["id"] for x in ex}) == len(ex), "연습문제 id가 중복됐어요"
+exdata = json.dumps(ex, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+assert "__EXDATA__" in html
+(out / "index.html").write_text(html.replace("__EXDATA__", exdata).replace("__DATA__", data), encoding="utf-8")
 shutil.copy(root / "src" / "firebase.js", out / "firebase.js")
 sw = out / "sw.js"
 sw.write_text(sw.read_text(encoding="utf-8").replace("__BUILD__", build), encoding="utf-8")
 (out / ".nojekyll").write_text("")
-print(f"built {len(cards)} cards -> {out} (build {build})")
+print(f"built {len(cards)} cards + {len(ex)} practice -> {out} (build {build})")
