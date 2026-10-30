@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>민법 두문자 복습장</title>
 <meta name="theme-color" content="#24564d">
+<script>try{var __t=localStorage.getItem("minbeop-theme");if(__t==="light"||__t==="dark")document.documentElement.setAttribute("data-theme",__t);}catch(e){}</script>
 <meta name="description" content="민법 두문자를 간격 반복(FSRS)으로 복습하는 암기장">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -17,23 +18,23 @@
 body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}
 /* Layout: one narrow study column like a 수험 단권화 노트 — tabs on top, one card at a time, controls at thumb height */
 :root{
-  --paper:#eef0ea; --sheet:#fbfbf7; --ink:#1d2433; --ink-2:#4a5263; --rule:#d5d9cf;
-  --accent:#2c6e63; --accent-ink:#ffffff; --accent-soft:#dbe9e4; --seal:#a63d2f;
-  --again:#b3402f; --hard:#9a6a12; --good:#2c6e63; --easy:#2f5d9a;
-  --chip:#e6e9e1; --shadow:0 1px 2px rgba(29,36,51,.06),0 6px 20px rgba(29,36,51,.06);
+  --paper:#ecebe4; --sheet:#f6f5ef; --ink:#2a2f38; --ink-2:#5a6170; --rule:#d6d4ca;
+  --accent:#3d7468; --accent-ink:#f6f5ef; --accent-soft:#dde8e3; --seal:#a2493c;
+  --again:#a9503f; --hard:#8a6620; --good:#3d7468; --easy:#3f6390;
+  --chip:#e3e2da; --shadow:0 1px 2px rgba(42,47,56,.05),0 6px 18px rgba(42,47,56,.05);
   --f-display:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo",serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#14181f; --sheet:#1c212b; --ink:#e7e9e3; --ink-2:#a8afbd; --rule:#2e3542;
-  --accent:#5fb3a2; --accent-ink:#0f1a18; --accent-soft:#1f3632; --seal:#e07a69;
-  --again:#e07a69; --hard:#d6a650; --good:#5fb3a2; --easy:#7fa8e0; --chip:#262c37;
+  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42;
+  --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
+  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#14181f; --sheet:#1c212b; --ink:#e7e9e3; --ink-2:#a8afbd; --rule:#2e3542;
-  --accent:#5fb3a2; --accent-ink:#0f1a18; --accent-soft:#1f3632; --seal:#e07a69;
-  --again:#e07a69; --hard:#d6a650; --good:#5fb3a2; --easy:#7fa8e0; --chip:#262c37;
+  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42;
+  --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
+  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
 html,body{min-height:100%}
@@ -147,7 +148,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .item.off .a{opacity:.5;text-decoration:line-through}
 .seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--chip);margin-bottom:6px}
 .seg button{flex:1;font:inherit;font-size:.88rem;font-weight:500;padding:7px;border:none;border-radius:8px;background:transparent;color:var(--ink-2);cursor:pointer}
-.seg button[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .editf input[type=password]{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
 .warn{color:var(--again);font-size:.85rem}
 .or{display:flex;align-items:center;gap:10px;margin:16px 0 12px;color:var(--ink-2);font-size:.8rem}
@@ -646,6 +647,7 @@ function renderSettings(){
      '<div class="or"><span>또는</span></div><button class="btn" id="signin">Google로 로그인</button>';
   main.innerHTML=
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
+  '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-selected="'+(themePref()===o[0])+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">눈이 덜 피로하도록 순백·순흑 대신 부드러운 바탕과 채도를 낮춘 색을 써요. 자동은 휴대폰의 밝게·어둡게 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>학습량</h2><div class="field"><label for="npd">하루 새 카드</label><div class="row"><input type="number" id="npd" min="0" max="100" value="'+s.newPerDay+'" style="width:6em"><span class="sub">장 · 복습 카드는 제한 없이 모두 나와요</span></div></div>'+
   '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div></section>'+
   '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div></section>'+
@@ -654,6 +656,7 @@ function renderSettings(){
   '<section class="panel"><h2>원리</h2><p class="muted" style="margin:0">잊어버릴 즈음 다시 보면 기억이 더 오래가요(간격 효과, 에빙하우스 망각곡선). 답을 보기 전에 먼저 떠올리는 연습이 다시 읽기보다 오래 남아요(인출 연습, Roediger·Karpicke 2006). 다음 복습일은 FSRS-5 알고리즘이 카드마다 안정도와 난이도를 추정해 정해요. 오늘 복습 카드는 편과 단원을 섞어서 보여줘요.</p></section>'+
   '<section class="panel"><h2>처음부터 다시</h2><p class="muted" style="margin-top:0">모든 카드의 복습 기록을 지워요. 내 두문자·메모와 보류 설정은 남아요. 되돌릴 수 없어요.</p><button class="btn danger" id="reset">'+(resetArm?"한 번 더 누르면 지워요":"기록 지우기")+'</button></section>';
   var si=document.getElementById("signin");if(si)si.onclick=function(){if(AUTH.signIn)AUTH.signIn();};
+  main.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){setTheme(b.dataset.th);render();};});
   main.querySelectorAll(".seg [data-m]").forEach(function(b){b.onclick=function(){keepEmail();authMode=b.dataset.m;AUTH.error="";render();};});
   var tr=document.getElementById("toreset");if(tr)tr.onclick=function(){keepEmail();authMode="reset";AUTH.error="";render();};
   var ti=document.getElementById("toin");if(ti)ti.onclick=function(){keepEmail();authMode="in";AUTH.error="";render();};
@@ -705,6 +708,14 @@ document.addEventListener("keydown",function(e){
 });
 setInterval(function(){if(view==="study"&&!revealed){var before=current;var p=pick();if(!before&&p){render();}}},30000);
 render();
+/* ---------- 화면 테마 (기기별) ---------- */
+function themePref(){try{var t=localStorage.getItem("minbeop-theme");return t==="light"||t==="dark"?t:"auto";}catch(e){return "auto";}}
+function applyTheme(){var t=themePref(),root=document.documentElement;if(t==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",t);
+  var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#1a1d21":"#ecebe4");}
+function setTheme(t){try{if(t==="auto")localStorage.removeItem("minbeop-theme");else localStorage.setItem("minbeop-theme",t);}catch(e){}applyTheme();}
+applyTheme();
+try{window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme);}catch(e){}
 window.__dumunja={connect:connect,auth:AUTH,renderAuth:renderAuth,dbg:{get state(){return state;},save:function(){scheduleSave();},pull:pull,show:function(v){view=v;render();},dayKey:dayKey}};
 if(window.__dumunjaReady)window.__dumunjaReady();
 })();
