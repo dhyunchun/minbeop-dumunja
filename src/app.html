@@ -361,11 +361,12 @@ function renderStudy(){
   if(!current||!cardOn(current)){current=pick();revealed=false;}
   var counts='<div class="counts"><span class="count new"><b>'+q.news.length+'</b>새 카드</span><span class="count learn"><b>'+q.learn.length+'</b>다시 볼 카드</span><span class="count rev"><b>'+q.rev.length+'</b>오늘 복습</span></div>';
   if(!current){
-    var tn=practiceSize();
+    var tn=practiceSize("random"),td=practiceSize("today");
     var nextDue=null;CARDS.forEach(function(c){var s=cs(c.id);if(s&&s.st==="review"&&cardOn(c)&&(nextDue===null||s.due<nextDue))nextDue=s.due;});
-    main.innerHTML=counts+undoBar()+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(tn?'<button class="btn primary" id="prac">무작위 '+tn+'장 복습</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">지금까지 배운 카드 중에서 무작위로 골라요. 연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
+    main.innerHTML=counts+undoBar()+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(td?'<button class="btn primary" id="prac-today">오늘 새 카드 '+td+'장 복습</button>':'')+(tn?'<button class="btn'+(td?'':' primary')+'" id="prac">무작위 '+tn+'장 복습</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(td?'오늘 처음 받은 카드만 다시 보거나, 지금까지 배운 카드 중에서 무작위로 고를 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
     bindUndo();
-    var pb=document.getElementById("prac");if(pb)pb.onclick=startPractice;
+    var pb=document.getElementById("prac");if(pb)pb.onclick=function(){startPractice("random");};
+    var pt=document.getElementById("prac-today");if(pt)pt.onclick=function(){startPractice("today");};
     document.getElementById("more").onclick=function(){var k=dayKey(now());state.daily[k]=state.daily[k]||{n:0};state.daily[k].n=Math.max(0,state.daily[k].n-3);scheduleSave();render();};
     return;
   }
@@ -401,19 +402,20 @@ function faceHtml(c,isRevealed,tools){
 }
 /* ---------- practice: random started cards, no effect on schedule ---------- */
 var practice=null;
-function practicePool(){
-  return CARDS.filter(function(c){var s=cs(c.id);return s&&s.st!=="new"&&cardOn(c);}).map(function(c){return c.id;});
+function practicePool(mode){
+  var dk=dayKey(now());
+  return CARDS.filter(function(c){var s=cs(c.id);if(!s||s.st==="new"||!cardOn(c))return false;return mode==="today"?(s.first&&dayKey(s.first)===dk):true;}).map(function(c){return c.id;});
 }
-function practiceSize(){return Math.min(practicePool().length,Math.max(1,settings().newPerDay));}
-function startPractice(){var ids=practicePool();if(!ids.length)return;
+function practiceSize(mode){var n=practicePool(mode).length;return mode==="today"?n:Math.min(n,Math.max(1,settings().newPerDay));}
+function startPractice(mode){mode=mode==="today"?"today":"random";var ids=practicePool(mode);if(!ids.length)return;
   for(var i=ids.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=ids[i];ids[i]=ids[j];ids[j]=t;}
-  ids=ids.slice(0,practiceSize());practice={queue:ids,total:ids.length,known:0};revealed=false;render();}
+  ids=ids.slice(0,practiceSize(mode));practice={queue:ids,total:ids.length,known:0,mode:mode};revealed=false;render();}
 function renderPractice(){
   var p=practice;
-  var bar='<div class="undo"><span class="muted">무작위 복습 · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
+  var bar='<div class="undo"><span class="muted">'+(p.mode==="today"?"오늘 새 카드 복습":"무작위 복습")+' · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
   if(!p.queue.length){
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>무작위로 고른 '+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
-    document.getElementById("again").onclick=startPractice;
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+(p.mode==="today"?"오늘 새로 받은 ":"무작위로 고른 ")+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
+    document.getElementById("again").onclick=function(){startPractice(p.mode);};
     document.getElementById("back").onclick=function(){practice=null;render();};
     document.getElementById("pq").onclick=function(){practice=null;render();};
     return;
