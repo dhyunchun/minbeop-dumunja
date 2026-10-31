@@ -219,8 +219,14 @@ var LS_KEY="minbeop-dumunja-v1";
 function now(){return Date.now();}
 function dayKey(t){var d=new Date(t-ROLL_HOUR*3600000);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function dayEnd(t){var d=new Date(t-ROLL_HOUR*3600000);d.setHours(0,0,0,0);return d.getTime()+DAY+ROLL_HOUR*3600000;}
-function settings(){var s=state.settings;if(!s.dirs)s.dirs={g:true,n:true};if(!s.parts)s.parts={};if(!state.custom)state.custom={};if(!state.susp)state.susp={};applyWeights(s.w);return s;}
+function settings(){var s=state.settings;if(!s.dirs)s.dirs={g:true,n:true};if(!s.parts)s.parts={};migrateParts(s.parts);if(!state.custom)state.custom={};if(!state.susp)state.susp={};applyWeights(s.w);return s;}
 function partOn(p){return settings().parts[p]!==false;}
+function migrateParts(ps){ // 계약·법정채권 편을 '제4편 채권각론'으로 합침
+  var o1="제3편 계약",o2="제3편 법정채권";
+  if(!(o1 in ps)&&!(o2 in ps))return;
+  if(ps[o1]===false&&ps[o2]===false)ps["제4편 채권각론"]=false;
+  delete ps[o1];delete ps[o2];
+}
 function cardOn(c){var s=settings();return s.dirs[c.dir]!==false&&partOn(c.row.part)&&!state.susp[c.row.id];}
 function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
