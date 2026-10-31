@@ -206,11 +206,18 @@ function forgetS(d,s,r){return Math.min(s,W[11]*Math.pow(d,-W[12])*(Math.pow(s+1
 function shortS(s,g){return s*Math.exp(W[17]*(g-3+W[18]));}
 
 /* ---------- cards ---------- */
-var ROWS=CARDS_RAW, CARDS=[], BYID={};
-ROWS.forEach(function(r,i){
-  ["g","n"].forEach(function(dir){var c={id:r.id+"-"+dir,row:r,dir:dir,order:i*2+(dir==="g"?0:1)};CARDS.push(c);BYID[c.id]=c;});
-});
-var PARTS=[];ROWS.forEach(function(r){if(PARTS.indexOf(r.part)<0)PARTS.push(r.part);});
+var ROWS=[], CARDS=[], BYID={};
+// 내 카드: state.mine[id]={id,part,q,acr,a,note,t(만든 시각),u(고친 시각),del}
+function mineRows(){var m=(typeof state!=="undefined"&&state&&state.mine)||{};
+  return Object.keys(m).map(function(k){return m[k];}).filter(function(x){return x&&!x.del&&x.q&&x.a;}).sort(function(a,b){return (a.t||0)-(b.t||0);})
+    .map(function(x){return {id:x.id,part:x.part,acr:x.acr||"",topic:x.q,mean:x.a,note:x.note||"",ref:"",tags:["내 카드"],mine:true};});}
+function buildCards(){
+  ROWS=CARDS_RAW.concat(mineRows());CARDS=[];BYID={};
+  ROWS.forEach(function(r,i){(r.mine&&!r.acr?["g"]:["g","n"]).forEach(function(dir){var c={id:r.id+"-"+dir,row:r,dir:dir,order:(r.mine?-1000000:0)+i*2+(dir==="g"?0:1)};CARDS.push(c);BYID[c.id]=c;});});
+  if(typeof current!=="undefined"&&current)current=BYID[current.id]||null;
+}
+buildCards();
+var PARTS=[];CARDS_RAW.forEach(function(r){if(PARTS.indexOf(r.part)<0)PARTS.push(r.part);});
 
 /* ---------- state ---------- */
 var DEFAULTS={newPerDay:6,retention:0.9,dirs:{g:true,n:true},parts:{}};
@@ -227,7 +234,7 @@ function migrateParts(ps){ // 계약·법정채권 편을 '제4편 채권각론'
   if(ps[o1]===false&&ps[o2]===false)ps["제4편 채권각론"]=false;
   delete ps[o1];delete ps[o2];
 }
-function cardOn(c){var s=settings();return s.dirs[c.dir]!==false&&partOn(c.row.part)&&!state.susp[c.row.id];}
+function cardOn(c){var s=settings();return (s.dirs[c.dir]!==false||(c.row.mine&&!c.row.acr))&&partOn(c.row.part)&&!state.susp[c.row.id];}
 function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
 function cs(id){return state.cards[id];}
@@ -291,6 +298,7 @@ function mergeStates(a,b){
       if(ta||tb)out.meta[mk][k]=Math.max(ta,tb);
     });
   });
+  var ma2=a.mine||{},mb2=b.mine||{};Object.keys(ma2).concat(Object.keys(mb2)).forEach(function(k){var x=ma2[k],y=mb2[k];out.mine=out.mine||{};out.mine[k]=!x?y:!y?x:((x.u||0)>=(y.u||0)?x:y);});
   var ea=a.ex||{},eb=b.ex||{};Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){var x=ea[k],y=eb[k];out.ex=out.ex||{};out.ex[k]=!x?y:!y?x:((x.last||0)>=(y.last||0)?x:y);});
   return out;
 }
@@ -298,7 +306,7 @@ function sameState(x,y){var a=JSON.parse(JSON.stringify(x)),b=JSON.parse(JSON.st
 function adopt(remote){ // 원격 기록을 합쳐 반영. 합친 결과가 원격과 다르면 true(올려야 함)
   if(!remote||remote.v!==1)return true;
   var merged=mergeStates(state,remote),changed=!sameState(merged,state);
-  state=merged;settings();takeSnap();saveLocal();backfillFails();
+  state=merged;settings();takeSnap();saveLocal();backfillFails();buildCards();
   if(changed&&!practice&&!editing&&(view==="study"||view==="stats"||view==="cards")){if(!revealed)current=null;render();}
   return !sameState(merged,remote);
 }
@@ -319,7 +327,7 @@ function pull(){ // 다른 기기에서 공부한 내용을 가져온다(앱으�
 }
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")pull();});
 var local=loadLocal(); if(local){state=local;}
-settings();takeSnap();backfillFails();
+settings();takeSnap();backfillFails();buildCards();
 
 /* ---------- review log (for later FSRS parameter optimisation): one doc per month ---------- */
 var LOG={}, logSaving={}, logPending={}, logTimer={};
@@ -448,7 +456,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&am
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
-function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?(r.q?"쟁점 → 결론":"주제 → 두문자"):"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
+function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?(r.mine&&!dispAcr(r)?"질문 → 답":r.q?"쟁점 → 결론":"주제 → 두문자"):"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
   if(r.sub)h+='<span class="tag">'+esc(r.sub.replace(/^판례 두문자 — /,"판례 · ").replace(/ \(표준판례\)$/,"").replace(/^보충 단원 — /,"보충 · "))+'</span>';
   r.tags.forEach(function(t){h+='<span class="tag'+(t==="전합"?" jh":"")+'">'+esc(t==="전합"?"전원합의체":t)+'</span>';});return h;}
 var toastT=null;function toast(t){var el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},1800);}
@@ -495,14 +503,15 @@ var editing=false, undoStack=[];
 function faceHtml(c,isRevealed,tools){
   var r=c.row,front,back='',acr=dispAcr(r),cu=custom(r);
   if(c.dir==="g"){
-    if(r.q)front='<div class="prompt">'+esc(r.q)+'</div><div class="ask">결론과 두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
+    if(r.mine&&!acr)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">답을 떠올려 보세요.</div>';
+    else if(r.q)front='<div class="prompt">'+esc(r.q)+'</div><div class="ask">결론과 두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
     else if(r.topic)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
     else front='<div class="prompt cloze">'+cloze(r.mean,r.acr)+'</div><div class="ask">빈칸 글자를 모은 두문자는? <span class="muted">(X·O는 부정·긍정 표시)</span></div>';
   }else{
-    front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.tags.indexOf("판례")>=0?'판례 법리를':'요건·효과를')+' 떠올려 보세요.</div>';
+    front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.mine?'내용을':r.tags.indexOf("판례")>=0?'판례 법리를':'요건·효과를')+' 떠올려 보세요.</div>';
   }
   if(isRevealed){
-    back='<div class="answer">'+(c.dir==="g"?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
+    back='<div class="answer">'+(c.dir==="g"&&acr?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
     if(tools&&isLeech(c.id)&&!cu.acr&&!cu.memo&&!editing)back+='<div class="leechtip">자주 잊는 카드예요. 나만의 두문자나 연상 메모를 붙이면 훨씬 잘 붙어요. <button class="link" id="edit2">지금 만들기</button></div>';
     if(tools)back+='<div class="tools"><button class="link" id="edit">내 두문자·메모</button><button class="link" id="susp">이 카드 보류</button></div>'+(editing?editForm(r):'');
   }
@@ -587,27 +596,55 @@ function rate(g){
 var filterText="",filterPart="";
 function stateLabel(id){var s=cs(id);if(!s||s.st==="new")return "새 카드";if(s.st!=="review")return "다시 보는 중";var d=Math.round((s.due-dayEnd(now())+DAY)/DAY);return d<=0?"오늘 복습":d+"일 뒤";}
 function renderCards(){
-  var opts='<option value="">모든 편</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
-  main.innerHTML='<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
+  var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
+  main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><button class="btn primary" id="mnew">+ 내 카드</button></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
   var q=document.getElementById("q"),fp=document.getElementById("fp");
   q.oninput=function(){filterText=q.value;drawList();};fp.onchange=function(){filterPart=fp.value;drawList();};
+  document.getElementById("mnew").onclick=function(){mineEdit=mineEdit==="new"?null:"new";renderCards();var f=document.getElementById("mq");if(f)f.focus();};
+  if(mineEdit==="new")bindMineForm(null);
   drawList();
 }
 function drawList(){
   var t=filterText.trim(), list=document.getElementById("list");
-  var rows=ROWS.filter(function(r){if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
+  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
   list.innerHTML=rows.length?rows.map(function(r){
     var cu=custom(r),sus=!!state.susp[r.id];
-    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r))+'</span><span class="st">'+(sus?'보류 중':'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
-      '<div class="tools"><button class="link" data-act="edit">내 두문자·메모</button><button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+'</div></details>';
+    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':(r.mine&&!r.acr)?stateLabel(r.id+"-g"):'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
+      '<div class="tools">'+(r.mine?'<button class="link" data-act="medit">수정</button><button class="link" data-act="mdel">'+(mineDelArm===r.id?'한 번 더 누르면 삭제':'삭제')+'</button>':'<button class="link" data-act="edit">내 두문자·메모</button>')+'<button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+(r.mine&&mineEdit===r.id?mineForm(r.id):'')+'</div></details>';
   }).join(""):'<p class="muted">찾는 카드가 없어요. 검색어를 줄여 보세요.</p>';
   list.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(){
     var id=b.closest("details").dataset.r,r=ROWS.filter(function(x){return x.id===id;})[0];openRow=id;
-    if(b.dataset.act==="susp"){suspendRow(r,!state.susp[id]);editing=false;current=null;}else editing=!editing;
+    if(b.dataset.act==="susp"){suspendRow(r,!state.susp[id]);editing=false;current=null;}
+    else if(b.dataset.act==="medit"){mineEdit=mineEdit===id?null:id;editing=false;}
+    else if(b.dataset.act==="mdel"){if(mineDelArm!==id){mineDelArm=id;setTimeout(function(){if(mineDelArm===id){mineDelArm=null;if(view==="cards")drawList();}},4000);}else{mineDelArm=null;mineDelete(id);toast("내 카드를 지웠어요");}}
+    else editing=!editing;
     drawList();};});
+  if(mineEdit&&mineEdit!=="new")bindMineForm(mineEdit);
   if(openRow&&editing){var row=ROWS.filter(function(x){return x.id===openRow;})[0];bindEditForm(row,function(){drawList();});}
 }
-var openRow=null;
+var openRow=null, mineEdit=null, mineDelArm=null;
+function mineForm(id){
+  var x=id?(state.mine||{})[id]||{}:{},part=x.part||(filterPart&&filterPart.indexOf("__")!==0?filterPart:PARTS[0]);
+  return '<form class="editf" id="mform"><h3 style="margin:0 0 4px;font-size:1rem">'+(id?'내 카드 수정':'새 내 카드')+'</h3>'+
+    '<label for="mpart">편</label><select id="mpart">'+PARTS.map(function(p){return '<option'+(p===part?' selected':'')+'>'+esc(p)+'</option>';}).join("")+'</select>'+
+    '<label for="mq">질문 또는 주제 <span class="muted">(앞면)</span></label><textarea id="mq" maxlength="400" rows="2" placeholder="예: 무권대리 상대방이 철회한 뒤에도 본인이 추인할 수 있나?">'+esc(x.q||"")+'</textarea>'+
+    '<label for="macr">두문자 <span class="muted">(없으면 비워 두세요 · 넣으면 두문자 → 뜻 카드도 생겨요)</span></label><input type="text" id="macr" maxlength="40" value="'+esc(x.acr||"")+'">'+
+    '<label for="ma">답 <span class="muted">(뒷면 · **글자**는 굵게)</span></label><textarea id="ma" maxlength="1000" rows="3">'+esc(x.a||"")+'</textarea>'+
+    '<label for="mnote">메모·근거 <span class="muted">(선택 · 교수님 강조점, 판례번호 등)</span></label><textarea id="mnote" maxlength="600" rows="2">'+esc(x.note||"")+'</textarea>'+
+    '<div class="row"><button class="btn primary" type="submit">'+(id?'저장':'만들기')+'</button><button class="btn" type="button" id="mcancel">닫기</button></div></form>';
+}
+function bindMineForm(id){
+  var f=document.getElementById("mform");if(!f)return;
+  document.getElementById("mcancel").onclick=function(){mineEdit=null;render();};
+  f.onsubmit=function(e){e.preventDefault();
+    var q=document.getElementById("mq").value.trim(),a=document.getElementById("ma").value.trim();
+    if(!q||!a){toast("질문과 답을 모두 적어 주세요");return;}
+    if(!state.mine)state.mine={};var t=now(),nid=id||("m"+t.toString(36)+Math.random().toString(36).slice(2,6));
+    var old=state.mine[nid]||{};
+    state.mine[nid]={id:nid,part:document.getElementById("mpart").value,q:q,acr:document.getElementById("macr").value.trim(),a:a,note:document.getElementById("mnote").value.trim(),t:old.t||t,u:t};
+    buildCards();mineEdit=null;openRow=id?nid:openRow;scheduleSave();toast(id?"내 카드를 고쳤어요":"내 카드를 만들었어요 · 다음 새 카드로 먼저 나와요");render();};
+}
+function mineDelete(id){var m=state.mine&&state.mine[id];if(!m)return;state.mine[id]={id:id,del:true,t:m.t,u:now()};delete state.custom[id];buildCards();if(current&&current.row.id===id)current=null;scheduleSave();}
 function renderStats(){
   var t=now(),end=dayEnd(t),learned=0,mature=0,total=0,fc=[];
   for(var i=0;i<14;i++)fc.push(0);
@@ -676,7 +713,7 @@ function renderSettings(){
   '<section class="panel"><h2>기록 백업</h2><p class="muted" style="margin-top:0">'+(docRef?"기록은 계정에 저장돼서 다른 기기에서 열어도 이어져요. 혹시 몰라 파일로도 받아둘 수 있어요.":"지금은 이 기기에만 저장돼요. 기기를 바꾸기 전에 로그인하거나 백업 파일을 받아 두세요.")+" Claude 버전에서 받은 백업 파일과 복습 기록 파일도 여기서 불러올 수 있어요."+'</p><div class="row"><button class="btn" id="exp">'+(downloads?"백업 파일 받기":"백업 내용 보기")+'</button><label class="btn" for="imp" style="display:inline-flex;align-items:center">백업 불러오기<input type="file" id="imp" accept="application/json,.json" multiple hidden></label></div><textarea id="expbox" hidden readonly aria-label="백업 내용"></textarea></section>'+
   '<section class="panel"><h2>복습 간격 맞춤화</h2><p class="muted" style="margin-top:0">지금은 '+(s.w?'내 기록으로 최적화한 값':'FSRS-5 기본값(수많은 사용자 기록으로 학습된 값)')+'으로 간격을 정해요. 평가할 때마다 기록이 쌓이고, 1,000회쯤 모이면 이 기록으로 나에게 맞춘 값을 계산할 수 있어요.</p><div class="row"><button class="btn" id="logexp">복습 기록 받기</button><span class="muted" id="logcount"></span></div></section>'+
   '<section class="panel"><h2>원리</h2><p class="muted" style="margin:0">잊어버릴 즈음 다시 보면 기억이 더 오래가요(간격 효과, 에빙하우스 망각곡선). 답을 보기 전에 먼저 떠올리는 연습이 다시 읽기보다 오래 남아요(인출 연습, Roediger·Karpicke 2006). 다음 복습일은 FSRS-5 알고리즘이 카드마다 안정도와 난이도를 추정해 정해요. 오늘 복습 카드는 편과 단원을 섞어서 보여줘요.</p></section>'+
-  '<section class="panel"><h2>처음부터 다시</h2><p class="muted" style="margin-top:0">모든 카드의 복습 기록을 지워요. 내 두문자·메모와 보류 설정은 남아요. 되돌릴 수 없어요.</p><button class="btn danger" id="reset">'+(resetArm?"한 번 더 누르면 지워요":"기록 지우기")+'</button></section>';
+  '<section class="panel"><h2>처음부터 다시</h2><p class="muted" style="margin-top:0">모든 카드의 복습 기록을 지워요. 내 카드, 내 두문자·메모, 보류 설정은 남아요. 되돌릴 수 없어요.</p><button class="btn danger" id="reset">'+(resetArm?"한 번 더 누르면 지워요":"기록 지우기")+'</button></section>';
   var si=document.getElementById("signin");if(si)si.onclick=function(){if(AUTH.signIn)AUTH.signIn();};
   main.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){setTheme(b.dataset.th);render();};});
   main.querySelectorAll(".seg [data-m]").forEach(function(b){b.onclick=function(){keepEmail();authMode=b.dataset.m;AUTH.error="";render();};});
@@ -714,8 +751,8 @@ function renderSettings(){
   function showBox(text){var b=document.getElementById("expbox");b.hidden=false;b.value=text;b.focus();b.select();toast("내용을 복사해 메모 등에 붙여 두세요");}
   document.getElementById("imp").onchange=function(e){Array.from(e.target.files||[]).forEach(function(f){var rd=new FileReader();rd.onload=function(){try{var o=JSON.parse(rd.result);
       if(o&&o.kind==="revlog"&&o.logs){var n=0;Object.keys(o.logs).forEach(function(mk){if(!/^\d{4}-\d{2}$/.test(mk)||!Array.isArray(o.logs[mk]))return;LOG[mk]=mergeLog(LOG[mk]||loadLogLocal(mk),o.logs[mk]);n+=o.logs[mk].length;saveLog(mk);});toast("복습 기록 "+n+"회를 불러왔어요");render();return;}
-      if(!o||o.v!==1||!o.cards)throw 0;o.updatedAt=now();o.base=now();o.meta={};state=o;settings();resetSession();scheduleSave();toast("백업을 불러왔어요");render();}catch(err){toast("이 앱의 백업 파일이 아니에요");}};rd.readAsText(f);});e.target.value="";};
-  document.getElementById("reset").onclick=function(){if(!resetArm){resetArm=true;render();setTimeout(function(){resetArm=false;if(view==="set")render();},4000);return;}resetArm=false;var keep=state.settings;state={v:1,base:now(),settings:keep,cards:{},daily:{},hist:{},custom:state.custom||{},susp:state.susp||{},meta:{cu:(state.meta||{}).cu||{},su:(state.meta||{}).su||{}},updatedAt:0};resetSession();scheduleSave();toast("기록을 지웠어요");render();};
+      if(!o||o.v!==1||!o.cards)throw 0;o.updatedAt=now();o.base=now();o.meta={};state=o;buildCards();settings();resetSession();scheduleSave();toast("백업을 불러왔어요");render();}catch(err){toast("이 앱의 백업 파일이 아니에요");}};rd.readAsText(f);});e.target.value="";};
+  document.getElementById("reset").onclick=function(){if(!resetArm){resetArm=true;render();setTimeout(function(){resetArm=false;if(view==="set")render();},4000);return;}resetArm=false;var keep=state.settings;state={v:1,base:now(),settings:keep,cards:{},daily:{},hist:{},custom:state.custom||{},susp:state.susp||{},mine:state.mine||{},meta:{cu:(state.meta||{}).cu||{},su:(state.meta||{}).su||{}},updatedAt:0};resetSession();scheduleSave();toast("기록을 지웠어요");render();};
 }
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){view=b.dataset.v;render();window.scrollTo(0,0);};});
 /* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
