@@ -763,7 +763,7 @@ function renderSettings(){
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){view=b.dataset.v;render();window.scrollTo(0,0);};});
 /* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
 var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];}catch(e){EX=[];}
-var exSess=null, EX_N=10, EXNAME={case:"미니 사례",bar:"변시형 사례",pair:"헷갈리는 쌍"};
+var exSess=null, EX_N=10, EXNAME={case:"미니 사례",bar:"변시형 사례",pair:"기간·숫자, 헷갈리는 개념"};
 function exState(){if(!state.ex)state.ex={};return state.ex;}
 function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
 function exOpen(x){return !!settings().exAll||x.rel.some(rowStarted);}
@@ -802,9 +802,9 @@ function renderEx(){
     }
     var x=null;for(var i=0;i<EX.length;i++)if(EX[i].id===p.queue[0])x=EX[i];
     var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||""):"";}).filter(Boolean);
-    var front='<div class="meta"><span class="tag dir">'+(x.kind!=="pair"?"사례 → 쟁점·결론":"비교")+'</span><span class="tag">'+esc(x.part.replace(/^제\d편 /,""))+'</span></div>'+
+    var front='<div class="meta"><span class="tag dir">'+(x.kind!=="pair"?"사례 → 쟁점·결론":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span><span class="tag">'+esc(x.part.replace(/^제\d편 /,""))+'</span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
-      '<div class="exq">'+esc(x.q).replace(/\n/g,"<br>")+'</div><div class="ask">'+(x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.')+'</div>';
+      '<div class="exq">'+esc(x.q).replace(/\n/g,"<br>")+'</div><div class="ask">'+(x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
     var back=p.shown?'<div class="exa">'+(x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div></div>':'';
     var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">스페이스바로도 열 수 있어요</div>'
       :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>쟁점을 놓쳤거나 결론이 달라요</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>쟁점과 결론 모두</small></button></div><div class="hint">키보드 1 · 2</div>';
@@ -826,7 +826,7 @@ function renderEx(){
   main.innerHTML='<section class="panel"><h2>연습문제</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","미니 사례","짧은 사실관계를 읽고 쟁점을 찾아 결론까지 내 보는 문제예요.")+
     box("bar","변시형 사례","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 따져 보는, 변시 사례형 느낌의 문제예요.")+
-    box("pair","헷갈리는 쌍","비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
+    box("pair","기간·숫자, 헷갈리는 개념","제척기간·시효·최단기간 같은 숫자 모음과, 비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>';
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
