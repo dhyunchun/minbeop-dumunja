@@ -63,6 +63,9 @@ main{padding-top:16px}
 .tag.leech{background:var(--again);color:var(--sheet);font-weight:600}
 .burden{font-size:.86rem;padding:8px 10px;border-radius:8px;background:var(--paper);color:var(--ink-2)}
 .burden b{color:var(--ink);margin-right:4px}
+.exam{font-size:.82rem;margin-top:6px;color:var(--ink-2)}
+.exam b{color:var(--seal);margin-right:4px}
+.tag.exam{color:var(--seal);font-weight:600;border:1px solid color-mix(in srgb,var(--seal) 40%,transparent);background:transparent}
 .exq{font-size:1.05rem;line-height:1.7;margin:4px 0 10px}
 .exa{border-top:1px dashed var(--rule);padding-top:14px;line-height:1.7;font-size:.95rem}
 .exa b{color:var(--accent)}
@@ -457,8 +460,10 @@ function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
 function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?(r.mine&&!dispAcr(r)?"질문 → 답":r.q?"쟁점 → 결론":"주제 → 두문자"):"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
-  if(r.sub)h+='<span class="tag">'+esc(r.sub.replace(/^판례 두문자 — /,"판례 · ").replace(/ \(표준판례\)$/,"").replace(/^보충 단원 — /,"보충 · "))+'</span>';
-  r.tags.forEach(function(t){h+='<span class="tag'+(t==="전합"?" jh":"")+'">'+esc(t==="전합"?"전원합의체":t)+'</span>';});return h;}
+  if(r.exam)h+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'회">변시 '+examCount(r)+'회</span>';
+  if(r.sub)h+='<span class="tag">'+esc(r.sub.replace(/^판례 두문자 — /,"판례 · ").replace(/^변시 기출 — /,"기출 · ").replace(/ \(표준판례\)$/,"").replace(/^보충 단원 — /,"보충 · "))+'</span>';
+  r.tags.forEach(function(t){if(t==="기출")return;h+='<span class="tag'+(t==="전합"?" jh":"")+'">'+esc(t==="전합"?"전원합의체":t)+'</span>';});return h;}
+function examCount(r){return (String(r.exam||"").match(/\d+/g)||[]).length;}
 var toastT=null;function toast(t){var el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},1800);}
 
 /* ---------- views ---------- */
@@ -511,7 +516,7 @@ function faceHtml(c,isRevealed,tools){
     front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.mine?'내용을':r.tags.indexOf("판례")>=0?'판례 법리를':'요건·효과를')+' 떠올려 보세요.</div>';
   }
   if(isRevealed){
-    back='<div class="answer">'+(c.dir==="g"&&acr?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
+    back='<div class="answer">'+(c.dir==="g"&&acr?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
     if(tools&&isLeech(c.id)&&!cu.acr&&!cu.memo&&!editing)back+='<div class="leechtip">자주 잊는 카드예요. 나만의 두문자나 연상 메모를 붙이면 훨씬 잘 붙어요. <button class="link" id="edit2">지금 만들기</button></div>';
     if(tools)back+='<div class="tools"><button class="link" id="edit">내 두문자·메모</button><button class="link" id="susp">이 카드 보류</button></div>'+(editing?editForm(r):'');
   }
@@ -596,7 +601,7 @@ function rate(g){
 var filterText="",filterPart="";
 function stateLabel(id){var s=cs(id);if(!s||s.st==="new")return "새 카드";if(s.st!=="review")return "다시 보는 중";var d=Math.round((s.due-dayEnd(now())+DAY)/DAY);return d<=0?"오늘 복습":d+"일 뒤";}
 function renderCards(){
-  var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
+  var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option><option value="__exam"'+(filterPart==="__exam"?' selected':'')+'>변시 사례·기록 기출만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
   main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><button class="btn primary" id="mnew">+ 내 카드</button></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
   var q=document.getElementById("q"),fp=document.getElementById("fp");
   q.oninput=function(){filterText=q.value;drawList();};fp.onchange=function(){filterPart=fp.value;drawList();};
@@ -606,10 +611,11 @@ function renderCards(){
 }
 function drawList(){
   var t=filterText.trim(), list=document.getElementById("list");
-  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
+  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart==="__exam"){if(!r.exam)return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
+  if(filterPart==="__exam")rows.sort(function(a,b){return examCount(b)-examCount(a);});
   list.innerHTML=rows.length?rows.map(function(r){
     var cu=custom(r),sus=!!state.susp[r.id];
-    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':(r.mine&&!r.acr)?stateLabel(r.id+"-g"):'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
+    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':(r.mine&&!r.acr)?stateLabel(r.id+"-g"):'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
       '<div class="tools">'+(r.mine?'<button class="link" data-act="medit">수정</button><button class="link" data-act="mdel">'+(mineDelArm===r.id?'한 번 더 누르면 삭제':'삭제')+'</button>':'<button class="link" data-act="edit">내 두문자·메모</button>')+'<button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+(r.mine&&mineEdit===r.id?mineForm(r.id):'')+'</div></details>';
   }).join(""):'<p class="muted">찾는 카드가 없어요. 검색어를 줄여 보세요.</p>';
   list.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(){
