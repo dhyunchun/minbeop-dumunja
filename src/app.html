@@ -650,10 +650,10 @@ function drawList(){
     if(openRow){var orow=rowById(openRow);if(orow)openG[orow.part+"|"+groupName(orow)]=1;}
     gs.forEach(function(g){
       if(g.part!==lastPart){lastPart=g.part;var pr=rows.filter(function(r){return r.part===g.part;}),ps=pr.filter(function(r){return rowStarted(r.id);}).length;html+=(html?'</div>':'')+'<h3 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+ps+' / '+pr.length+' 시작</span></h3><div class="glist">';}
-      var st=g.rows.filter(function(r){return rowStarted(r.id);}).length,due=0,lc=0;
+      var st=g.rows.filter(function(r){return rowStarted(r.id);}).length,due=0,lc=0,ex=g.rows.filter(function(r){return r.unit;}).length;
       g.rows.forEach(function(r){["-g","-n"].forEach(function(d){var c=cs(r.id+d);if(c&&c.st!=="new"&&c.due<=dayEnd(now()))due++;if(isLeech(r.id+d))lc++;});});
       var key=g.part+"|"+g.name;
-      html+='<details class="grp" data-g="'+esc(key)+'"'+(openG[key]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+st+'/'+g.rows.length+(due?' · 오늘 '+due:'')+(lc?' · <span style="color:var(--again)">잊음 '+lc+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(st/g.rows.length*100)+'%"></i></span></summary><div class="list">'+g.rows.map(itemHtml).join("")+'</div></details>';
+      html+='<details class="grp" data-g="'+esc(key)+'"'+(openG[key]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+(ex?'기출판례 '+ex+' · ':'')+st+'/'+g.rows.length+(due?' · 오늘 '+due:'')+(lc?' · <span style="color:var(--again)">잊음 '+lc+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(st/g.rows.length*100)+'%"></i></span></summary><div class="list">'+g.rows.map(itemHtml).join("")+'</div></details>';
     });
     list.innerHTML=html+'</div>';
     list.querySelectorAll("details.grp").forEach(function(d){d.ontoggle=function(){var o=openGroups();if(d.open)o[d.dataset.g]=1;else delete o[d.dataset.g];saveOpenGroups(o);};});
@@ -669,7 +669,7 @@ function drawList(){
   if(openRow&&editing){var row=ROWS.filter(function(x){return x.id===openRow;})[0];bindEditForm(row,function(){drawList();});}
 }
 var openRow=null, mineEdit=null, mineDelArm=null;
-function groupName(r){var s=r.sub||"";if(r.mine)return "내 카드";if(/^판례 두문자/.test(s))return "표준판례";if(/^변시 기출/.test(s))return "변시 기출";if(/^사례 목차/.test(s))return "사례 답안 목차";return s.replace(/^보충 단원 — /,"보충 · ");}
+function groupName(r){var s=r.sub||"";if(r.mine)return "내 카드";if(r.unit)return r.unit;if(/^판례 두문자/.test(s))return "표준판례";if(/^변시 기출/.test(s))return "변시 기출";if(/^사례 목차/.test(s))return "사례 답안 목차";return s.replace(/^보충 단원 — /,"보충 · ");}
 var OG_KEY="minbeop-open-groups";
 function openGroups(){try{var o=JSON.parse(localStorage.getItem(OG_KEY)||"{}");return o&&typeof o==="object"?o:{};}catch(e){return {};}}
 function saveOpenGroups(o){try{localStorage.setItem(OG_KEY,JSON.stringify(o));}catch(e){}}
