@@ -56,8 +56,12 @@ main{padding-top:16px}
 .count b{font-variant-numeric:tabular-nums;font-size:1rem;color:var(--ink)}
 .count.new b{color:var(--easy)} .count.learn b{color:var(--again)} .count.rev b{color:var(--good)}
 .card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:22px 20px;min-height:280px;display:flex;flex-direction:column;gap:14px}
-.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.75rem;color:var(--ink-2)}
-.tag{padding:2px 8px;border-radius:999px;background:var(--chip);letter-spacing:.02em}
+.meta{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--ink-2)}
+.meta .crumb{display:flex;align-items:center;gap:5px;min-width:0}
+.meta .sep{opacity:.55}
+.meta .badges{display:flex;gap:6px;margin-left:auto;align-items:center}
+.exq .qm{display:block;margin-top:10px;font-weight:600;color:var(--accent)}
+.tag{padding:2px 8px;border-radius:999px;background:var(--chip);letter-spacing:.02em;border:1px solid transparent;line-height:1.5}
 .tag.dir{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .tag.jh{color:var(--seal);font-weight:600}
 .tag.leech{background:var(--again);color:var(--sheet);font-weight:600}
@@ -476,10 +480,12 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&am
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
-function tagsHtml(c){var r=c.row,h=(isLeech(c.id)?'<span class="tag leech">자꾸 잊는 카드</span>':'')+'<span class="tag dir">'+(c.dir==="g"?(r.mine&&!dispAcr(r)?"질문 → 답":r.tags.indexOf("목차")>=0?"답안 목차":r.q?"쟁점 → 결론":"주제 → 두문자"):"두문자 → 뜻")+'</span><span class="tag">'+esc(r.part.replace(/^제\d편 /,""))+'</span>';
-  if(r.exam)h+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'회">변시 '+examCount(r)+'회</span>';
-  if(r.sub)h+='<span class="tag">'+esc(r.sub.replace(/^판례 두문자 — /,"판례 · ").replace(/^변시 기출 — /,"기출 · ").replace(/ \(표준판례\)$/,"").replace(/^보충 단원 — /,"보충 · "))+'</span>';
-  r.tags.forEach(function(t){if(t==="기출")return;h+='<span class="tag'+(t==="전합"?" jh":"")+'">'+esc(t==="전합"?"전원합의체":t)+'</span>';});return h;}
+function tagsHtml(c){ // 위치(편 › 단원)는 글자로, 표시는 판례·기출·잊음만
+  var r=c.row,crumb=r.mine?"내 카드":esc(r.part.replace(/^제\d편 /,""))+(r.unit?'<span class="sep">›</span>'+esc(r.unit):""),b="";
+  if(isLeech(c.id))b+='<span class="tag leech">자꾸 잊음</span>';
+  if(r.tags.indexOf("전합")>=0)b+='<span class="tag jh">전합</span>';else if(r.tags.indexOf("판례")>=0)b+='<span class="tag">판례</span>';
+  if(r.exam)b+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'">변시 '+examCount(r)+'회</span>';
+  return '<span class="crumb">'+crumb+'</span>'+(b?'<span class="badges">'+b+'</span>':"");}
 function examCount(r){return (String(r.exam||"").match(/\d+/g)||[]).length;}
 var toastT=null;function toast(t){var el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},1800);}
 
@@ -569,7 +575,7 @@ function renderPractice(){
   var c=BYID[p.queue[0]],f=faceHtml(c,revealed,false);
   var acts=!revealed?'<button class="reveal" id="reveal">정답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
     :'<div class="rates two"><button class="rate r1" id="p-again"><span>다시 볼게요</span><small>몇 장 뒤에 다시</small></button><button class="rate r3" id="p-ok"><span>기억났어요</span><small>이번 연습에서 빼기</small></button></div><div class="hint">키보드 1 · 2</div>';
-  main.innerHTML=bar+'<article class="card" aria-live="polite"><div class="meta"><span class="tag">연습</span>'+tagsHtml(c)+'</div>'+f.front+f.back+'</article><div class="actions">'+acts+'</div>';
+  main.innerHTML=bar+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+f.front+f.back+'</article><div class="actions">'+acts+'</div>';
   document.getElementById("pq").onclick=function(){practice=null;revealed=false;render();};
   var rv=document.getElementById("reveal");if(rv)rv.onclick=function(){revealed=true;render();};
   var a=document.getElementById("p-again");if(a)a.onclick=function(){practiceAnswer(false);};
@@ -811,7 +817,7 @@ function renderSettings(){
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){view=b.dataset.v;render();window.scrollTo(0,0);};});
 /* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
 var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];}catch(e){EX=[];}
-var exSess=null, EX_N=10, EXNAME={case:"미니 사례",bar:"변시형 사례",toc:"사례 답안 목차",pair:"기간·숫자, 헷갈리는 개념"};
+var exSess=null, EX_N=10, EXNAME={case:"사례 문제",pair:"기간·숫자, 헷갈리는 개념"};
 function exState(){if(!state.ex)state.ex={};return state.ex;}
 function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
 function exOpen(x){return x.kind==="toc"||!!settings().exAll||x.rel.some(rowStarted);}
@@ -850,9 +856,9 @@ function renderEx(){
     }
     var x=null;for(var i=0;i<EX.length;i++)if(EX[i].id===p.queue[0])x=EX[i];
     var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||""):"";}).filter(Boolean);
-    var front='<div class="meta"><span class="tag dir">'+(x.kind==="toc"?"답안 목차":x.kind!=="pair"?"사례 → 쟁점·결론":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span><span class="tag">'+esc(x.part.replace(/^제\d편 /,""))+'</span></div>'+
+    var front='<div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'</span><span class="badges"><span class="tag">'+(x.kind!=="pair"?"사례":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span></span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
-      '<div class="exq">'+esc(x.q).replace(/\n/g,"<br>")+'</div><div class="ask">'+(x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요. <span class="muted">(두문자 '+letters(x.acr)+'글자)</span>':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
+      '<div class="exq">'+esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) ')+'</div><div class="ask">'+(x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요. <span class="muted">(두문자 '+letters(x.acr)+'글자)</span>':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
     var back=p.shown?'<div class="exa">'+(x.kind==="toc"?'<div class="acr" style="margin-bottom:6px">'+esc(x.acr)+'</div>':x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div></div>':'';
     var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
       :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>'+(x.kind==="toc"?'빠뜨렸거나 순서가 달라요':'쟁점을 놓쳤거나 결론이 달라요')+'</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>'+(x.kind==="toc"?'목차를 모두':'쟁점과 결론 모두')+'</small></button></div><div class="hint">키보드 1 · 2</div>';
@@ -872,9 +878,7 @@ function renderEx(){
       (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div></div>';
   }
   main.innerHTML='<section class="panel"><h2>연습문제</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
-    box("case","미니 사례","짧은 사실관계를 읽고 쟁점을 찾아 결론까지 내 보는 문제예요.")+
-    box("toc","사례 답안 목차","소유권에 기한 인도청구, 사해행위취소처럼 자주 나오는 청구 유형의 청구원인·항변·재항변 순서를 떠올리는 문제예요. 사례를 풀기 전 뼈대 연습으로 좋아요.")+
-    box("bar","변시형 사례","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 따져 보는, 변시 사례형 느낌의 문제예요.")+
+    box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
     box("pair","기간·숫자, 헷갈리는 개념","제척기간·시효·최단기간 같은 숫자 모음과, 비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>';
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});

@@ -8,7 +8,7 @@
 | 경로 | 내용 |
 | --- | --- |
 | `src/cards.json` | 카드 데이터(두문자·뜻·설명·근거, 판례 카드의 쟁점 질문 `q`, 증명책임 `burden`). 카드 `id`는 복습 기록과 연결되므로 바꾸지 않습니다. |
-| `src/practice.json` | 연습 탭의 미니 사례(`case`)·변시형 사례(`bar`)·기간·숫자와 헷갈리는 개념(`pair`, 제목이 `[기간]`·`[숫자]`로 시작하면 숫자 문제). `rel`은 관련 두문자 줄 id |
+| `src/practice.json` | 연습 탭의 사례 문제(`case`)·기간·숫자와 헷갈리는 개념(`pair`, 제목이 `[기간]`·`[숫자]`로 시작하면 숫자 문제). `rel`은 관련 두문자 줄 id |
 | `src/app.html` | 앱 화면과 학습 로직. 빌드할 때 `__DATA__` 자리에 카드 데이터가 들어갑니다. |
 | `src/firebase.js` | 이메일·Google 로그인과 Firestore 저장 연결 |
 | `static/` | 앱 설치 정보(manifest), 아이콘, 오프라인용 service worker |
