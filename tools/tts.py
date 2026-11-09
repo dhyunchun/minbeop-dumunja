@@ -3,7 +3,10 @@
 - 앱(src/app.html 의 speakText)이 읽는 것과 똑같은 문장을 만들어, 문장의 해시를 이름으로 static/audio/<해시>.mp3 에 저장한다.
 - 이미 있는 파일은 다시 만들지 않는다(카드 문구를 고친 부분만 새로 만든다). 더 이상 쓰지 않는 파일은 지운다.
 - 목소리를 바꾸면 전부 새로 만든다.
-환경변수: GOOGLE_TTS_KEY(필수, API 키), TTS_VOICE(선택, 기본 ko-KR-Chirp3-HD-Kore)
+환경변수: GOOGLE_TTS_KEY(필수, API 키)
+  TTS_MODEL(선택, 기본 gemini-2.5-flash-lite-preview-tts. "chirp"로 주면 Chirp 3 HD 사용)
+  TTS_VOICE(선택, 기본 Gemini는 Aoede, Chirp는 ko-KR-Chirp3-HD-Kore)
+  TTS_PROMPT(선택, Gemini에만 쓰는 말투 지시)
 사용법: python3 tools/tts.py [--dry]
 """
 import base64, json, os, re, sys, time, urllib.request, urllib.error
@@ -11,7 +14,12 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 outdir = root / "static" / "audio"
-VOICE = os.environ.get("TTS_VOICE") or "ko-KR-Chirp3-HD-Kore"
+MODEL = os.environ.get("TTS_MODEL") or "gemini-2.5-flash-lite-preview-tts"
+if MODEL.lower() == "chirp":
+    MODEL = ""
+VOICE = os.environ.get("TTS_VOICE") or ("Aoede" if MODEL else "ko-KR-Chirp3-HD-Kore")
+PROMPT = (os.environ.get("TTS_PROMPT") or "법학 공부용 암기 카드를 읽어 줍니다. 차분하고 또박또박한 강의 말투로, 군더더기 없이 적힌 글자 그대로 읽어 주세요.") if MODEL else ""
+SIG = "|".join([MODEL, VOICE, PROMPT])
 
 
 def t_hash(t: str) -> str:
@@ -38,11 +46,13 @@ def speak_texts(r):
 
 
 def synth(text, key):
-    body = json.dumps({
-        "input": {"text": text},
-        "voice": {"languageCode": "ko-KR", "name": VOICE},
-        "audioConfig": {"audioEncoding": "MP3"},
-    }).encode()
+    inp = {"text": text}
+    voice = {"languageCode": "ko-KR", "name": VOICE}
+    if MODEL:
+        voice["modelName"] = MODEL
+        if PROMPT:
+            inp["prompt"] = PROMPT
+    body = json.dumps({"input": inp, "voice": voice, "audioConfig": {"audioEncoding": "MP3"}}).encode()
     req = urllib.request.Request(
         "https://texttospeech.googleapis.com/v1/text:synthesize?key=" + key,
         data=body, headers={"Content-Type": "application/json"})
@@ -68,10 +78,10 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     man_p = outdir / "manifest.json"
     man = json.loads(man_p.read_text(encoding="utf-8")) if man_p.exists() else {}
-    same_voice = man.get("voice") == VOICE
+    same_voice = man.get("sig", man.get("voice")) == SIG
     todo = [h for h in want if not (same_voice and (outdir / f"{h}.mp3").exists())]
     chars = sum(len(want[h]) for h in todo)
-    print(f"문장 {len(want)}개, 새로 만들 것 {len(todo)}개 ({chars}글자), 목소리 {VOICE}")
+    print(f"문장 {len(want)}개, 새로 만들 것 {len(todo)}개 ({chars}글자), 모델 {MODEL or 'Chirp 3 HD'}, 목소리 {VOICE}")
     if dry:
         return
     key = os.environ.get("GOOGLE_TTS_KEY")
@@ -84,7 +94,7 @@ def main():
     for f in outdir.glob("*.mp3"):
         if f.stem not in want:
             f.unlink()
-    man_p.write_text(json.dumps({"voice": VOICE, "files": sorted(want)}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+    man_p.write_text(json.dumps({"sig": SIG, "files": sorted(want)}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
     print("완료")
 
 
