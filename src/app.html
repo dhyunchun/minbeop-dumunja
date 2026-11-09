@@ -82,6 +82,7 @@ main{padding-top:16px}
 .tag{padding:2px 8px;border-radius:999px;background:var(--chip);letter-spacing:.02em;border:1px solid transparent;line-height:1.5}
 .tag.dir{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .tag.jh{color:var(--seal);font-weight:600}
+.improw{font-size:.85rem;padding:4px 0;border-bottom:1px solid var(--rule)}.improw.bad{opacity:.55}
 .tag.flag{color:var(--seal);font-weight:600;border:1px solid color-mix(in srgb,var(--seal) 40%,transparent);background:transparent}
 .fstar{font-style:normal;color:var(--seal);margin-right:4px}
 .tag.leech{background:var(--again);color:var(--sheet);font-weight:600}
@@ -672,11 +673,13 @@ var filterText="",filterPart="";
 function stateLabel(id){var s=cs(id);if(!s||s.st==="new")return "새 카드";if(s.st!=="review")return "다시 보는 중";var d=Math.round((s.due-dayEnd(now())+DAY)/DAY);return d<=0?"오늘 복습":d+"일 뒤";}
 function renderCards(){
   var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__flag"'+(filterPart==="__flag"?' selected':'')+'>★ 표시한 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option><option value="__exam"'+(filterPart==="__exam"?' selected':'')+'>변시 기출만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
-  main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><button class="btn primary" id="mnew">+ 내 카드</button></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
+  main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><span class="row" style="gap:6px"><button class="btn" id="mimp">여러 장 가져오기</button><button class="btn primary" id="mnew">+ 내 카드</button></span></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+(mineEdit==="import"?'<section class="panel">'+importForm()+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
   var q=document.getElementById("q"),fp=document.getElementById("fp");
   q.oninput=function(){filterText=q.value;drawList();};fp.onchange=function(){filterPart=fp.value;drawList();};
   document.getElementById("mnew").onclick=function(){mineEdit=mineEdit==="new"?null:"new";renderCards();var f=document.getElementById("mq");if(f)f.focus();};
+  document.getElementById("mimp").onclick=function(){mineEdit=mineEdit==="import"?null:"import";impRows=null;renderCards();var f=document.getElementById("imptext");if(f)f.focus();};
   if(mineEdit==="new")bindMineForm(null);
+  if(mineEdit==="import")bindImport();
   drawList();
 }
 function drawList(){
@@ -741,6 +744,53 @@ function bindMineForm(id){
     var old=state.mine[nid]||{};
     state.mine[nid]={id:nid,part:document.getElementById("mpart").value,q:q,acr:document.getElementById("macr").value.trim(),a:a,note:document.getElementById("mnote").value.trim(),t:old.t||t,u:t};
     buildCards();mineEdit=null;openRow=id?nid:openRow;scheduleSave();toast(id?"내 카드를 고쳤어요":"내 카드를 만들었어요 · 다음 새 카드로 먼저 나와요");render();};
+}
+/* ---------- 내 카드 여러 장 가져오기: 엑셀에서 복사한 표(탭) 또는 CSV ---------- */
+var impRows=null,impText="";
+function partOf(v,def){v=(v||"").replace(/\s/g,"");if(!v)return def;var al={"총칙":0,"민총":0,"민법총칙":0,"물권":1,"물권법":1,"채총":2,"채권총론":2,"채각":3,"채권각론":3};
+  for(var i=0;i<PARTS.length;i++){if(PARTS[i].replace(/\s/g,"")===v)return PARTS[i];}var k=v.replace(/^제\d편/,"");return k in al&&PARTS[al[k]]?PARTS[al[k]]:def;}
+function parseTable(t){
+  t=t.replace(/^\ufeff/,"").replace(/\r\n?/g,"\n");var tab=t.indexOf("\t")>=0,rows=[],row=[],cell="",q=false;
+  for(var i=0;i<t.length;i++){var ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=ch;continue;}
+    if(ch==='"'&&cell===""){q=true;continue;}
+    if(ch===(tab?"\t":",")){row.push(cell);cell="";continue;}
+    if(ch==="\n"){row.push(cell);rows.push(row);row=[];cell="";continue;}
+    cell+=ch;}
+  if(cell!==""||row.length){row.push(cell);rows.push(row);}
+  return rows.map(function(r){return r.map(function(c){return c.trim();});}).filter(function(r){return r.some(function(c){return c;});});
+}
+function readImport(t,def){
+  var rows=parseTable(t),cols={q:0,a:1,acr:2,note:3,part:4};
+  if(rows.length&&/질문|주제|앞면/.test(rows[0].join(" "))&&/답|뜻|뒷면/.test(rows[0].join(" "))){
+    var h=rows.shift(),find=function(re){for(var i=0;i<h.length;i++)if(re.test(h[i]))return i;return -1;};
+    cols={q:find(/질문|주제|앞면/),a:find(/답|뜻|뒷면/),acr:find(/두문자/),note:find(/메모|근거|노트/),part:find(/편/)};}
+  var have={};Object.keys(state.mine||{}).forEach(function(k){var m=state.mine[k];if(m&&!m.del)have[m.q]=1;});
+  return rows.map(function(r,i){var g=function(k){return cols[k]>=0&&r[cols[k]]!=null?r[cols[k]]:"";};
+    var x={q:g("q"),a:g("a"),acr:g("acr").slice(0,40),note:g("note"),part:partOf(g("part"),def),line:i+1};
+    x.err=!x.q||!x.a?"질문이나 답이 비어 있어요":have[x.q]?"이미 있는 내 카드예요":x.q.length>400||x.a.length>1000?"너무 길어요":"";return x;});
+}
+function importForm(){
+  var ok=impRows?impRows.filter(function(x){return !x.err;}):[],bad=impRows?impRows.filter(function(x){return x.err;}):[];
+  return '<form class="editf" id="impf"><h3 style="margin:0 0 4px;font-size:1rem">내 카드 여러 장 가져오기</h3>'+
+    '<p class="muted" style="margin:0 0 6px;font-size:.85rem">엑셀·구글 시트에서 칸을 복사해 붙여 넣거나 CSV 파일을 고르세요. 열 순서는 <b>질문 · 답 · 두문자 · 메모 · 편</b>이고 뒤의 셋은 비워도 돼요. 첫 줄에 「질문」「답」 같은 제목이 있으면 그 이름으로 열을 찾아요.</p>'+
+    '<label for="imptext">붙여 넣기</label><textarea id="imptext" rows="5" placeholder="무권대리 상대방이 철회한 뒤 본인이 추인할 수 있나?&#9;추인 불가&#9;철후추불&#9;판례">'+esc(impText)+'</textarea>'+
+    '<div class="row"><label class="btn" for="impfile" style="cursor:pointer">CSV 파일 고르기</label><input type="file" id="impfile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden>'+
+    '<span class="muted" style="font-size:.85rem">편을 안 적은 줄은</span><select id="imppart">'+PARTS.map(function(p){return '<option>'+esc(p)+'</option>';}).join("")+'</select></div>'+
+    (impRows?'<div class="impprev"><p style="margin:8px 0 4px"><b>'+ok.length+'장</b> 가져올 수 있어요'+(bad.length?' · <span class="warn">'+bad.length+'줄은 건너뛰어요</span>':'')+'</p>'+
+      impRows.slice(0,8).map(function(x){return '<div class="improw'+(x.err?' bad':'')+'"><b>'+esc(x.acr||"—")+'</b> '+esc(x.q.slice(0,60))+'<span class="muted"> · '+esc(x.part.replace(/^제\d편 /,""))+(x.err?' · '+esc(x.err):'')+'</span></div>';}).join("")+(impRows.length>8?'<div class="muted">… 외 '+(impRows.length-8)+'줄</div>':'')+'</div>':'')+
+    '<div class="row"><button class="btn" type="button" id="impcheck">미리 보기</button><button class="btn primary" type="submit"'+(ok.length?'':' disabled')+'>'+(ok.length?ok.length+'장 만들기':'만들기')+'</button><button class="btn" type="button" id="impclose">닫기</button></div></form>';
+}
+function bindImport(){
+  var ta=document.getElementById("imptext"),sel=document.getElementById("imppart");if(!ta)return;
+  function check(){impText=ta.value;impRows=impText.trim()?readImport(impText,sel.value):null;renderCards();}
+  document.getElementById("impcheck").onclick=check;
+  document.getElementById("impclose").onclick=function(){mineEdit=null;impRows=null;impText="";render();};
+  document.getElementById("impfile").onchange=function(e){var f=e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){ta.value=String(rd.result||"");check();};rd.readAsText(f,"utf-8");};
+  document.getElementById("impf").onsubmit=function(e){e.preventDefault();if(!impRows)return;
+    var ok=impRows.filter(function(x){return !x.err;});if(!ok.length)return;if(!state.mine)state.mine={};var t=now();
+    ok.forEach(function(x,i){var nid="m"+(t+i).toString(36)+Math.random().toString(36).slice(2,6);state.mine[nid]={id:nid,part:x.part,q:x.q,acr:x.acr,a:x.a,note:x.note,t:t+i,u:t+i};});
+    buildCards();mineEdit=null;impRows=null;impText="";scheduleSave();toast("내 카드 "+ok.length+"장을 만들었어요 · 새 카드로 먼저 나와요");render();};
 }
 function mineDelete(id){var m=state.mine&&state.mine[id];if(!m)return;state.mine[id]={id:id,del:true,t:m.t,u:now()};delete state.custom[id];buildCards();if(current&&current.row.id===id)current=null;scheduleSave();}
 function renderStats(){
