@@ -233,6 +233,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 
 <script type="application/json" id="cards-data">__DATA__</script>
 <script type="application/json" id="ex-data">__EXDATA__</script>
+<script type="application/json" id="audio-data">__AUDIO__</script>
 <script>
 (function(){
 "use strict";
@@ -951,6 +952,11 @@ function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join(
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
 /* ---------- 듣기 모드(시험판): 기기 음성으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
 var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7];
+/* 미리 만들어 둔 구글 음성(audio/<해시>.mp3). 읽을 문장의 해시가 목록에 있으면 그 파일을, 없으면 기기 음성을 쓴다. */
+var AUDIO=(function(){var m={};try{(JSON.parse(document.getElementById("audio-data").textContent).files||[]).forEach(function(h){m[h]=1;});}catch(e){}return m;})();
+var HAS_AUDIO=Object.keys(AUDIO).length>0,lsAudio=null;
+var SILENT="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+function tHash(t){var h=0x811c9dc5;for(var i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return ("0000000"+h.toString(16)).slice(-8);}
 function ttsOk(){return typeof window!=="undefined"&&"speechSynthesis" in window&&typeof SpeechSynthesisUtterance!=="undefined";}
 function koVoice(){if(!ttsOk())return null;var v=speechSynthesis.getVoices().filter(function(x){return /^ko/i.test(x.lang);});return v[0]||null;}
 function listenPool(mode){var dk=dayKey(now()),seen={};
@@ -964,16 +970,25 @@ function speakText(r,part){
   if(part==="acr"){var a=dispAcr(r);return a?"두문자는, "+a.replace(/[·\/]/g,", ").replace(/\s+/g," "):"";}
   return (r.mean||"").replace(/\*\*/g,"").replace(/\([^)]*\)/g,"").replace(/\s\/\s/g,". ").replace(/·/g,", ").replace(/→/g,"그래서").replace(/\s+/g," ").trim();}
 function listenPanel(){
-  if(!ttsOk())return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
+  if(!ttsOk()&&!HAS_AUDIO)return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
   var a=listenPool("learned").length,t=listenPool("today").length,f=listenPool("flag").length;
-  return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. 기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.</p>'+
+  return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. '+(HAS_AUDIO?'기본 카드는 구글 음성으로, 직접 만들거나 고친 카드는 기기 음성으로 읽어요.':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
     '<div class="row">'+(a?'<button class="btn primary" data-ls="learned">배운 카드 '+Math.min(20,a)+'장</button>':'')+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+(!a&&!t&&!f?'<span class="muted">카드를 배우면 들을 수 있어요</span>':'')+'</div></section>';}
 function bindListenPanel(){main.querySelectorAll("[data-ls]").forEach(function(b){b.onclick=function(){listenStart(b.dataset.ls);};});}
 function listenStart(mode){var rows=listenPool(mode);if(!rows.length)return;
-  listenSess={rows:rows,i:0,phase:"q",playing:true,rate:1,gap:1,mode:mode,timer:null};render();listenStep();}
-function listenStop(){if(!listenSess)return;clearTimeout(listenSess.timer);try{speechSynthesis.cancel();}catch(e){}}
-function listenSay(txt,cb){var L=listenSess;if(!txt){cb();return;}var u=new SpeechSynthesisUtterance(txt);u.lang="ko-KR";var v=koVoice();if(v)u.voice=v;u.rate=LS_RATE[L.rate];
-  u.onend=function(){if(listenSess===L&&L.playing)cb();};u.onerror=function(){if(listenSess===L&&L.playing)cb();};setTimeout(function(){if(listenSess===L&&L.playing)speechSynthesis.speak(u);},250);}
+  if(HAS_AUDIO){if(!lsAudio)lsAudio=new Audio();lsAudio.src=SILENT;try{var pp=lsAudio.play();if(pp&&pp.catch)pp.catch(function(){});}catch(e){}}
+  listenSess={rows:rows,i:0,phase:"q",playing:true,rate:1,gap:1,mode:mode,timer:null,tok:0};render();listenStep();}
+function listenStop(){if(!listenSess)return;listenSess.tok++;clearTimeout(listenSess.timer);if(lsAudio){try{lsAudio.pause();}catch(e){}}if(ttsOk()){try{speechSynthesis.cancel();}catch(e){}}}
+function listenSay(txt,cb){var L=listenSess;if(!txt){cb();return;}var tok=++L.tok;
+  function live(){return listenSess===L&&L.playing&&L.tok===tok;}
+  function done(){if(live())cb();}
+  function device(){if(!ttsOk()){done();return;}var u=new SpeechSynthesisUtterance(txt);u.lang="ko-KR";var v=koVoice();if(v)u.voice=v;u.rate=LS_RATE[L.rate];
+    u.onend=done;u.onerror=done;setTimeout(function(){if(live())speechSynthesis.speak(u);},250);}
+  var h=tHash(txt);
+  if(!AUDIO[h]||!lsAudio){device();return;}
+  lsAudio.onended=done;lsAudio.onerror=function(){if(live())device();};
+  lsAudio.src="audio/"+h+".mp3";lsAudio.playbackRate=LS_RATE[L.rate];
+  try{var pr=lsAudio.play();if(pr&&pr.catch)pr.catch(function(){if(live())device();});}catch(e){device();}}
 function listenStep(){var L=listenSess;if(!L||!L.playing)return;if(L.i>=L.rows.length){L.playing=false;L.done=true;render();return;}
   var r=L.rows[L.i];render();
   if(L.phase==="q")listenSay(speakText(r,"q"),function(){L.phase="wait";render();L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.phase="acr";listenStep();}},LS_GAP[L.gap]*1000);});

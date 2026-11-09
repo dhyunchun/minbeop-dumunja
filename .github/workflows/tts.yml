@@ -1,0 +1,56 @@
+name: Make listening audio (Google TTS)
+
+# 카드 문구가 바뀌면 바뀐 문장만 구글 음성으로 새로 만들고, 저장한 뒤 사이트를 다시 배포한다.
+# 저장소 Settings > Secrets and variables > Actions 에
+#   Secret  GOOGLE_TTS_KEY : 구글 Cloud Text-to-Speech API 키
+#   Variable TTS_VOICE      : (선택) 목소리 이름. 기본 ko-KR-Chirp3-HD-Kore
+on:
+  workflow_dispatch:
+    inputs:
+      voice:
+        description: "목소리 (비우면 TTS_VOICE 변수 또는 기본값)"
+        required: false
+  push:
+    branches: [main]
+    paths: ["src/cards.json", "tools/tts.py"]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: tts
+  cancel-in-progress: false
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check key
+        id: key
+        env:
+          K: ${{ secrets.GOOGLE_TTS_KEY }}
+        run: if [ -n "$K" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "GOOGLE_TTS_KEY 가 없어 건너뜀"; fi
+      - name: Synthesize
+        if: steps.key.outputs.ok == '1'
+        env:
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+          TTS_VOICE: ${{ inputs.voice || vars.TTS_VOICE }}
+        run: python3 tools/tts.py
+      - name: Commit and redeploy
+        if: steps.key.outputs.ok == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A static/audio
+          if git diff --cached --quiet; then echo "바뀐 음성 없음"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "듣기 모드 음성 갱신"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh workflow run pages.yml --ref main
