@@ -905,10 +905,10 @@ function renderEx(){
       (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">관련 두문자를 하나라도 배우면 열려요</span>')+
       (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div></div>';
   }
-  main.innerHTML=unitPanel()+'<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
+  main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
     box("pair","기간·숫자, 헷갈리는 개념","제척기간·시효·최단기간 같은 숫자 모음과, 비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
-    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>';
+    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
   document.getElementById("exall").onchange=function(e){settings().exAll=e.target.checked;scheduleSave();render();};
@@ -920,21 +920,20 @@ function unitIndex(){ // 편 → 단원 목록(카드 순서) + 단원별 문제
   var parts=[],pm={};
   ROWS.forEach(function(r){if(r.mine||!r.unit)return;if(!pm[r.part]){pm[r.part]={part:r.part,units:[],um:{}};parts.push(pm[r.part]);}
     var P=pm[r.part];if(!P.um[r.unit]){P.um[r.unit]={key:r.part+"|"+r.unit,name:r.unit,n:0,w:0,seen:0};P.units.push(P.um[r.unit]);}});
-  var S=exState(),kf=settings().exKf||"all";
+  var S=exState(),kf="all";
   EX.forEach(function(x){if(x.kind==="toc"||!exKindOk(x,kf))return;exUnitsOf(x).forEach(function(k){var i=k.indexOf("|"),P=pm[k.slice(0,i)];if(!P)return;var u=P.um[k.slice(i+1)];if(!u)return;u.n++;var st=S[x.id];if(st){u.seen++;if(st.r===0)u.w++;}});});
   return parts;
 }
 function unitPanel(){
-  var se=settings(),sel=(se.exUnits||[]).slice(),kf=se.exKf||"all",parts=unitIndex();
+  var se=settings(),sel=(se.exUnits||[]).slice(),kf="all",parts=unitIndex();
   var valid={};parts.forEach(function(P){P.units.forEach(function(u){if(u.n)valid[u.key]=u;});});
   sel=sel.filter(function(k){return valid[k];});
   if(unitOpenPart===null){unitOpenPart=sel.length?sel[0].split("|")[0]:parts[0].part;}
   var spec={units:sel,kf:kf},pool=sel.length?exPool(spec):[],wrong=sel.length?exPool(spec,true):[];
   var last=se.exLast&&se.exLast.units&&se.exLast.units.filter(function(k){return valid[k];});
-  var lastSame=last&&last.length&&last.join()===sel.join()&&(se.exLast.kf||"all")===kf;
+  var lastSame=last&&last.length&&last.join()===sel.join();
   var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">단원을 골라 그 단원 문제만 풀어요. 고른 단원은 다음에도 그대로 남아 있어요. 배우지 않은 두문자의 문제도 함께 나와요.</p>';
   if(last&&last.length&&!lastSame)h+='<button class="btn resume" id="uresume">↻ 지난번 단원 다시: '+esc(unitLabel(last))+'</button>';
-  h+='<div class="seg" role="group" aria-label="문제 종류">'+[["all","전체"],["case","사례"],["pair","기간·비교"]].map(function(o){return '<button data-kf="'+o[0]+'" aria-pressed="'+(kf===o[0])+'">'+o[1]+'</button>';}).join("")+'</div>';
   h+='<div class="ptabs" role="tablist">'+parts.map(function(P){var c=P.units.filter(function(u){return sel.indexOf(u.key)>=0;}).length;return '<button role="tab" data-up="'+esc(P.part)+'" aria-selected="'+(P.part===unitOpenPart)+'">'+esc(P.part.replace(/^제\d편 /,""))+(c?' <b>'+c+'</b>':'')+'</button>';}).join("")+'</div>';
   parts.forEach(function(P){if(P.part!==unitOpenPart)return;
     var us=P.units.filter(function(u){return u.n;}),allOn=us.length&&us.every(function(u){return sel.indexOf(u.key)>=0;});
@@ -951,11 +950,10 @@ function bindUnitPanel(){
   main.querySelectorAll("[data-uall]").forEach(function(b){b.onclick=function(){var P=b.dataset.uall,a=(se.exUnits||[]).filter(function(k){return k.split("|")[0]!==P;});
     if(b.getAttribute("aria-pressed")!=="true")unitIndex().forEach(function(x){if(x.part===P)x.units.forEach(function(u){if(u.n)a.push(u.key);});});setSel(a);};});
   main.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){unitOpenPart=b.dataset.up;render();};});
-  main.querySelectorAll("[data-kf]").forEach(function(b){b.onclick=function(){se.exKf=b.dataset.kf;scheduleSave();render();};});
   var c=document.getElementById("uclear");if(c)c.onclick=function(){setSel([]);};
-  var r=document.getElementById("uresume");if(r)r.onclick=function(){se.exUnits=se.exLast.units.slice();se.exKf=se.exLast.kf||"all";unitOpenPart=se.exUnits[0].split("|")[0];scheduleSave();render();};
-  var st=document.getElementById("ustart");if(st)st.onclick=function(){exStart({units:(se.exUnits||[]).slice(),kf:se.exKf||"all"},false);};
-  var w=document.getElementById("uwrong");if(w)w.onclick=function(){exStart({units:(se.exUnits||[]).slice(),kf:se.exKf||"all"},true);};
+  var r=document.getElementById("uresume");if(r)r.onclick=function(){se.exUnits=se.exLast.units.slice();unitOpenPart=se.exUnits[0].split("|")[0];scheduleSave();render();};
+  var st=document.getElementById("ustart");if(st)st.onclick=function(){exStart({units:(se.exUnits||[]).slice(),kf:"all"},false);};
+  var w=document.getElementById("uwrong");if(w)w.onclick=function(){exStart({units:(se.exUnits||[]).slice(),kf:"all"},true);};
 }
 document.addEventListener("keydown",function(e){
   if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT")return;
