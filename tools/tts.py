@@ -4,8 +4,8 @@
 - 이미 있는 파일은 다시 만들지 않는다(카드 문구를 고친 부분만 새로 만든다). 더 이상 쓰지 않는 파일은 지운다.
 - 목소리를 바꾸면 전부 새로 만든다.
 환경변수: GOOGLE_TTS_KEY(필수, API 키)
-  TTS_MODEL(선택, 기본 gemini-2.5-flash-lite-preview-tts. "chirp"로 주면 Chirp 3 HD 사용)
-  TTS_VOICE(선택, 기본 Gemini는 Aoede, Chirp는 ko-KR-Chirp3-HD-Kore)
+  TTS_MODEL(선택, 기본 chirp = Chirp 3 HD(무료 제공량 내). gemini-2.5-flash-lite-preview-tts 등 Gemini 모델 이름도 가능)
+  TTS_VOICE(선택, 기본 Chirp는 ko-KR-Chirp3-HD-Aoede, Gemini는 Aoede)
   TTS_PROMPT(선택, Gemini에만 쓰는 말투 지시)
 사용법: python3 tools/tts.py [--dry]
 """
@@ -14,10 +14,10 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 outdir = root / "static" / "audio"
-MODEL = os.environ.get("TTS_MODEL") or "gemini-2.5-flash-lite-preview-tts"
+MODEL = os.environ.get("TTS_MODEL") or "chirp"
 if MODEL.lower() == "chirp":
     MODEL = ""
-VOICE = os.environ.get("TTS_VOICE") or ("Aoede" if MODEL else "ko-KR-Chirp3-HD-Kore")
+VOICE = os.environ.get("TTS_VOICE") or ("Aoede" if MODEL else "ko-KR-Chirp3-HD-Aoede")
 PROMPT = (os.environ.get("TTS_PROMPT") or "법학 공부용 암기 카드를 읽어 줍니다. 차분하고 또박또박한 강의 말투로, 군더더기 없이 적힌 글자 그대로 읽어 주세요.") if MODEL else ""
 SIG = "|".join([MODEL, VOICE, PROMPT])
 

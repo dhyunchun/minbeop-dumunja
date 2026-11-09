@@ -3,16 +3,16 @@ name: Make listening audio (Google TTS)
 # 카드 문구가 바뀌면 바뀐 문장만 구글 음성으로 새로 만들고, 저장한 뒤 사이트를 다시 배포한다.
 # 저장소 Settings > Secrets and variables > Actions 에
 #   Secret  GOOGLE_TTS_KEY : 구글 Cloud Text-to-Speech API 키
-#   Variable TTS_MODEL/TTS_VOICE/TTS_PROMPT : (선택) 기본 gemini-2.5-flash-lite-preview-tts / Aoede / 차분한 강의 말투
-#   모델·목소리·말투를 바꾸면 전체를 새로 만든다. Chirp 3 HD로 돌아가려면 모델에 chirp 입력.
+#   Variable TTS_MODEL/TTS_VOICE/TTS_PROMPT : (선택) 기본 Chirp 3 HD / ko-KR-Chirp3-HD-Aoede
+#   모델·목소리·말투를 바꾸면 전체를 새로 만든다. Gemini를 쓰려면 모델에 gemini-2.5-flash-lite-preview-tts 입력(유료).
 on:
   workflow_dispatch:
     inputs:
       model:
-        description: "모델 (비우면 gemini-2.5-flash-lite-preview-tts, chirp = Chirp 3 HD)"
+        description: "모델 (비우면 Chirp 3 HD·무료 범위. Gemini는 gemini-2.5-flash-lite-preview-tts·유료)"
         required: false
       voice:
-        description: "목소리 (비우면 Gemini는 Aoede)"
+        description: "목소리 (비우면 ko-KR-Chirp3-HD-Aoede)"
         required: false
       prompt:
         description: "말투 지시 (Gemini만, 비우면 기본값)"
