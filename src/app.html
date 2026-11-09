@@ -83,6 +83,7 @@ main{padding-top:16px}
 .tag.dir{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .tag.jh{color:var(--seal);font-weight:600}
 .improw{font-size:.85rem;padding:4px 0;border-bottom:1px solid var(--rule)}.improw.bad{opacity:.55}
+.listenbar{display:flex;gap:10px;justify-content:center;margin-top:14px}
 .tag.flag{color:var(--seal);font-weight:600;border:1px solid color-mix(in srgb,var(--seal) 40%,transparent);background:transparent}
 .fstar{font-style:normal;color:var(--seal);margin-right:4px}
 .tag.leech{background:var(--again);color:var(--sheet);font-weight:600}
@@ -909,7 +910,7 @@ function renderSettings(){
       if(!o||o.v!==1||!o.cards)throw 0;o.updatedAt=now();o.base=now();o.meta={};state=o;buildCards();settings();resetSession();scheduleSave();toast("백업을 불러왔어요");render();}catch(err){toast("이 앱의 백업 파일이 아니에요");}};rd.readAsText(f);});e.target.value="";};
   document.getElementById("reset").onclick=function(){if(!resetArm){resetArm=true;render();setTimeout(function(){resetArm=false;if(view==="set")render();},4000);return;}resetArm=false;var keep=state.settings;state={v:1,base:now(),settings:keep,cards:{},daily:{},hist:{},custom:state.custom||{},susp:state.susp||{},mine:state.mine||{},meta:{cu:(state.meta||{}).cu||{},su:(state.meta||{}).su||{}},updatedAt:0};resetSession();scheduleSave();toast("기록을 지웠어요");render();};
 }
-document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){view=b.dataset.v;render();window.scrollTo(0,0);};});
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(listenSess){listenStop();listenSess=null;}view=b.dataset.v;render();window.scrollTo(0,0);};});
 /* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
 var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];}catch(e){EX=[];}
 // 사례·비교 문제가 없는 카드는 단원별 연습에 카드 문제로 자동 포함(카드가 바뀌면 함께 바뀜)
@@ -948,7 +949,55 @@ function exAnswer(ok){
 }
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
+/* ---------- 듣기 모드(시험판): 기기 음성으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
+var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7];
+function ttsOk(){return typeof window!=="undefined"&&"speechSynthesis" in window&&typeof SpeechSynthesisUtterance!=="undefined";}
+function koVoice(){if(!ttsOk())return null;var v=speechSynthesis.getVoices().filter(function(x){return /^ko/i.test(x.lang);});return v[0]||null;}
+function listenPool(mode){var dk=dayKey(now()),seen={};
+  var rows=CARDS.filter(function(c){if(!cardOn(c)||seen[c.row.id])return false;var s=cs(c.id);
+    var ok=mode==="flag"?isFlag(c.row.id):mode==="today"?!!(s&&s.last&&dayKey(s.last)===dk):(rowStarted(c.row.id));
+    if(ok)seen[c.row.id]=1;return ok;}).map(function(c){return c.row;});
+  for(var i=rows.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=rows[i];rows[i]=rows[j];rows[j]=t;}
+  return mode==="learned"?rows.slice(0,20):rows;}
+function speakText(r,part){
+  if(part==="q")return r.q||r.topic||(r.mine?"":"이 두문자의 뜻은?");
+  if(part==="acr"){var a=dispAcr(r);return a?a.replace(/[·\/]/g," ").replace(/\s+/g," "):"";}
+  return (r.mean||"").replace(/\*\*/g,"").replace(/\([^)]*\)/g,"").replace(/\s\/\s/g,". ").replace(/·/g,", ").replace(/→/g,"그래서").replace(/\s+/g," ").trim();}
+function listenPanel(){
+  if(!ttsOk())return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
+  var a=listenPool("learned").length,t=listenPool("today").length,f=listenPool("flag").length;
+  return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. 기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.</p>'+
+    '<div class="row">'+(a?'<button class="btn primary" data-ls="learned">배운 카드 '+Math.min(20,a)+'장</button>':'')+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+(!a&&!t&&!f?'<span class="muted">카드를 배우면 들을 수 있어요</span>':'')+'</div></section>';}
+function bindListenPanel(){main.querySelectorAll("[data-ls]").forEach(function(b){b.onclick=function(){listenStart(b.dataset.ls);};});}
+function listenStart(mode){var rows=listenPool(mode);if(!rows.length)return;
+  listenSess={rows:rows,i:0,phase:"q",playing:true,rate:1,gap:1,mode:mode,timer:null};render();listenStep();}
+function listenStop(){if(!listenSess)return;clearTimeout(listenSess.timer);try{speechSynthesis.cancel();}catch(e){}}
+function listenSay(txt,cb){var L=listenSess;if(!txt){cb();return;}var u=new SpeechSynthesisUtterance(txt);u.lang="ko-KR";var v=koVoice();if(v)u.voice=v;u.rate=LS_RATE[L.rate];
+  u.onend=function(){if(listenSess===L&&L.playing)cb();};u.onerror=function(){if(listenSess===L&&L.playing)cb();};speechSynthesis.speak(u);}
+function listenStep(){var L=listenSess;if(!L||!L.playing)return;if(L.i>=L.rows.length){L.playing=false;L.done=true;render();return;}
+  var r=L.rows[L.i];render();
+  if(L.phase==="q")listenSay(speakText(r,"q"),function(){L.phase="wait";render();L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.phase="acr";listenStep();}},LS_GAP[L.gap]*1000);});
+  else if(L.phase==="wait"){L.phase="acr";listenStep();}
+  else if(L.phase==="acr")listenSay(speakText(r,"acr"),function(){L.phase="mean";listenStep();});
+  else listenSay(speakText(r,"mean"),function(){L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.i++;L.phase="q";listenStep();}},1200);});}
+function renderListen(){var L=listenSess;
+  if(L.done){main.innerHTML='<div class="card"><div class="done"><h2>'+L.rows.length+'장을 다 들었어요</h2><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="lsagain">한 번 더</button><button class="btn" id="lsback">돌아가기</button></div></div></div>';
+    document.getElementById("lsagain").onclick=function(){listenStart(L.mode);};document.getElementById("lsback").onclick=function(){listenSess=null;render();};return;}
+  var r=L.rows[L.i],shown=L.phase==="acr"||L.phase==="mean";
+  main.innerHTML='<div class="undo"><span class="muted">듣기 모드 · '+(L.i+1)+' / '+L.rows.length+'</span><button class="link" id="lsq">그만 듣기</button></div>'+
+    '<article class="card"><div class="meta"><span class="crumb">'+esc((r.part||"").replace(/^제\d편 /,""))+(r.unit?'<span class="sep">›</span>'+esc(r.unit):"")+'</span></div>'+
+    '<div class="prompt">'+esc(speakText(r,"q"))+'</div>'+(L.phase==="wait"?'<div class="ask">떠올려 보세요…</div>':'')+
+    (shown?'<div class="answer"><div class="acr">'+esc(dispAcr(r))+'</div>'+(L.phase==="mean"?'<div class="mean">'+md(r.mean)+'</div>':'')+'</div>':'')+'</article>'+
+    '<div class="listenbar"><button class="btn" id="lsprev" aria-label="이전">⏮</button><button class="btn primary" id="lsplay">'+(L.playing?'⏸ 일시정지':'▶ 계속')+'</button><button class="btn" id="lsnext" aria-label="다음">⏭</button></div>'+
+    '<div class="row" style="justify-content:center;gap:16px;margin-top:10px;font-size:.85rem"><button class="link" id="lsrate">속도 '+["느리게","보통","빠르게"][L.rate]+'</button><button class="link" id="lsgap">생각할 시간 '+LS_GAP[L.gap]+'초</button></div>';
+  document.getElementById("lsq").onclick=function(){listenStop();listenSess=null;render();};
+  document.getElementById("lsplay").onclick=function(){if(L.playing){L.playing=false;listenStop();render();}else{L.playing=true;if(L.phase==="wait")L.phase="acr";listenStep();}};
+  document.getElementById("lsnext").onclick=function(){listenStop();L.i++;L.phase="q";L.playing=true;listenStep();};
+  document.getElementById("lsprev").onclick=function(){listenStop();L.i=Math.max(0,L.i-1);L.phase="q";L.playing=true;listenStep();};
+  document.getElementById("lsrate").onclick=function(){L.rate=(L.rate+1)%3;render();};
+  document.getElementById("lsgap").onclick=function(){L.gap=(L.gap+1)%3;render();};}
 function renderEx(){
+  if(listenSess){renderListen();return;}
   if(exSess){
     var p=exSess,label=typeof p.kind==="string"?(EXNAME[p.kind]||"연습"):"단원별 · "+unitLabel(p.kind.units);
     var pos=p.total-p.queue.length+(p.queue.length?1:0);
@@ -985,11 +1034,11 @@ function renderEx(){
   main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
     box("pair","기간·숫자, 헷갈리는 개념","제척기간·시효·최단기간 같은 숫자 모음과, 비슷한 두 제도의 요건·효과가 어디서 갈리는지 떠올리는 문제예요.")+
-    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel();
+    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
   document.getElementById("exall").onchange=function(e){settings().exAll=e.target.checked;scheduleSave();render();};
-  bindUnitPanel();
+  bindUnitPanel();bindListenPanel();
 }
 /* ---------- 단원별 연습: 고른 단원은 계정에 저장돼 다음에도 그대로 ---------- */
 var unitOpenPart=null;
