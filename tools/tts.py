@@ -1,6 +1,8 @@
 """듣기 모드용 음성 파일을 구글 Cloud Text-to-Speech로 미리 만든다.
 
-- 앱(src/app.html 의 speakText)이 읽는 것과 똑같은 문장을 만들어, 문장의 해시를 이름으로 static/audio/<해시>.mp3 에 저장한다.
+- 파일 이름은 '읽을 원문'(부분+원문)의 해시라서 앱(src/app.html 의 rawText·audioKey)과 맞춰야 한다.
+  발음 다듬기(쉼, 띄어 읽기)는 여기서만 하므로 바꿔도 앱은 그대로 두면 된다(대신 전체를 새로 만든다).
+- src/tts_extra.json 의 {"acr": [...]} 는 앱에서 직접 고친 두문자(이슈로 요청된 것)도 만든다.
 - 이미 있는 파일은 다시 만들지 않는다(카드 문구를 고친 부분만 새로 만든다). 더 이상 쓰지 않는 파일은 지운다.
 - 목소리를 바꾸면 전부 새로 만든다.
 환경변수: GOOGLE_TTS_KEY(필수, API 키)
@@ -19,7 +21,6 @@ if MODEL.lower() == "chirp":
     MODEL = ""
 VOICE = os.environ.get("TTS_VOICE") or ("Aoede" if MODEL else "ko-KR-Chirp3-HD-Aoede")
 PROMPT = (os.environ.get("TTS_PROMPT") or "법학 공부용 암기 카드를 읽어 줍니다. 차분하고 또박또박한 강의 말투로, 군더더기 없이 적힌 글자 그대로 읽어 주세요.") if MODEL else ""
-SIG = "|".join([MODEL, VOICE, PROMPT])
 
 
 def t_hash(t: str) -> str:
@@ -32,21 +33,44 @@ def t_hash(t: str) -> str:
     return f"{h:08x}"
 
 
-def speak_texts(r):
-    q = r.get("q") or r.get("topic") or "이 두문자의 뜻은?"
-    a = r.get("acr") or ""
-    acr = ("두문자는, " + re.sub(r"\s+", " ", re.sub(r"[·/]", ", ", a))) if a else ""
-    m = r.get("mean") or ""
-    m = re.sub(r"\*\*", "", m)
-    m = re.sub(r"\([^)]*\)", "", m)
-    m = re.sub(r"\s/\s", ". ", m)
-    m = m.replace("·", ", ").replace("→", "그래서")
-    m = re.sub(r"\s+", " ", m).strip()
-    return [x for x in (q, acr, m) if x]
+# 띄어 읽기 고치기: TTS가 조사로 잘못 끊는 붙여 쓴 법률 용어를 소리 낼 때만 띄운다. 필요하면 여기에 더한다.
+FIXES = [
+    (r"권이전", "권 이전"),
+    (r"이전등기청구권", "이전등기 청구권"),
+]
+NORM_VER = "2"  # 아래 다듬기 규칙을 바꾸면 올린다(전체 재생성)
+SIG = "|".join([MODEL, VOICE, PROMPT, NORM_VER, json.dumps(FIXES, ensure_ascii=False)])
+
+
+def raw_texts(r):
+    """앱 rawText 와 같다: (부분, 원문)"""
+    return [("q", r.get("q") or r.get("topic") or "이 두문자의 뜻은?"), ("acr", r.get("acr") or ""), ("mean", r.get("mean") or "")]
+
+
+def key(part, raw):
+    return t_hash(part + "\n" + raw)
+
+
+def markup(part, raw):
+    """원문 → 구글에 보낼 markup(쉼 표시 포함)"""
+    t = raw.replace("**", "")
+    t = re.sub(r"\([^)]*\)", "", t)
+    for a, b in FIXES:
+        t = re.sub(a, b, t)
+    if part == "acr":
+        t = re.sub(r"\s*[·/]\s*", ", [pause] ", t)
+    else:
+        t = re.sub(r"\s/\s", ". [pause] ", t)
+        t = re.sub(r"\s*→\s*", ", [pause short] 그래서 ", t)
+        t = re.sub(r"\s*·\s*", ", [pause short] ", t)
+        t = re.sub(r"\s*:\s*", ": [pause] ", t)
+        t = re.sub(r",(?! \[pause)\s*", ", [pause short] ", t)
+        t = re.sub(r"\s*—\s*", ". [pause] ", t)
+    return re.sub(r"\s+", " ", t).strip()
 
 
 def synth(text, key):
-    inp = {"text": text}
+    inp = {"markup": text} if not MODEL else {"text": re.sub(r"\s*\[pause[^\]]*\]\s*", " ", text)}
     voice = {"languageCode": "ko-KR", "name": VOICE}
     if MODEL:
         voice["modelName"] = MODEL
@@ -73,8 +97,14 @@ def main():
     cards = json.loads((root / "src" / "cards.json").read_text(encoding="utf-8"))
     want = {}
     for r in cards:
-        for t in speak_texts(r):
-            want[t_hash(t)] = t
+        for part, raw in raw_texts(r):
+            if raw:
+                want[key(part, raw)] = markup(part, raw)
+    extra_p = root / "src" / "tts_extra.json"
+    if extra_p.exists():
+        for a in json.loads(extra_p.read_text(encoding="utf-8")).get("acr", []):
+            if a.strip():
+                want[key("acr", a.strip())] = markup("acr", a.strip())
     outdir.mkdir(parents=True, exist_ok=True)
     man_p = outdir / "manifest.json"
     man = json.loads(man_p.read_text(encoding="utf-8")) if man_p.exists() else {}
@@ -83,12 +113,14 @@ def main():
     chars = sum(len(want[h]) for h in todo)
     print(f"문장 {len(want)}개, 새로 만들 것 {len(todo)}개 ({chars}글자), 모델 {MODEL or 'Chirp 3 HD'}, 목소리 {VOICE}")
     if dry:
+        for h in list(want)[:6]:
+            print(" ", h, want[h][:120])
         return
-    key = os.environ.get("GOOGLE_TTS_KEY")
-    if not key:
+    api_key = os.environ.get("GOOGLE_TTS_KEY")
+    if not api_key:
         sys.exit("GOOGLE_TTS_KEY 가 없어요")
     for i, h in enumerate(todo, 1):
-        (outdir / f"{h}.mp3").write_bytes(synth(want[h], key))
+        (outdir / f"{h}.mp3").write_bytes(synth(want[h], api_key))
         if i % 50 == 0:
             print(f"  {i}/{len(todo)}")
     for f in outdir.glob("*.mp3"):

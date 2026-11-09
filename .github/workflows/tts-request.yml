@@ -1,0 +1,64 @@
+name: Audio request from app
+
+# 앱 듣기 모드의 「구글 음성 만들기 요청」으로 열린 이슈(제목이 "음성 요청"으로 시작, 저장소 주인이 연 것만)를 받아
+# 고친 두문자를 src/tts_extra.json 에 더하고 음성을 만든 뒤 재배포하고 이슈를 닫는다.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: tts
+  cancel-in-progress: false
+
+jobs:
+  request:
+    if: startsWith(github.event.issue.title, '음성 요청') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Merge request
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          m = re.search(r"```json\s*(\{.*?\})\s*```", os.environ.get("BODY", ""), re.S)
+          got = json.loads(m.group(1)).get("acr", []) if m else []
+          got = [a.strip() for a in got if isinstance(a, str) and 0 < len(a.strip()) <= 80][:300]
+          p = Path("src/tts_extra.json")
+          cur = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"acr": []}
+          cur["acr"] = sorted(set(cur.get("acr", [])) | set(got))
+          p.write_text(json.dumps(cur, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+          print("요청", len(got), "개 / 전체", len(cur["acr"]), "개")
+          PY
+      - name: Synthesize
+        env:
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+          TTS_MODEL: ${{ vars.TTS_MODEL }}
+          TTS_VOICE: ${{ vars.TTS_VOICE }}
+          TTS_PROMPT: ${{ vars.TTS_PROMPT }}
+        run: python3 tools/tts.py
+      - name: Commit, redeploy, close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N: ${{ github.event.issue.number }}
+        run: |
+          git add -A src/tts_extra.json static/audio
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "고친 두문자 음성 추가 (#$N)"
+            git pull --rebase origin main
+            git push origin HEAD:main
+            gh workflow run pages.yml --ref main
+          fi
+          gh issue close "$N" --comment "음성을 만들었어요. 2~3분 뒤 앱을 새로고침하면 반영돼요."
