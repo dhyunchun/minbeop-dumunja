@@ -428,6 +428,17 @@ function renderAuth(){
 }
 /* ---------- scheduling ---------- */
 function fuzz(days){if(days<3)return days;var f=Math.max(1,Math.round(days*0.05));return days+Math.round((Math.random()*2-1)*f);}
+/* 부하 분산 + 쉬는 요일: 간격이 3일 이상이면 ±5%(최소 ±1일) 범위 안에서 복습이 가장 적은 날로 옮긴다.
+   쉬는 요일로 고른 날은 범위 안에 다른 날이 있으면 피한다(Anki의 load balancing·easy days와 같은 방식). */
+function balanceDue(n,id){
+  if(n.st!=="review"||!n.ivl||n.ivl<3)return n;
+  var t=now(),base=dayEnd(t)-DAY,ivl=n.ivl,f=Math.max(1,Math.round(ivl*0.05)),easy=settings().easyDays||[],load={};
+  CARDS.forEach(function(c){if(c.id===id)return;var x=cs(c.id);if(x&&x.st==="review"&&cardOn(c)){var k=dayKey(x.due);load[k]=(load[k]||0)+1;}});
+  var cand=[];for(var d=Math.max(2,ivl-f);d<=ivl+f;d++){var due=base+d*DAY;cand.push({d:d,due:due,n:load[dayKey(due)]||0,e:easy.indexOf(new Date(due).getDay())>=0});}
+  var ok=cand.filter(function(c){return !c.e;});if(ok.length)cand=ok;
+  var min=Math.min.apply(null,cand.map(function(c){return c.n;})),best=cand.filter(function(c){return c.n===min;});
+  var pickd=best[Math.floor(Math.random()*best.length)];n.ivl=pickd.d;n.due=pickd.due;return n;
+}
 function preview(id,g){ // returns new card state for rating g
   var c=cs(id), t=now(), ret=settings().retention, n;
   if(!c){c={st:"new"};}
@@ -642,7 +653,7 @@ function undo(){
 function clone(o){return o===undefined?undefined:JSON.parse(JSON.stringify(o));}
 function rate(g){
   if(!current||!revealed)return;
-  var id=current.id, was=cs(id), n=preview(id,g), dk=dayKey(now());
+  var id=current.id, was=cs(id), n=balanceDue(preview(id,g),id), dk=dayKey(now());
   undoStack.push({type:"rate",g:g,card:id,prev:clone(was),dk:dk,daily:clone(state.daily[dk]),hist:clone(state.hist[dk])});
   if(undoStack.length>10)undoStack.shift();
   if(!was||was.st==="new"){state.daily[dk]=state.daily[dk]||{n:0};state.daily[dk].n++;}
@@ -794,7 +805,8 @@ function renderSettings(){
      '<div class="or"><span>또는</span></div><button class="btn" id="signin">Google로 로그인</button>';
   main.innerHTML=
   '<section class="panel"><h2>학습량</h2><div class="field"><label for="npd">하루 새 카드</label><div class="row"><input type="number" id="npd" min="0" max="100" value="'+s.newPerDay+'" style="width:6em"><span class="sub">장 · 복습 카드는 제한 없이 모두 나와요</span></div></div>'+
-  '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div></section>'+
+  '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div>'+
+  '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+["일","월","화","수","목","금","토"].map(function(n,i){return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드를 앞뒤 하루~며칠 안에서 옮기는 방식이라, 하루이틀 뒤 복습이나 이미 밀린 복습은 그날에도 나올 수 있어요. 고르지 않아도 복습이 덜 몰린 날로 자동으로 나눠 잡아요.</span></div></section>'+
   '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div>'+(ROWS.some(function(r){return r.hold;})?'<div class="field"><div class="checks"><label><input type="checkbox" id="showhold"'+(s.showHold?" checked":"")+'> 기본서로 익힐 카드 '+ROWS.filter(function(r){return r.hold;}).length+'장도 복습하기</label></div><span class="sub">원칙에서 논리로 따라 나오는 내용이라 외우기보다 기본서로 이해하도록 복습에서 빼 둔 카드예요. 카드 목록에서는 「기본서로」 표시로 볼 수 있어요.</span></div>':'')+'</section>'+
   '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-selected="'+(themePref()===o[0])+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
@@ -822,6 +834,7 @@ function renderSettings(){
   };
   function keepEmail(){var i=document.getElementById("em");if(i)authEmail=i.value;}
   var so=document.getElementById("signout");if(so)so.onclick=function(){if(AUTH.signOut)AUTH.signOut();};
+  main.querySelectorAll("[data-wd]").forEach(function(el){el.onchange=function(){var a=(s.easyDays||[]).filter(function(x){return x!==+el.dataset.wd;});if(el.checked)a.push(+el.dataset.wd);a.sort();if(a.length>=7){el.checked=false;toast("모든 요일을 쉴 수는 없어요");return;}s.easyDays=a;scheduleSave();toast(a.length?"쉬는 요일: "+a.map(function(x){return "일월화수목금토"[x];}).join(", "):"쉬는 요일 없음");};});
   var npd=document.getElementById("npd");npd.onchange=function(){var v=Math.max(0,Math.min(100,parseInt(npd.value,10)||0));s.newPerDay=v;npd.value=v;scheduleSave();toast("하루 새 카드 "+v+"장");};
   var ret=document.getElementById("ret");ret.oninput=function(){document.getElementById("retv").textContent=ret.value+"%";};ret.onchange=function(){s.retention=(+ret.value)/100;scheduleSave();toast("목표 기억률 "+ret.value+"%");};
   ["g","n"].forEach(function(d){var el=document.getElementById("dir-"+d);el.onchange=function(){s.dirs[d]=el.checked;if(!s.dirs.g&&!s.dirs.n){s.dirs[d]=true;el.checked=true;toast("한 방향은 켜 두어야 해요");return;}current=null;scheduleSave();};});
