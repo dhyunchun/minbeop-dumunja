@@ -961,10 +961,10 @@ function ttsOk(){return typeof window!=="undefined"&&"speechSynthesis" in window
 function koVoice(){if(!ttsOk())return null;var v=speechSynthesis.getVoices().filter(function(x){return /^ko/i.test(x.lang);});return v[0]||null;}
 function listenPool(mode){var dk=dayKey(now()),seen={};
   var rows=CARDS.filter(function(c){if(!cardOn(c)||seen[c.row.id])return false;var s=cs(c.id);
-    var ok=mode==="flag"?isFlag(c.row.id):mode==="today"?!!(s&&s.last&&dayKey(s.last)===dk):(rowStarted(c.row.id));
+    var ok=mode==="flag"?isFlag(c.row.id):mode==="today"?!!(s&&s.last&&dayKey(s.last)===dk):true;
     if(ok)seen[c.row.id]=1;return ok;}).map(function(c){return c.row;});
   for(var i=rows.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=rows[i];rows[i]=rows[j];rows[j]=t;}
-  return mode==="learned"?rows.slice(0,20):rows;}
+  return rows;}
 /* 음성 파일의 이름은 '읽을 원문'의 해시. 발음 다듬기는 tools/tts.py 에서만 하므로 여기서 바꿀 필요가 없다. */
 function rawText(r,part){if(part==="q")return r.q||r.topic||(r.mine?"":"이 두문자의 뜻은?");if(part==="acr")return dispAcr(r)||"";return r.mean||"";}
 function audioKey(part,raw){return tHash(part+"\n"+raw);}
@@ -974,9 +974,9 @@ function speakText(r,part){
   return (r.mean||"").replace(/\*\*/g,"").replace(/\([^)]*\)/g,"").replace(/\s\/\s/g,". ").replace(/·/g,", ").replace(/→/g,"그래서").replace(/\s+/g," ").trim();}
 function listenPanel(){
   if(!ttsOk()&&!HAS_AUDIO)return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
-  var a=listenPool("learned").length,t=listenPool("today").length,f=listenPool("flag").length;
+  var a=listenPool("all").length,t=listenPool("today").length,f=listenPool("flag").length;
   return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. '+(HAS_AUDIO?'기본 카드는 구글 음성으로, 직접 만들거나 고친 카드는 기기 음성으로 읽어요.':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
-    '<div class="row">'+(a?'<button class="btn primary" data-ls="learned">배운 카드 '+Math.min(20,a)+'장</button>':'')+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+(!a&&!t&&!f?'<span class="muted">카드를 배우면 들을 수 있어요</span>':'')+'</div>'+
+    '<div class="row">'+(a?'<button class="btn primary" data-ls="all">전체 카드 '+a+'장</button>':'')+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+(!a&&!t&&!f?'<span class="muted">카드를 배우면 들을 수 있어요</span>':'')+'</div>'+
     (function(){var m=missingCustomAcr();return m.length?'<p class="muted" style="margin:12px 0 0;font-size:.85rem">직접 고친 두문자 '+m.length+'개는 아직 기기 음성으로 읽어요. <button class="link" id="lsreq">구글 음성 만들기 요청</button><br>GitHub 새 이슈 화면이 열리면 그대로 제출하세요. 10분쯤 뒤 새로고침하면 반영돼요.</p>':'';})()+'</section>';}
 var TTS_REPO="dhyunchun/minbeop-dumunja";
 function missingCustomAcr(){var out=[],seen={};if(!HAS_AUDIO)return out;
