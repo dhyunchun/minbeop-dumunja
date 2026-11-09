@@ -19,7 +19,7 @@ on:
         required: false
   push:
     branches: [main]
-    paths: ["src/cards.json", "tools/tts.py"]
+    paths: ["src/cards.json", "src/tts_extra.json", "tools/tts.py"]
 
 permissions:
   contents: write
