@@ -39,6 +39,7 @@ audio = man.read_text(encoding="utf-8") if man.exists() else '{"files":[]}'
 audio = json.dumps(json.loads(audio), separators=(",", ":"))
 assert "__AUDIO__" in html
 html = html.replace("__AUDIO__", audio)
+html = html.replace("__BUILD__", build)
 (out / "index.html").write_text(html.replace("__EXDATA__", exdata).replace("__DATA__", data), encoding="utf-8")
 shutil.copy(root / "src" / "firebase.js", out / "firebase.js")
 sw = out / "sw.js"

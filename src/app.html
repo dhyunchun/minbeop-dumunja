@@ -951,7 +951,7 @@ function exAnswer(ok){
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
 /* ---------- 듣기 모드(시험판): 기기 음성으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
-var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7];
+var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7],APP_BUILD="__BUILD__";
 /* 미리 만들어 둔 구글 음성(audio/<해시>.mp3). 읽을 문장의 해시가 목록에 있으면 그 파일을, 없으면 기기 음성을 쓴다. */
 var AUDIO=(function(){var m={};try{(JSON.parse(document.getElementById("audio-data").textContent).files||[]).forEach(function(h){m[h]=1;});}catch(e){}return m;})();
 var HAS_AUDIO=Object.keys(AUDIO).length>0,lsAudio=null;
@@ -1000,14 +1000,26 @@ function listenStart(mode){var rows=listenPool(mode);if(!rows.length)return;
   if(HAS_AUDIO){if(!lsAudio)lsAudio=new Audio();lsAudio.src=SILENT;try{var pp=lsAudio.play();if(pp&&pp.catch)pp.catch(function(){});}catch(e){}}
   listenSess={rows:rows,i:0,phase:"q",playing:true,rate:1,gap:1,mode:mode,timer:null,tok:0};render();listenStep();}
 function listenStop(){if(!listenSess)return;var L=listenSess;L.tok++;clearTimeout(L.timer);if(lsAudio){try{lsAudio.pause();}catch(e){}lsAudio.onended=lsAudio.ontimeupdate=lsAudio.onerror=null;}if(ttsOk()){try{speechSynthesis.cancel();}catch(e){}}
-  if(L.cur){URL.revokeObjectURL(L.cur.url);L.cur=null;}lsDropNext(L);}
+  if(L.cur){if(L.cur.url)URL.revokeObjectURL(L.cur.url);L.cur=null;}lsDropNext(L);}
 /* ---- 백그라운드 재생: 카드 한 장(주제·생각할 시간·두문자·뜻·쉼)을 소리 파일 하나로 이어 붙여 재생한다.
    화면이 꺼져도 오디오 요소는 계속 재생되고, 끝나면 미리 만들어 둔 다음 장으로 바로 넘어간다. ---- */
 var lsDec=null;
 function lsDecCtx(){if(lsDec)return lsDec;var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!O)return null;try{lsDec=new O(1,1,24000);}catch(e){lsDec=null;}return lsDec;}
 function lsDecode(h){var c=lsDecCtx();return fetch("audio/"+h+".mp3").then(function(r){if(!r.ok)throw new Error("audio");return r.arrayBuffer();}).then(function(ab){return new Promise(function(res,rej){var pr=c.decodeAudioData(ab,res,rej);if(pr&&pr.then)pr.then(res,rej);});});}
-function lsCanBlob(r){if(!HAS_AUDIO||!lsAudio||!lsDecCtx()||typeof Blob==="undefined"||!window.URL||!URL.createObjectURL)return false;
+function lsHasAll(r){if(!HAS_AUDIO||!lsAudio||typeof Blob==="undefined"||!window.URL||!URL.createObjectURL)return false;
   return ["q","acr","mean"].every(function(p){var raw=rawText(r,p);return !raw||AUDIO[audioKey(p,raw)];});}
+function lsCanBlob(r){return lsHasAll(r)&&!!lsDecCtx()&&!(listenSess&&listenSess.noBlob);}
+var lsSil={};function lsSilence(sec){if(!lsSil[sec])lsSil[sec]=URL.createObjectURL(lsWav([sec],24000));return lsSil[sec];}
+/* 이어 붙이기가 안 되는 기기용: 파일 → 무음 파일 → 파일 … 을 오디오 요소 하나로 차례로 재생(타이머를 쓰지 않아 화면이 꺼져도 이어진다) */
+function lsChain(){var L=listenSess,r=L.rows[L.i],tok=++L.tok;L.legacy=false;L.mode2="chain";
+  var seq=[];[["q","q"],["acr","acr"],["mean","mean"]].forEach(function(x){var raw=rawText(r,x[0]);if(raw)seq.push({src:"audio/"+audioKey(x[0],raw)+".mp3",ph:x[1]});
+    if(x[0]==="q")seq.push({src:lsSilence(LS_GAP[L.gap]),ph:"wait"});else if(x[0]==="acr")seq.push({src:lsSilence(0.6),ph:"acr"});});
+  seq.push({src:lsSilence(1.2),ph:"mean"});
+  if(L.cur&&L.cur.url)URL.revokeObjectURL(L.cur.url);L.cur={url:""};var k=0;lsMedia(L,r);
+  function go(){if(listenSess!==L||L.tok!==tok)return;if(k>=seq.length){L.i++;L.phase="q";listenStep();return;}
+    var it=seq[k++];if(it.ph!==L.phase||k===1){L.phase=it.ph;render();}
+    lsAudio.src=it.src;lsAudio.defaultPlaybackRate=lsAudio.playbackRate=LS_RATE[L.rate];if(L.playing){var pp=lsAudio.play();if(pp&&pp.catch)pp.catch(function(){});}}
+  lsAudio.ontimeupdate=null;lsAudio.onended=go;lsAudio.onerror=function(){if(listenSess!==L||L.tok!==tok)return;go();};go();}
 function lsWav(parts,sr){var n=0;parts.forEach(function(p){n+=typeof p==="number"?Math.round(p*sr):p.length;});
   var buf=new ArrayBuffer(44+n*2),v=new DataView(buf);function w(o,t){for(var i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));}
   w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
@@ -1024,18 +1036,18 @@ function lsMedia(L,r){if(!("mediaSession" in navigator))return;try{
   if(!L.msBound){L.msBound=true;var ms=navigator.mediaSession;
     ms.setActionHandler("play",function(){lsResume();});ms.setActionHandler("pause",function(){lsPause();});
     ms.setActionHandler("nexttrack",function(){lsJump(1);});ms.setActionHandler("previoustrack",function(){lsJump(-1);});}}catch(e){}}
-function lsPlayCard(){var L=listenSess,r=L.rows[L.i],tok=++L.tok;L.legacy=false;L.phase="q";
+function lsPlayCard(){var L=listenSess,r=L.rows[L.i],tok=++L.tok;L.legacy=false;L.mode2="blob";L.phase="q";
   var pr=(L.next&&L.next.i===L.i&&L.next.gap===L.gap)?L.next.p:(lsDropNext(L),lsBuild(r,LS_GAP[L.gap]));L.next=null;
   lsMedia(L,r);render();
   pr.then(function(c){if(listenSess!==L||L.tok!==tok){URL.revokeObjectURL(c.url);return;}
     if(L.cur)URL.revokeObjectURL(L.cur.url);L.cur=c;
     lsAudio.ontimeupdate=function(){if(L.tok!==tok)return;var t=lsAudio.currentTime,ph=t<c.qEnd?"q":t<c.acrAt?"wait":t<c.meanAt?"acr":"mean";if(ph!==L.phase){L.phase=ph;if(listenSess===L)render();}};
     lsAudio.onended=function(){if(listenSess!==L||L.tok!==tok)return;L.i++;L.phase="q";listenStep();};
-    lsAudio.onerror=function(){if(listenSess!==L||L.tok!==tok)return;L.legacy=true;L.tok++;listenStep();};
+    lsAudio.onerror=function(){if(listenSess!==L||L.tok!==tok)return;L.noBlob=true;lsChain();};
     lsAudio.src=c.url;lsAudio.defaultPlaybackRate=lsAudio.playbackRate=LS_RATE[L.rate];
     if(L.playing){var pp=lsAudio.play();if(pp&&pp.catch)pp.catch(function(){});}
     var n=L.rows[L.i+1];if(n&&lsCanBlob(n))L.next={i:L.i+1,gap:L.gap,p:lsBuild(n,LS_GAP[L.gap])};
-  },function(){if(listenSess!==L||L.tok!==tok)return;L.legacy=true;L.tok++;listenStep();});}
+  },function(){if(listenSess!==L||L.tok!==tok)return;L.noBlob=true;lsChain();});}
 function lsPause(){var L=listenSess;if(!L||!L.playing)return;L.playing=false;if(L.cur&&!L.legacy){try{lsAudio.pause();}catch(e){}}else listenStop();render();}
 function lsResume(){var L=listenSess;if(!L||L.playing)return;L.playing=true;if(L.cur&&!L.legacy){var pp=lsAudio.play();if(pp&&pp.catch)pp.catch(function(){});render();}else{if(L.phase==="wait")L.phase="acr";listenStep();}}
 function lsJump(d){var L=listenSess;if(!L)return;listenStop();L.legacy=false;L.i=Math.max(0,L.i+d);L.phase="q";L.playing=true;listenStep();}
@@ -1051,8 +1063,8 @@ function listenSay(r,part,cb){var L=listenSess,txt=speakText(r,part),raw=rawText
   try{var pr=lsAudio.play();if(pr&&pr.catch)pr.catch(function(){if(live())device();});}catch(e){device();}}
 function listenStep(){var L=listenSess;if(!L||!L.playing)return;if(L.i>=L.rows.length){L.playing=false;L.done=true;listenStop();render();return;}
   var r=L.rows[L.i];
-  if(L.phase==="q"&&!L.legacy&&lsCanBlob(r)){lsPlayCard();return;}
-  L.legacy=true;render();
+  if(L.phase==="q"&&!L.legacy&&lsHasAll(r)){if(lsCanBlob(r))lsPlayCard();else lsChain();return;}
+  L.legacy=true;L.mode2="device";render();
   if(L.phase==="q")listenSay(r,"q",function(){L.phase="wait";render();L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.phase="acr";listenStep();}},LS_GAP[L.gap]*1000);});
   else if(L.phase==="wait"){L.phase="acr";listenStep();}
   else if(L.phase==="acr")listenSay(r,"acr",function(){L.phase="mean";listenStep();});
@@ -1066,7 +1078,8 @@ function renderListen(){var L=listenSess;
     '<div class="prompt">'+esc(speakText(r,"q"))+'</div>'+(L.phase==="wait"?'<div class="ask">떠올려 보세요…</div>':'')+
     (shown?'<div class="answer"><div class="acr">'+esc(dispAcr(r))+'</div>'+(L.phase==="mean"?'<div class="mean">'+md(r.mean)+'</div>':'')+'</div>':'')+'</article>'+
     '<div class="listenbar"><button class="btn" id="lsprev" aria-label="이전">⏮</button><button class="btn primary" id="lsplay">'+(L.playing?'⏸ 일시정지':'▶ 계속')+'</button><button class="btn" id="lsnext" aria-label="다음">⏭</button></div>'+
-    '<div class="row" style="justify-content:center;gap:16px;margin-top:10px;font-size:.85rem"><button class="link" id="lsrate">속도 '+["느리게","보통","빠르게"][L.rate]+'</button><button class="link" id="lsgap">생각할 시간 '+LS_GAP[L.gap]+'초</button></div>';
+    '<div class="row" style="justify-content:center;gap:16px;margin-top:10px;font-size:.85rem"><button class="link" id="lsrate">속도 '+["느리게","보통","빠르게"][L.rate]+'</button><button class="link" id="lsgap">생각할 시간 '+LS_GAP[L.gap]+'초</button></div>'+
+    '<p class="muted" style="text-align:center;font-size:.78rem;margin-top:12px">'+(L.mode2==="device"?'이 카드는 기기 음성이라 화면이 켜져 있어야 이어져요':L.mode2==="chain"?'구글 음성 · 화면을 꺼도 이어져요 (파일 이어 재생)':'구글 음성 · 화면을 꺼도 이어져요')+' · 빌드 '+esc(APP_BUILD)+'</p>';
   document.getElementById("lsq").onclick=function(){listenStop();listenSess=null;render();};
   document.getElementById("lsplay").onclick=function(){if(L.playing)lsPause();else lsResume();};
   document.getElementById("lsnext").onclick=function(){L.legacy=false;lsJump(1);};
