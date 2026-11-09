@@ -26,3 +26,12 @@
 
 - 로그인 전: 기기 브라우저에만 저장
 - 로그인(이메일 또는 Google) 후: Firestore `users/<uid>/docs/state`(진도·설정·내 두문자), `users/<uid>/docs/log-YYYY-MM`(복습 이력)
+
+## 듣기 모드 음성 (구글 Chirp 3 HD)
+
+- 음성은 `static/audio/<해시>.mp3` 에 미리 만들어 둔다. 파일 이름은 `부분("q"|"acr"|"mean") + "\n" + 원문`의 FNV-1a 해시(`tools/tts.py` 의 `key`, 앱의 `audioKey`)라서 둘을 같이 바꿔야 한다.
+- 쉼 표시·띄어 읽기 같은 발음 다듬기는 `tools/tts.py` 의 `markup`·`FIXES` 에서만 한다. 규칙을 바꾸면 `NORM_VER` 를 올린다(전체 재생성, 무료 범위 안).
+- `.github/workflows/tts.yml`: `src/cards.json`·`src/tts_extra.json`·`tools/tts.py` 가 바뀌거나 수동 실행하면 바뀐 문장만 만들고 커밋한 뒤 재배포. 저장소 Secret `GOOGLE_TTS_KEY` 필요, 목소리는 `TTS_VOICE` 변수(기본 `ko-KR-Chirp3-HD-Aoede`).
+- `.github/workflows/tts-request.yml`: 앱의 「구글 음성 만들기 요청」이 연 이슈(저장소 주인, 제목 "음성 요청…")를 받아 고친 두문자를 `src/tts_extra.json` 에 더하고 생성한다.
+- 전체를 다시 만들 때마다 저장소 기록이 약 20MB씩 늘어나니 목소리·규칙 변경은 몰아서 한다.
+- 앱은 카드 한 장(주제·생각할 시간·두문자·뜻)을 WAV 하나로 이어 붙여 재생해서 화면이 꺼져도 이어진다. 음성 파일이 없는 부분이 있는 카드(직접 만든 카드 등)는 기기 음성으로 읽어서 화면이 켜져 있어야 한다.
