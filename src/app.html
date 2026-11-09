@@ -27,12 +27,12 @@ body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{dis
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42;
+  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42; --rv-bg:#2f3e3a; --rv-ink:#cfe0d8; --rv-line:#3f5550;
   --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
   --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42;
+  --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42; --rv-bg:#2f3e3a; --rv-ink:#cfe0d8; --rv-line:#3f5550;
   --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
   --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}
@@ -51,11 +51,12 @@ nav button{flex:1;white-space:nowrap;font:inherit;font-size:.9rem;font-weight:50
 nav button[aria-selected="true"]{background:var(--sheet);color:var(--ink);border-color:var(--rule)}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-top:16px}
-.counts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.count{display:flex;align-items:baseline;gap:6px;padding:6px 10px;border-radius:999px;background:var(--chip);font-size:.82rem;color:var(--ink-2)}
+.counts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.counts .undo2{margin-left:auto;font-size:.82rem;white-space:nowrap}
+.count{display:flex;align-items:baseline;gap:5px;padding:4px 10px;border-radius:999px;background:var(--chip);font-size:.82rem;color:var(--ink-2)}
 .count b{font-variant-numeric:tabular-nums;font-size:1rem;color:var(--ink)}
 .count.new b{color:var(--easy)} .count.learn b{color:var(--again)} .count.rev b{color:var(--good)}
-.card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:22px 20px;min-height:280px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:20px 20px;min-height:140px;display:flex;flex-direction:column;gap:14px}
 .meta{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--ink-2)}
 .meta .crumb{display:flex;align-items:center;gap:5px;min-width:0}
 .meta .sep{opacity:.55}
@@ -104,7 +105,8 @@ main{padding-top:16px}
 .note{font-size:.9rem;color:var(--ink-2)}
 .ref{font-family:var(--f-mono);font-size:.8rem;color:var(--ink-2);word-break:break-all}
 .ref::before{content:"근거  ";font-family:var(--f-body);font-weight:600;color:var(--ink)}
-.actions{position:sticky;bottom:0;z-index:4;margin-top:6px;display:grid;gap:8px;padding:12px 0 calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,transparent,var(--paper) 12px)}
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:4;max-width:640px;margin:0 auto;display:grid;gap:8px;padding:14px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to bottom,transparent,var(--paper) 14px)}
+body.hasact main{padding-bottom:var(--actH,140px)}
 .card.tap{cursor:pointer}
 .grp{border:1px solid var(--rule);border-radius:12px;background:var(--sheet)}
 .grp>summary{list-style:none;cursor:pointer;padding:11px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
@@ -122,7 +124,7 @@ main{padding-top:16px}
 details.more>summary{list-style:none;cursor:pointer;padding:12px 4px;color:var(--ink-2);font-size:.9rem;text-align:center}
 details.more>summary::-webkit-details-marker{display:none}
 details.more>summary b{color:var(--accent)}
-.reveal{font:inherit;font-weight:600;font-size:1rem;padding:14px;border-radius:12px;border:none;background:var(--ink);color:var(--sheet);cursor:pointer}
+.reveal{font:inherit;font-weight:600;font-size:1rem;padding:14px;border-radius:12px;border:1px solid var(--rv-line,transparent);background:var(--rv-bg,var(--ink));color:var(--rv-ink,var(--sheet));cursor:pointer}
 .rates{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .rates.two{grid-template-columns:repeat(2,1fr)}
 .rate{font:inherit;padding:10px 4px 8px;border-radius:10px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -496,6 +498,8 @@ function render(){
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.v===view));});
   if(view==="study")renderStudy();else if(view==="cards")renderCards();else if(view==="ex")renderEx();else if(view==="stats")renderStats();else renderSettings();
   bindTapReveal();
+  var act=main.querySelector(".actions");document.body.classList.toggle("hasact",!!act);
+  if(act)requestAnimationFrame(function(){document.body.style.setProperty("--actH",(act.offsetHeight+16)+"px");});
 }
 function bindTapReveal(){ // 카드 아무 곳이나 눌러도 정답이 열린다
   var btn=document.getElementById("reveal")||document.getElementById("exreveal"),card=main.querySelector("article.card");
@@ -506,11 +510,11 @@ function renderStudy(){
   if(practice){renderPractice();return;}
   var q=queue();
   if(!current||!cardOn(current)){current=pick();revealed=false;}
-  var counts='<div class="counts"><span class="count new"><b>'+q.news.length+'</b>새 카드</span><span class="count learn"><b>'+q.learn.length+'</b>다시 볼 카드</span><span class="count rev"><b>'+q.rev.length+'</b>오늘 복습</span></div>';
+  var counts='<div class="counts"><span class="count new"><b>'+q.news.length+'</b>새</span><span class="count learn"><b>'+q.learn.length+'</b>다시</span><span class="count rev"><b>'+q.rev.length+'</b>복습</span>'+undoBtn()+'</div>';
   if(!current){
     var tn=practiceSize("random"),td=practiceSize("today"),tl=practiceSize("leech");
     var nextDue=null;CARDS.forEach(function(c){var s=cs(c.id);if(s&&s.st==="review"&&cardOn(c)&&(nextDue===null||s.due<nextDue))nextDue=s.due;});
-    main.innerHTML=counts+undoBar()+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(td?'<button class="btn primary" id="prac-today">오늘 새 카드 '+td+'장 복습</button>':'')+(tn?'<button class="btn primary" id="prac">무작위 '+tn+'장 복습</button>':'')+(tl?'<button class="btn primary" id="prac-leech">자꾸 잊는 카드 '+tl+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(td?'오늘 처음 받은 카드만 다시 보거나, 지금까지 배운 카드 중에서 무작위로 고를 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
+    main.innerHTML=counts+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(td?'<button class="btn primary" id="prac-today">오늘 새 카드 '+td+'장 복습</button>':'')+(tn?'<button class="btn primary" id="prac">무작위 '+tn+'장 복습</button>':'')+(tl?'<button class="btn primary" id="prac-leech">자꾸 잊는 카드 '+tl+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(td?'오늘 처음 받은 카드만 다시 보거나, 지금까지 배운 카드 중에서 무작위로 고를 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
     bindUndo();
     var pb=document.getElementById("prac");if(pb)pb.onclick=function(){startPractice("random");};
     var pt=document.getElementById("prac-today");if(pt)pt.onclick=function(){startPractice("today");};
@@ -525,7 +529,7 @@ function renderStudy(){
     var labels=["다시","어려움","알맞음","쉬움"];
     acts='<div class="rates">'+[1,2,3,4].map(function(g){return '<button class="rate r'+g+'" data-g="'+g+'"><span>'+labels[g-1]+'</span><small>'+fmtIvl(preview(c.id,g))+'</small></button>';}).join("")+'</div><div class="hint">떠올린 정도대로 고르세요 · 키보드 1~4</div>';
   }
-  main.innerHTML=counts+undoBar()+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+front+back+'</article><div class="actions">'+acts+'</div>';
+  main.innerHTML=counts+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+front+back+'</article><div class="actions">'+acts+'</div>';
   bindUndo();
   var rv=document.getElementById("reveal");if(rv)rv.onclick=function(){revealed=true;render();};
   main.querySelectorAll(".rate").forEach(function(b){b.onclick=function(){rate(+b.dataset.g);};});
@@ -596,6 +600,7 @@ function bindEditForm(r,after){
   document.getElementById("cu-cancel").onclick=function(){editing=false;after();};
 }
 function suspendRow(r,on){if(on)state.susp[r.id]=true;else delete state.susp[r.id];scheduleSave();}
+function undoBtn(){if(!undoStack.length)return '';var u=undoStack[undoStack.length-1];return '<button class="link undo2" id="undo" title="'+(u.type==="susp"?"방금 보류한 카드 되돌리기":"방금 평가 되돌리기")+'">↶ '+(u.type==="susp"?"보류":["","다시","어려움","알맞음","쉬움"][u.g])+' 되돌리기</button>';}
 function undoBar(){if(!undoStack.length)return '';var u=undoStack[undoStack.length-1];return '<div class="undo"><span class="muted">'+(u.type==="susp"?"방금 카드를 보류했어요":"방금 평가: "+["","다시","어려움","알맞음","쉬움"][u.g])+'</span><button class="link" id="undo">되돌리기</button></div>';}
 function bindUndo(){var b=document.getElementById("undo");if(b)b.onclick=undo;}
 function undo(){
