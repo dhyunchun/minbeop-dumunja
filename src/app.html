@@ -950,7 +950,7 @@ function exAnswer(ok){
 }
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
-/* ---------- 듣기 모드(시험판): 기기 음성으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
+/* ---------- 듣기 모드: 구글 음성(없으면 기기 음성)으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
 var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7],APP_BUILD="__BUILD__";
 /* 미리 만들어 둔 구글 음성(audio/<해시>.mp3). 읽을 문장의 해시가 목록에 있으면 그 파일을, 없으면 기기 음성을 쓴다. */
 var AUDIO=(function(){var m={};try{(JSON.parse(document.getElementById("audio-data").textContent).files||[]).forEach(function(h){m[h]=1;});}catch(e){}return m;})();
@@ -977,7 +977,7 @@ function speakText(r,part){
   if(part==="acr"){var a=dispAcr(r);return a?a.replace(/[·\/]/g,", ").replace(/\s+/g," "):"";}
   return (r.mean||"").replace(/\*\*/g,"").replace(/\([^)]*\)/g,"").replace(/\s\/\s/g,". ").replace(/·/g,", ").replace(/→/g,"그래서").replace(/\s+/g," ").trim();}
 function listenPanel(){
-  if(!ttsOk()&&!HAS_AUDIO)return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
+  if(!ttsOk()&&!HAS_AUDIO)return '<section class="panel"><h2>듣기 모드</h2><p class="muted" style="margin:0">이 브라우저는 음성 읽기를 지원하지 않아요.</p></section>';
   var t=listenPool("today").length,f=listenPool("flag").length,learned=listenPool("rand:").length,parts=listenParts();
   var pick='';
   if(lsPick){
@@ -985,7 +985,7 @@ function listenPanel(){
       parts.map(function(p){return '<button class="btn" data-ls="part:'+esc(p)+'">'+esc(p.replace(/^제\d편 /,""))+' '+listenPool("part:"+p).length+'장</button>';}).join("")+'</div>'+
       '<div class="muted" style="font-size:.85rem;margin:14px 0 6px">배운 카드 중 무작위</div><div class="row">'+
       (learned?[10,20,30].filter(function(n){return n<learned;}).map(function(n){return '<button class="btn" data-ls="rand:'+n+'">'+n+'장</button>';}).join("")+'<button class="btn" data-ls="rand:'+learned+'">전부 '+learned+'장</button>':'<span class="muted">아직 배운 카드가 없어요</span>')+'</div></div>';}
-  return '<section class="panel"><h2>듣기 모드 <span class="tag">시험판</span></h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. '+(HAS_AUDIO?'기본 카드는 구글 음성으로 읽고, 화면을 꺼도 계속 재생돼요. 직접 만들거나 고친 카드는 기기 음성으로 읽어서 화면이 켜져 있어야 해요.':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
+  return '<section class="panel"><h2>듣기 모드</h2><p class="muted" style="margin-top:0">이동 중에 손 안 쓰고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. '+(HAS_AUDIO?'기본 카드는 구글 음성으로 읽고, 화면을 꺼도 계속 재생돼요. 직접 만들거나 고친 카드는 기기 음성으로 읽어서 화면이 켜져 있어야 해요.':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
     '<div class="row">'+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+'<button class="btn primary" id="lspick">'+(lsPick?'접기':'골라 듣기')+'</button></div>'+pick+
     (function(){var m=missingCustomAcr();return m.length?'<p class="muted" style="margin:12px 0 0;font-size:.85rem">직접 고친 두문자 '+m.length+'개는 아직 기기 음성으로 읽어요. <button class="link" id="lsreq">구글 음성 만들기 요청</button><br>GitHub 새 이슈 화면이 열리면 그대로 제출하세요. 10분쯤 뒤 새로고침하면 반영돼요.</p>':'';})()+'</section>';}
 var TTS_REPO="dhyunchun/minbeop-dumunja";
