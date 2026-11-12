@@ -111,6 +111,12 @@ main{padding-top:16px}
 .exbox{padding:14px;border-radius:12px;background:var(--paper)}
 .exbox h3{margin:0 0 4px;font-size:1rem}
 .exbox p{margin:0 0 10px;font-size:.85rem;color:var(--ink-2)}
+.exre{margin-top:10px;border-top:1px dashed var(--rule);padding-top:8px}
+.exre summary{cursor:pointer;font-size:.9rem;font-weight:600;padding:4px 0;list-style:none}
+.exre summary::-webkit-details-marker{display:none}
+.exre summary::after{content:" ▾";color:var(--ink-2);font-weight:400}
+.exre[open] summary::after{content:" ▴"}
+.exre p{margin:4px 0 8px}
 .leechtip{margin-top:12px;font-size:.86rem;padding:8px 10px;border-radius:8px;border:1px dashed var(--again);color:var(--ink-2)}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;max-width:520px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--chip);display:block}
@@ -937,7 +943,8 @@ function exOpen(x){return x.kind==="toc"||!!settings().exAll||x.rel.some(rowStar
 function exUnitsOf(x){var o=[];x.rel.forEach(function(rid){var r=rowById(rid);if(r&&r.unit){var k=r.part+"|"+r.unit;if(o.indexOf(k)<0)o.push(k);}});return o;}
 function exKindOk(x,kf){return !kf||kf==="all"||(kf==="case"?x.kind==="case":x.kind==="pair");}
 function exPool(spec,onlyWrong){return EX.filter(function(x){
-  if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;}
+  if(typeof spec==="string"&&spec.slice(0,3)==="re:"){var rp=spec.slice(3);if(x.kind!=="case"||!exState()[x.id]||(rp&&x.part!==rp))return false;}
+  else if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;}
   else{if(x.kind==="toc"||!exKindOk(x,spec.kf))return false;var u=exUnitsOf(x);if(!u.some(function(k){return spec.units.indexOf(k)>=0;}))return false;}
   var st=exState()[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
 function unitLabel(units){if(!units.length)return "";var f=units[0].split("|")[1];return units.length>1?f+" 외 "+(units.length-1)+"개":f;}
@@ -1186,7 +1193,7 @@ function renderEx(){
   if(listenSess){renderListen();return;}
   if(oxSess){renderOx();return;}
   if(exSess){
-    var p=exSess,label=typeof p.kind==="string"?(EXNAME[p.kind]||"연습"):"단원별 · "+unitLabel(p.kind.units);
+    var p=exSess,label=typeof p.kind==="string"?(p.kind.slice(0,3)==="re:"?"다시 풀기 · "+(p.kind.slice(3)?p.kind.slice(3).replace(/^제\d편 /,""):"전체"):(EXNAME[p.kind]||"연습")):"단원별 · "+unitLabel(p.kind.units);
     var pos=p.total-p.queue.length+(p.queue.length?1:0);
     var bar='<div class="undo"><span class="muted">'+label+(p.wrong?' · 틀린 문제':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="exq">그만 풀기</button></div>';
     if(!p.queue.length){
@@ -1216,14 +1223,21 @@ function renderEx(){
     var done=all.filter(function(x){return S[x.id];}).length;
     return '<div class="exbox"><h3>'+name+'</h3><p>'+desc+'<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all.length+'문제 열림 · '+done+'문제 풀어 봄</span></p><div class="row">'+
       (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">관련 두문자를 하나라도 배우면 열려요</span>')+
-      (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div></div>';
+      (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div>'+(kind==="case"?reBox():'')+'</div>';
   }
+  function reBox(){var tot=exPool("re:").length;if(!tot)return '';
+    var parts=[];EX.forEach(function(x){if(x.kind==="case"&&parts.indexOf(x.part)<0)parts.push(x.part);});parts.sort();
+    var op=false;try{op=localStorage.getItem("minbeop-ex-re")==="1";}catch(e){}
+    return '<details class="exre" id="exre"'+(op?' open':'')+'><summary>풀어 본 문제 다시 풀기 <span class="muted">'+tot+'문제</span></summary><p>단원을 고르지 않고 편 단위로 섞어서 내요. 틀렸던 것, 오래전에 푼 것부터 나와요.</p><div class="row">'+
+      parts.map(function(pt){var n=exPool("re:"+pt).length;return n?'<button class="btn" data-ex="re:'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+' '+n+'</button>':'';}).join("")+
+      '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'문제</button></div></details>';}
   main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
     oxBox()+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
+  var exre=document.getElementById("exre");if(exre)exre.ontoggle=function(){try{localStorage.setItem("minbeop-ex-re",exre.open?"1":"0");}catch(e){}};
   document.getElementById("exall").onchange=function(e){settings().exAll=e.target.checked;scheduleSave();render();};
   bindUnitPanel();bindListenPanel();bindOxBox();foldPanels();
 }
