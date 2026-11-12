@@ -1173,7 +1173,7 @@ function renderOx(){var p=oxSess,pos=p.total-p.queue.length+(p.queue.length?1:0)
   if(done)document.getElementById("oxnext").onclick=oxNext;
   else{document.getElementById("oxo").onclick=function(){oxPick(true);};document.getElementById("oxx").onclick=function(){oxPick(false);};}}
 function oxBox(){
-  if(!OX){oxLoad();return '<div class="exbox"><h3>변시 기출 OX</h3><p>'+(oxErr?'지문을 불러오지 못했어요. <button class="link" id="oxretry">다시 시도</button>':'지문을 불러오는 중…')+'</p></div>';}
+  if(!OX){if(!oxErr)oxLoad();return '<div class="exbox"><h3>변시 기출 OX</h3><p>'+(oxErr?'지문을 불러오지 못했어요. <button class="link" id="oxretry">다시 시도</button>':'지문을 불러오는 중…')+'</p></div>';}
   var S=exState(),all=OX.length,open=oxPool(null),wrong=oxPool(null,true),seen=OX.filter(function(x){return S[x.id];}).length;
   var parts=[];OX.forEach(function(x){if(parts.indexOf(x.part)<0)parts.push(x.part);});parts.sort();
   return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고 해설은 없어요. 근거가 궁금하면 「제n회 문m」으로 기출문제집 해설을 찾아보세요.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+seen+'지문 풀어 봄</span></p>'+
