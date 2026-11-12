@@ -2,7 +2,7 @@
 // 온라인이면 항상 새 버전을 먼저 받아오고(network-first), 실패하면 저장본을 쓴다.
 const CACHE = "dumunja-__BUILD__";
 const AUDIO = "dumunja-audio"; // 음성 파일은 이름이 내용 해시라 바뀌지 않으므로 새 버전이 나와도 지우지 않는다
-const SHELL = ["./", "index.html", "firebase.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
+const SHELL = ["./", "index.html", "firebase.js", "ox.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
