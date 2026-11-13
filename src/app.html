@@ -1168,7 +1168,7 @@ function renderListen(){var L=listenSess;
   document.getElementById("lsrate").onclick=function(){L.rate=(L.rate+1)%3;if(lsAudio&&L.cur&&!L.legacy){lsAudio.playbackRate=lsAudio.defaultPlaybackRate=LS_RATE[L.rate];}render();};
   document.getElementById("lsgap").onclick=function(){L.gap=(L.gap+1)%3;lsDropNext(L);render();};}
 /* ---------- 변시 기출 OX: 선택형 민법 지문(1~15회)을 정답표로 O·X를 매긴 것. ox.json 은 처음 열 때 받아 온다. ---------- */
-var OX=null,OXEXP={},oxLoading=false,oxErr=false,oxSess=null,OX_N=20;
+var OX=null,OXEXP={},oxLoading=false,oxErr=false,oxSess=null,OX_N=10;
 function oxLoad(){if(OX||oxLoading)return;oxLoading=true;oxErr=false;
   fetch("ox.json").then(function(r){if(!r.ok)throw new Error("ox");return r.json();}).then(function(d){
     OXEXP=d.exp||{};
@@ -1176,13 +1176,13 @@ function oxLoad(){if(OX||oxLoading)return;oxLoading=true;oxErr=false;
     oxLoading=false;if(view==="ex"||view==="stats")render();}).catch(function(){oxLoading=false;oxErr=true;if(view==="ex")render();});}
 function oxUnitsOpen(){var o={};ROWS.forEach(function(r){if(!r.mine&&r.unit&&rowStarted(r.id))o[r.part+"|"+r.unit]=1;});return o;}
 function oxPool(part,onlyWrong){if(!OX)return [];var S=exState(),open=settings().exAll?null:oxUnitsOpen();
-  return OX.filter(function(x){if(part&&x.part!==part)return false;if(open&&!open[x.unit])return false;var st=S[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
+  return OX.filter(function(x){if(part&&x.part!==part)return false;var st=S[x.id];if(onlyWrong==="re")return !!(st&&st.n);if(open&&!open[x.unit])return false;return onlyWrong?!!(st&&st.r===0):true;});}
 function oxStart(part,onlyWrong){var pool=oxPool(part,onlyWrong),S=exState(),dk=dayKey(now()),t=now();
   pool.forEach(function(x){var st=S[x.id],g;if(!st||!st.n)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
     var age=st&&st.last?Math.min(365,(t-st.last)/DAY):0;x._k=g*1000+(g===2?(365-age):Math.random()*100);});
   pool.sort(function(a,b){return a._k-b._k;});var q=pool.slice(0,OX_N);
   for(var i=q.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=q[i];q[i]=q[j];q[j]=tmp;}
-  if(!q.length)return;oxSess={part:part,wrong:!!onlyWrong,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
+  if(!q.length)return;oxSess={part:part,wrong:onlyWrong==="re"?"re":!!onlyWrong,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
 function oxPick(v){var p=oxSess;if(!p||p.pick!==null||!p.queue.length)return;var x=p.queue[0],ok=v===x.o,S=exState(),st=S[x.id]||{n:0,w:0};
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[x.id]=st;if(ok)p.ok++;p.pick=v;scheduleSave();render();}
 function oxStarred(){var S=exState();return (OX||[]).filter(function(x){return S[x.id]&&S[x.id].f;});}
@@ -1192,7 +1192,7 @@ function oxStartExp(){var q=oxExpPool().slice();for(var i=q.length-1;i>0;i--){va
 function oxStartStar(){var q=oxStarred();if(!q.length)return;oxSess={part:null,wrong:false,star:true,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
 function oxNext(){var p=oxSess;if(!p||p.pick===null)return;p.queue.shift();p.pick=null;render();window.scrollTo(0,0);}
 function renderOx(){var p=oxSess,pos=p.total-p.queue.length+(p.queue.length?1:0);
-  var bar='<div class="undo"><span class="muted">기출 OX'+(p.part?' · '+esc(p.part.replace(/^제\d편 /,"")):'')+(p.wrong?' · 틀린 문제':'')+(p.star?' · 확인할 지문':'')+(p.exp?' · 해설 시범':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="oxq">그만 풀기</button></div>';
+  var bar='<div class="undo"><span class="muted">기출 OX'+(p.part?' · '+esc(p.part.replace(/^제\d편 /,"")):'')+(p.wrong==="re"?' · 다시 풀기':p.wrong?' · 틀린 지문':'')+(p.star?' · 확인할 지문':'')+(p.exp?' · 해설 시범':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="oxq">그만 풀기</button></div>';
   if(!p.queue.length){main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+p.ok+' / '+p.total+' 맞혔어요</h2><p>'+(p.ok===p.total?'모두 맞혔어요.':'틀린 지문은 다음에 먼저 나와요.')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="oxagain">한 번 더</button><button class="btn" id="oxback">돌아가기</button></div></div></div>';
     document.getElementById("oxagain").onclick=function(){if(p.star)oxStartStar();else if(p.exp)oxStartExp();else oxStart(p.part,p.wrong);};
     document.getElementById("oxback").onclick=document.getElementById("oxq").onclick=function(){oxSess=null;render();};return;}
@@ -1210,21 +1210,26 @@ function renderOx(){var p=oxSess,pos=p.total-p.queue.length+(p.queue.length?1:0)
   else{document.getElementById("oxo").onclick=function(){oxPick(true);};document.getElementById("oxx").onclick=function(){oxPick(false);};}}
 function oxBox(){
   if(!OX){if(!oxErr)oxLoad();return '<div class="exbox"><h3>변시 기출 OX</h3><p>'+(oxErr?'지문을 불러오지 못했어요. <button class="link" id="oxretry">다시 시도</button>':'지문을 불러오는 중…')+'</p></div>';}
-  var S=exState(),all=OX.length,open=oxPool(null),wrong=oxPool(null,true),seen=OX.filter(function(x){return S[x.id]&&S[x.id].n;}).length,star=oxStarred();
+  var S=exState(),all=OX.length,open=oxPool(null),wrong=oxPool(null,true),re=oxPool(null,"re"),star=oxStarred(),nexp=Object.keys(OXEXP).length;
   var parts=[];OX.forEach(function(x){if(parts.indexOf(x.part)<0)parts.push(x.part);});parts.sort();
-  return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고 해설은 없어요. 근거가 궁금하면 「제n회 문m」으로 기출문제집 해설을 찾아보세요.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+seen+'지문 풀어 봄</span></p>'+
-    (open.length?'<div class="row"><button class="btn primary" data-ox="">섞어서 '+Math.min(OX_N,open.length)+'지문</button>'+parts.map(function(pt){var n=oxPool(pt).length;return n?'<button class="btn" data-ox="'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,""))+' '+n+'</button>':'';}).join("")+'</div>':'<span class="muted" style="font-size:.85rem">그 단원의 두문자를 하나라도 배우면 열려요</span>')+
-    (function(){var ep=oxExpPool(),w=wrong.length;if(!ep.length&&!w)return '';return '<div class="row" style="margin-top:8px">'+(w?'<button class="btn" data-oxw="1">틀린 지문 '+w+'개</button>':'')+(ep.length?'<button class="btn" id="oxexprun">해설 시범 '+ep.length+'지문</button>':'')+'</div>';})()+
-    (star.length?(function(){var op=false;try{op=localStorage.getItem("minbeop-ox-star")==="1";}catch(e){}
-      return '<details class="exre" id="oxstarlist"'+(op?' open':'')+'><summary>확인할 지문 <span class="muted">'+star.length+'개</span></summary><p>☆를 눌러 표시한 지문이에요. 해설서에서 「제n회 문m」을 찾아 확인한 뒤 지우세요.</p><ul class="oxsl">'+
+  function sh(pt){return pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");}
+  function fold(id,key,title,cnt,body){var op=false;try{op=localStorage.getItem(key)==="1";}catch(e){}
+    return '<details class="exre" id="'+id+'" data-k="'+key+'"'+(op?' open':'')+'><summary>'+title+' <span class="muted">'+cnt+'</span></summary>'+body+'</details>';}
+  return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고, 틀린 지문에는 근거와 함께 해설이 붙어 있어요'+(nexp<all/2?'(지금은 일부 회차만)':'')+'.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+re.length+'지문 풀어 봄</span></p><div class="row">'+
+    (open.length?'<button class="btn primary" data-ox="">'+Math.min(OX_N,open.length)+'지문 풀기</button>':'<span class="muted" style="font-size:.85rem">그 단원의 두문자를 하나라도 배우면 열려요</span>')+
+    (wrong.length?'<button class="btn" data-oxw="1">틀린 지문 '+wrong.length+'개</button>':'')+'</div>'+
+    (re.length?fold("oxrefold","minbeop-ox-re","풀어 본 지문 다시 풀기",re.length+'지문','<p>편 단위로 섞어서 내요. 틀렸던 것, 오래전에 푼 것부터 나와요.</p><div class="row">'+
+      parts.map(function(pt){var n=oxPool(pt,"re").length;return n?'<button class="btn" data-oxre="'+esc(pt)+'">'+esc(sh(pt))+' '+n+'</button>':'';}).join("")+
+      '<button class="btn primary" data-oxre="">한번에 '+Math.min(OX_N,re.length)+'지문</button></div>'):'')+
+    (star.length?fold("oxstarlist","minbeop-ox-star","확인할 지문",star.length+'개','<p>☆를 눌러 표시한 지문이에요. 해설서에서 「제n회 문m」을 찾아 확인한 뒤 지우세요.</p><ul class="oxsl">'+
       star.map(function(x){return '<li><b>제'+x.n+'회 문'+x.k+'</b> <span class="muted">('+(x.o?'O':'X')+')</span> '+esc(x.t.length>70?x.t.slice(0,70)+'…':x.t)+'<button class="link" data-oxun="'+esc(x.id)+'">지우기</button></li>';}).join("")+
-      '</ul><div class="row"><button class="btn" id="oxstarrun">확인할 지문 다시 풀기</button></div></details>';})():'')+'</div>';}
+      '</ul><div class="row"><button class="btn" id="oxstarrun">확인할 지문 다시 풀기</button></div>'):'')+'</div>';}
 function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.ox||null,false);};});
   main.querySelectorAll("[data-oxw]").forEach(function(b){b.onclick=function(){oxStart(null,true);};});
   var r=document.getElementById("oxretry");if(r)r.onclick=function(){oxLoad();render();};
-  var sl=document.getElementById("oxstarlist");if(sl)sl.ontoggle=function(){try{localStorage.setItem("minbeop-ox-star",sl.open?"1":"0");}catch(e){}};
+  main.querySelectorAll(".exbox details[data-k]").forEach(function(d){d.ontoggle=function(){try{localStorage.setItem(d.dataset.k,d.open?"1":"0");}catch(e){}};});
+  main.querySelectorAll("[data-oxre]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.oxre||null,"re");};});
   var sr=document.getElementById("oxstarrun");if(sr)sr.onclick=oxStartStar;
-  var er=document.getElementById("oxexprun");if(er)er.onclick=oxStartExp;
   main.querySelectorAll("[data-oxun]").forEach(function(b){b.onclick=function(){var x=OX.filter(function(y){return y.id===b.dataset.oxun;})[0];if(x)oxToggleStar(x);};});}
 function renderEx(){
   if(listenSess){renderListen();return;}
