@@ -117,6 +117,14 @@ main{padding-top:16px}
 .exre summary::after{content:" ▾";color:var(--ink-2);font-weight:400}
 .exre[open] summary::after{content:" ▴"}
 .exre p{margin:4px 0 8px}
+.oxstar{font:inherit;font-size:.78rem;border:1px solid var(--rule);background:transparent;color:var(--ink-2);border-radius:999px;padding:2px 9px;cursor:pointer}
+.oxstar.on{color:var(--accent);border-color:var(--accent)}
+.oxsl{list-style:none;margin:0 0 10px;padding:0;font-size:.85rem;line-height:1.55}
+.oxsl li{padding:6px 0;border-bottom:1px solid var(--rule)}
+.oxsl li .link{margin-left:6px;font-size:.8rem}
+table.acc{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+table.acc th,table.acc td{padding:6px 4px;text-align:left;border-bottom:1px solid var(--rule)}
+table.acc thead th{font-weight:500;color:var(--ink-2);font-size:.8rem}
 .leechtip{margin-top:12px;font-size:.86rem;padding:8px 10px;border-radius:8px;border:1px dashed var(--again);color:var(--ink-2)}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;max-width:520px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--chip);display:block}
@@ -364,7 +372,7 @@ function mergeStates(a,b){
     });
   });
   var ma2=a.mine||{},mb2=b.mine||{};Object.keys(ma2).concat(Object.keys(mb2)).forEach(function(k){var x=ma2[k],y=mb2[k];out.mine=out.mine||{};out.mine[k]=!x?y:!y?x:((x.u||0)>=(y.u||0)?x:y);});
-  var ea=a.ex||{},eb=b.ex||{};Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){var x=ea[k],y=eb[k];out.ex=out.ex||{};out.ex[k]=!x?y:!y?x:((x.last||0)>=(y.last||0)?x:y);});
+  var ea=a.ex||{},eb=b.ex||{};Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){var x=ea[k],y=eb[k];out.ex=out.ex||{};if(!x||!y){out.ex[k]=x||y;return;}var m=JSON.parse(JSON.stringify((x.last||0)>=(y.last||0)?x:y)),s=(x.ft||0)>=(y.ft||0)?x:y;if(s.ft){m.f=s.f;m.ft=s.ft;}out.ex[k]=m;});
   return out;
 }
 function sameState(x,y){var a=JSON.parse(JSON.stringify(x)),b=JSON.parse(JSON.stringify(y));delete a.updatedAt;delete b.updatedAt;return JSON.stringify(a)===JSON.stringify(b);}
@@ -822,7 +830,7 @@ function renderStats(){
   var today=state.hist[dayKey(t)]||{r:0,a:0,n:0};
   var max=Math.max(1,Math.max.apply(null,fc));
   var bars=fc.map(function(v,i){var dd=new Date(end-DAY+i*DAY);return '<div class="bar" title="'+v+'장"><em>'+(v||"")+'</em><i style="height:'+Math.round(v/max*90)+'px"></i><small>'+(i===0?"오늘":(i%2===0?(dd.getMonth()+1)+"/"+dd.getDate():"&nbsp;"))+'</small></div>';}).join("");
-  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 한 줄이 (가) 주제 → 두문자, (나) 두문자 → 뜻 두 장이라 두 방향을 모두 켜면 434장이에요.</p>';
+  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 한 줄이 (가) 주제 → 두문자, (나) 두문자 → 뜻 두 장이라 두 방향을 모두 켜면 '+CARDS.filter(function(c){return !c.row.mine;}).length+'장이에요.</p>';
   // 연속 공부 일수
   function rOn(k){return (state.hist[k]&&state.hist[k].r)||0;}
   var noon=end-DAY+12*3600000, streak=0, d0=rOn(dayKey(t))?0:1;
@@ -842,6 +850,15 @@ function renderStats(){
     var lv=fut?"fut":v2===0?"":v2<10?"l1":v2<25?"l2":v2<50?"l3":"l4";var dd2=new Date(tt);
     cells+='<i class="'+lv+(key===dayKey(t)?" today":"")+'" title="'+(dd2.getMonth()+1)+'/'+dd2.getDate()+(fut?'':' · '+v2+'회')+'"></i>';}
   var leeches=leechIds().length;
+  // 편별 연습 정답률: 사례 문제·기출 OX 각각, 한 번이라도 푼 문제 중 마지막에 맞힌 비율
+  if(!OX&&!oxErr)oxLoad();
+  var S=exState(),acc={};PARTS.forEach(function(p){acc[p]={c:[0,0],o:[0,0]};});
+  EX.forEach(function(x){var st=S[x.id];if(x.kind!=="case"||!st||!st.n||!acc[x.part])return;acc[x.part].c[0]++;if(st.r===1)acc[x.part].c[1]++;});
+  (OX||[]).forEach(function(x){var st=S[x.id];if(!st||!st.n||!acc[x.part])return;acc[x.part].o[0]++;if(st.r===1)acc[x.part].o[1]++;});
+  function pc(a){return a[0]?'<b>'+Math.round(a[1]/a[0]*100)+'%</b> <span class="muted">'+a[1]+'/'+a[0]+'</span>':'<span class="muted">—</span>';}
+  var anyEx=PARTS.some(function(p){return acc[p].c[0]||acc[p].o[0];});
+  var accTxt=anyEx?'<table class="acc"><thead><tr><th></th><th>사례 문제</th><th>기출 OX</th></tr></thead><tbody>'+PARTS.map(function(p){return '<tr><th>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</th><td>'+pc(acc[p].c)+'</td><td>'+pc(acc[p].o)+'</td></tr>';}).join("")+'</tbody></table><p class="muted" style="margin:8px 0 0">한 번이라도 푼 문제 중 가장 최근에 맞힌 비율이에요.'+(!OX&&!oxErr?' 기출 OX 기록을 불러오는 중이에요.':'')+'</p>'
+    :'<p class="muted" style="margin:0">연습 탭에서 사례 문제나 기출 OX를 풀면 편별 정답률이 여기 나와요.</p>';
   main.innerHTML='<section class="panel"><h2>지금까지</h2><div class="stats">'+
     '<div class="stat"><b>'+streak+'<small class="muted">일</small></b><span>연속 공부'+(d0&&streak?' (오늘 아직)':'')+'</span></div>'+
     '<div class="stat"><b>'+learned+'<small class="muted"> / '+total+'</small></b><span>시작한 카드</span></div>'+
@@ -852,7 +869,7 @@ function renderStats(){
     (leeches?'<div class="row" style="margin-top:10px"><button class="btn primary" id="st-leech">자꾸 잊는 카드 '+leeches+'장 연습</button><button class="btn" id="st-list">목록에서 보기</button></div>':'')+'</section>'+
   '<section class="panel"><h2>최근 30일 기억률</h2>'+retTxt+'</section>'+
   '<section class="panel"><h2>공부 달력</h2><div class="heat">'+cells+'</div><div class="heatleg">적게<i style="background:var(--chip)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>많이 <span style="margin-left:auto">최근 18주</span></div></section>'+
-  '<section class="panel"><h2>앞으로 14일 복습 예정</h2><div class="bars">'+bars+'</div></section><section class="panel"><h2>편별 진도</h2><div class="prog">'+prog+'</div></section>';
+  '<section class="panel"><h2>앞으로 14일 복습 예정</h2><div class="bars">'+bars+'</div></section><section class="panel"><h2>편별 진도</h2><div class="prog">'+prog+'</div></section><section class="panel"><h2>편별 연습 정답률</h2>'+accTxt+'</section>';
   var sl=document.getElementById("st-leech");if(sl)sl.onclick=function(){view="study";startPractice("leech");};
   var so=document.getElementById("st-list");if(so)so.onclick=function(){view="cards";filterPart="__leech";filterText="";render();};
 }
@@ -1151,44 +1168,55 @@ var OX=null,oxLoading=false,oxErr=false,oxSess=null,OX_N=20;
 function oxLoad(){if(OX||oxLoading)return;oxLoading=true;oxErr=false;
   fetch("ox.json").then(function(r){if(!r.ok)throw new Error("ox");return r.json();}).then(function(d){
     OX=d.items.map(function(a){var u=d.units[a[1]],i=u.indexOf("|"),p=a[0].split("-");return {id:"ox:"+a[0],n:+p[0],k:+p[1],unit:u,part:u.slice(0,i),uname:u.slice(i+1),o:!!a[2],t:a[3],ctx:a[4]>=0?d.ctx[a[4]]:""};});
-    oxLoading=false;if(view==="ex")render();}).catch(function(){oxLoading=false;oxErr=true;if(view==="ex")render();});}
+    oxLoading=false;if(view==="ex"||view==="stats")render();}).catch(function(){oxLoading=false;oxErr=true;if(view==="ex")render();});}
 function oxUnitsOpen(){var o={};ROWS.forEach(function(r){if(!r.mine&&r.unit&&rowStarted(r.id))o[r.part+"|"+r.unit]=1;});return o;}
 function oxPool(part,onlyWrong){if(!OX)return [];var S=exState(),open=settings().exAll?null:oxUnitsOpen();
   return OX.filter(function(x){if(part&&x.part!==part)return false;if(open&&!open[x.unit])return false;var st=S[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
 function oxStart(part,onlyWrong){var pool=oxPool(part,onlyWrong),S=exState(),dk=dayKey(now()),t=now();
-  pool.forEach(function(x){var st=S[x.id],g;if(!st)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
+  pool.forEach(function(x){var st=S[x.id],g;if(!st||!st.n)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
     var age=st&&st.last?Math.min(365,(t-st.last)/DAY):0;x._k=g*1000+(g===2?(365-age):Math.random()*100);});
   pool.sort(function(a,b){return a._k-b._k;});var q=pool.slice(0,OX_N);
   for(var i=q.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=q[i];q[i]=q[j];q[j]=tmp;}
   if(!q.length)return;oxSess={part:part,wrong:!!onlyWrong,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
 function oxPick(v){var p=oxSess;if(!p||p.pick!==null||!p.queue.length)return;var x=p.queue[0],ok=v===x.o,S=exState(),st=S[x.id]||{n:0,w:0};
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[x.id]=st;if(ok)p.ok++;p.pick=v;scheduleSave();render();}
+function oxStarred(){var S=exState();return (OX||[]).filter(function(x){return S[x.id]&&S[x.id].f;});}
+function oxToggleStar(x){var S=exState(),st=S[x.id]||{n:0,w:0};st.f=st.f?0:1;st.ft=now();S[x.id]=st;scheduleSave();render();}
+function oxStartStar(){var q=oxStarred();if(!q.length)return;oxSess={part:null,wrong:false,star:true,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
 function oxNext(){var p=oxSess;if(!p||p.pick===null)return;p.queue.shift();p.pick=null;render();window.scrollTo(0,0);}
 function renderOx(){var p=oxSess,pos=p.total-p.queue.length+(p.queue.length?1:0);
-  var bar='<div class="undo"><span class="muted">기출 OX'+(p.part?' · '+esc(p.part.replace(/^제\d편 /,"")):'')+(p.wrong?' · 틀린 문제':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="oxq">그만 풀기</button></div>';
+  var bar='<div class="undo"><span class="muted">기출 OX'+(p.part?' · '+esc(p.part.replace(/^제\d편 /,"")):'')+(p.wrong?' · 틀린 문제':'')+(p.star?' · 확인할 지문':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="oxq">그만 풀기</button></div>';
   if(!p.queue.length){main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+p.ok+' / '+p.total+' 맞혔어요</h2><p>'+(p.ok===p.total?'모두 맞혔어요.':'틀린 지문은 다음에 먼저 나와요.')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="oxagain">한 번 더</button><button class="btn" id="oxback">돌아가기</button></div></div></div>';
-    document.getElementById("oxagain").onclick=function(){oxStart(p.part,p.wrong);};
+    document.getElementById("oxagain").onclick=function(){if(p.star)oxStartStar();else oxStart(p.part,p.wrong);};
     document.getElementById("oxback").onclick=document.getElementById("oxq").onclick=function(){oxSess=null;render();};return;}
   var x=p.queue[0],st=exState()[x.id],done=p.pick!==null,ok=done&&p.pick===x.o;
-  var h=bar+'<article class="card" aria-live="polite"><div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'<span class="sep">›</span>'+esc(x.uname)+'</span><span class="badges"><span class="tag">제'+x.n+'회 문'+x.k+'</span>'+(st&&st.w&&!done?'<span class="tag leech">전에 틀림</span>':'')+'</span></div>'+
+  var h=bar+'<article class="card" aria-live="polite"><div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'<span class="sep">›</span>'+esc(x.uname)+'</span><span class="badges"><span class="tag">제'+x.n+'회 문'+x.k+'</span>'+(st&&st.w&&!done?'<span class="tag leech">전에 틀림</span>':'')+'<button class="oxstar'+(st&&st.f?' on':'')+'" id="oxstar" aria-pressed="'+(st&&st.f?'true':'false')+'" title="해설서로 확인할 지문에 표시 (키보드 S)">'+(st&&st.f?'★ 확인할 지문':'☆ 확인할 지문')+'</button></span></div>'+
     (x.ctx?'<div class="oxctx">'+esc(x.ctx)+'</div>':'')+'<div class="oxt">'+esc(x.t)+'</div>'+
     (done?'<div class="oxres '+(ok?'ok':'no')+'"><b>'+(x.o?'O':'X')+'</b><span>'+(ok?'맞혔어요':'틀렸어요')+(x.o?' · 옳은 지문':' · 틀린 지문')+'</span></div>':'')+'</article>';
   h+=done?'<div class="actions"><button class="reveal" id="oxnext">다음</button><div class="hint">스페이스바 · Enter</div></div>'
     :'<div class="actions"><div class="rates two oxbtn"><button class="rate r3" id="oxo"><span>O</span><small>옳다</small></button><button class="rate r1" id="oxx"><span>X</span><small>틀리다</small></button></div><div class="hint">키보드 O · X</div></div>';
   main.innerHTML=h;
   document.getElementById("oxq").onclick=function(){oxSess=null;render();};
+  document.getElementById("oxstar").onclick=function(){oxToggleStar(x);};
   if(done)document.getElementById("oxnext").onclick=oxNext;
   else{document.getElementById("oxo").onclick=function(){oxPick(true);};document.getElementById("oxx").onclick=function(){oxPick(false);};}}
 function oxBox(){
   if(!OX){if(!oxErr)oxLoad();return '<div class="exbox"><h3>변시 기출 OX</h3><p>'+(oxErr?'지문을 불러오지 못했어요. <button class="link" id="oxretry">다시 시도</button>':'지문을 불러오는 중…')+'</p></div>';}
-  var S=exState(),all=OX.length,open=oxPool(null),wrong=oxPool(null,true),seen=OX.filter(function(x){return S[x.id];}).length;
+  var S=exState(),all=OX.length,open=oxPool(null),wrong=oxPool(null,true),seen=OX.filter(function(x){return S[x.id]&&S[x.id].n;}).length,star=oxStarred();
   var parts=[];OX.forEach(function(x){if(parts.indexOf(x.part)<0)parts.push(x.part);});parts.sort();
   return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고 해설은 없어요. 근거가 궁금하면 「제n회 문m」으로 기출문제집 해설을 찾아보세요.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+seen+'지문 풀어 봄</span></p>'+
     (open.length?'<div class="row"><button class="btn primary" data-ox="">섞어서 '+Math.min(OX_N,open.length)+'지문</button>'+parts.map(function(pt){var n=oxPool(pt).length;return n?'<button class="btn" data-ox="'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,""))+' '+n+'</button>':'';}).join("")+'</div>':'<span class="muted" style="font-size:.85rem">그 단원의 두문자를 하나라도 배우면 열려요</span>')+
-    (wrong.length?'<div class="row" style="margin-top:8px"><button class="btn" data-oxw="1">틀린 지문 '+wrong.length+'개</button></div>':'')+'</div>';}
+    (wrong.length?'<div class="row" style="margin-top:8px"><button class="btn" data-oxw="1">틀린 지문 '+wrong.length+'개</button></div>':'')+
+    (star.length?(function(){var op=false;try{op=localStorage.getItem("minbeop-ox-star")==="1";}catch(e){}
+      return '<details class="exre" id="oxstarlist"'+(op?' open':'')+'><summary>확인할 지문 <span class="muted">'+star.length+'개</span></summary><p>☆를 눌러 표시한 지문이에요. 해설서에서 「제n회 문m」을 찾아 확인한 뒤 지우세요.</p><ul class="oxsl">'+
+      star.map(function(x){return '<li><b>제'+x.n+'회 문'+x.k+'</b> <span class="muted">('+(x.o?'O':'X')+')</span> '+esc(x.t.length>70?x.t.slice(0,70)+'…':x.t)+'<button class="link" data-oxun="'+esc(x.id)+'">지우기</button></li>';}).join("")+
+      '</ul><div class="row"><button class="btn" id="oxstarrun">확인할 지문 다시 풀기</button></div></details>';})():'')+'</div>';}
 function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.ox||null,false);};});
   main.querySelectorAll("[data-oxw]").forEach(function(b){b.onclick=function(){oxStart(null,true);};});
-  var r=document.getElementById("oxretry");if(r)r.onclick=function(){oxLoad();render();};}
+  var r=document.getElementById("oxretry");if(r)r.onclick=function(){oxLoad();render();};
+  var sl=document.getElementById("oxstarlist");if(sl)sl.ontoggle=function(){try{localStorage.setItem("minbeop-ox-star",sl.open?"1":"0");}catch(e){}};
+  var sr=document.getElementById("oxstarrun");if(sr)sr.onclick=oxStartStar;
+  main.querySelectorAll("[data-oxun]").forEach(function(b){b.onclick=function(){var x=OX.filter(function(y){return y.id===b.dataset.oxun;})[0];if(x)oxToggleStar(x);};});}
 function renderEx(){
   if(listenSess){renderListen();return;}
   if(oxSess){renderOx();return;}
@@ -1295,6 +1323,7 @@ document.addEventListener("keydown",function(e){
   if(view==="ex"&&oxSess){if(!oxSess.queue.length)return;var kk=e.key.toLowerCase();
     if(oxSess.pick===null){if(kk==="o"||kk==="ㅐ"||kk==="1"){oxPick(true);}else if(kk==="x"||kk==="ㅌ"||kk==="2"){oxPick(false);}}
     else if(e.key===" "||e.key==="Enter"){e.preventDefault();oxNext();}
+    if(kk==="s"||kk==="ㄴ")oxToggleStar(oxSess.queue[0]);
     return;}
   if(view==="ex"){if(!exSess||!exSess.queue.length)return;
     if((e.key===" "||e.key==="Enter")&&!exSess.shown){e.preventDefault();exSess.shown=true;render();}
