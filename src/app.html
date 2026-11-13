@@ -122,6 +122,8 @@ main{padding-top:16px}
 .exre summary::after{content:" ▾";color:var(--ink-2);font-weight:400}
 .exre[open] summary::after{content:" ▴"}
 .exre p{margin:4px 0 8px}
+.exre p.oxclr{margin:10px 0 0;font-size:.8rem;color:var(--ink-2)}
+.exre p.oxclr .link{font-size:.8rem;color:var(--ink-2)}
 .oxstar{font:inherit;font-size:.78rem;border:1px solid var(--rule);background:transparent;color:var(--ink-2);border-radius:999px;padding:2px 9px;cursor:pointer}
 .oxstar.on{color:var(--accent);border-color:var(--accent)}
 .oxsl{list-style:none;margin:0 0 10px;padding:0;font-size:.85rem;line-height:1.55}
@@ -1186,6 +1188,9 @@ function oxStart(part,onlyWrong){var pool=oxPool(part,onlyWrong),S=exState(),dk=
   if(!q.length)return;oxSess={part:part,wrong:onlyWrong==="re"?"re":!!onlyWrong,queue:q,total:q.length,ok:0,pick:null};render();window.scrollTo(0,0);}
 function oxPick(v){var p=oxSess;if(!p||p.pick!==null||!p.queue.length)return;var x=p.queue[0],ok=v===x.o,S=exState(),st=S[x.id]||{n:0,w:0};
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[x.id]=st;if(ok)p.ok++;p.pick=v;scheduleSave();render();}
+/* 편별 풀이 기록 지우기: 기기 간 동기화에서 되살아나지 않도록 n=0 기록을 최신 시각으로 남긴다(☆ 표시는 유지). */
+var oxClrArm=null;
+function oxClearPart(pt){var S=exState(),t=now();(OX||[]).forEach(function(x){var st=S[x.id];if(x.part!==pt||!st||!st.n)return;var o={n:0,w:0,last:t};if(st.f){o.f=st.f;o.ft=st.ft;}S[x.id]=o;});oxClrArm=null;scheduleSave();render();}
 function oxStarred(){var S=exState();return (OX||[]).filter(function(x){return S[x.id]&&S[x.id].f;});}
 function oxToggleStar(x){var S=exState(),st=S[x.id]||{n:0,w:0};st.f=st.f?0:1;st.ft=now();S[x.id]=st;scheduleSave();render();}
 function oxExpPool(){return (OX||[]).filter(function(x){return OXEXP[x.id.slice(3)];});}
@@ -1221,7 +1226,8 @@ function oxBox(){
     (wrong.length?'<button class="btn" data-oxw="1">틀린 지문 '+wrong.length+'개</button>':'')+'</div>'+
     (re.length?fold("oxrefold","minbeop-ox-re","풀어 본 지문 다시 풀기",re.length+'지문','<p>편 단위로 섞어서 내요. 틀렸던 것, 오래전에 푼 것부터 나와요.</p><div class="row">'+
       parts.map(function(pt){var n=oxPool(pt,"re").length;return n?'<button class="btn" data-oxre="'+esc(pt)+'">'+esc(sh(pt))+' '+n+'</button>':'';}).join("")+
-      '<button class="btn primary" data-oxre="">한번에 '+Math.min(OX_N,re.length)+'지문</button></div>'):'')+
+      '<button class="btn primary" data-oxre="">한번에 '+Math.min(OX_N,re.length)+'지문</button></div>'+
+      '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=oxPool(pt,"re").length;return n?'<button class="link" data-oxclr="'+esc(pt)+'">'+(oxClrArm===pt?'한 번 더 누르면 '+esc(sh(pt))+' '+n+'지문 기록이 지워져요':esc(sh(pt)))+'</button>':'';}).filter(Boolean).join(" · ")+'</p>'):'')+
     (star.length?fold("oxstarlist","minbeop-ox-star","확인할 지문",star.length+'개','<p>☆를 눌러 표시한 지문이에요. 해설서에서 「제n회 문m」을 찾아 확인한 뒤 지우세요.</p><ul class="oxsl">'+
       star.map(function(x){return '<li><b>제'+x.n+'회 문'+x.k+'</b> <span class="muted">('+(x.o?'O':'X')+')</span> '+esc(x.t.length>70?x.t.slice(0,70)+'…':x.t)+'<button class="link" data-oxun="'+esc(x.id)+'">지우기</button></li>';}).join("")+
       '</ul><div class="row"><button class="btn" id="oxstarrun">확인할 지문 다시 풀기</button></div>'):'')+'</div>';}
@@ -1229,6 +1235,7 @@ function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.on
   main.querySelectorAll("[data-oxw]").forEach(function(b){b.onclick=function(){oxStart(null,true);};});
   var r=document.getElementById("oxretry");if(r)r.onclick=function(){oxLoad();render();};
   main.querySelectorAll(".exbox details[data-k]").forEach(function(d){d.ontoggle=function(){try{localStorage.setItem(d.dataset.k,d.open?"1":"0");}catch(e){}};});
+  main.querySelectorAll("[data-oxclr]").forEach(function(b){b.onclick=function(){var pt=b.dataset.oxclr;if(oxClrArm===pt)oxClearPart(pt);else{oxClrArm=pt;render();}};});
   main.querySelectorAll("[data-oxre]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.oxre||null,"re");};});
   var sr=document.getElementById("oxstarrun");if(sr)sr.onclick=oxStartStar;
   main.querySelectorAll("[data-oxun]").forEach(function(b){b.onclick=function(){var x=OX.filter(function(y){return y.id===b.dataset.oxun;})[0];if(x)oxToggleStar(x);};});}
