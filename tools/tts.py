@@ -4,6 +4,8 @@
   발음 다듬기(쉼, 띄어 읽기)는 여기서만 하므로 바꿔도 앱은 그대로 두면 된다(대신 전체를 새로 만든다).
 - src/tts_extra.json 의 {"acr": [...]} 는 앱에서 직접 고친 두문자(이슈로 요청된 것)도 만든다.
 - 이미 있는 파일은 다시 만들지 않는다(카드 문구를 고친 부분만 새로 만든다). 더 이상 쓰지 않는 파일은 지운다.
+- static/ox.json(변시 기출 OX)의 사실관계(c)·지문(q)·정답 안내(acr)·해설(mean)도 만든다. 앱의 oxRow 와 맞춰야 한다.
+  OX 파일 목록은 manifest 의 "ox" 에 따로 적고, build.py 가 배포용 ox.json 의 "aud" 로 옮긴다(앱 첫 화면을 가볍게).
 - 목소리를 바꾸면 전부 새로 만든다.
 환경변수: GOOGLE_TTS_KEY(필수, API 키)
   TTS_MODEL(선택, 기본 chirp = Chirp 3 HD(무료 제공량 내). gemini-2.5-flash-lite-preview-tts 등 Gemini 모델 이름도 가능)
@@ -69,6 +71,41 @@ def markup(part, raw):
     return re.sub(r"\s+", " ", t).strip()
 
 
+OX_SAY = {1: "맞는 지문이에요.", 0: "틀린 지문이에요."}  # 앱 OX_SAY 와 같아야 한다
+HANJA = {"甲": "갑", "乙": "을", "丙": "병", "丁": "정", "戊": "무", "己": "기"}
+
+
+def ox_texts():
+    """앱 oxRow 와 같다: [(부분, 원문)]"""
+    p = root / "static" / "ox.json"
+    if not p.exists():
+        return []
+    d = json.loads(p.read_text(encoding="utf-8"))
+    out = [("acr", OX_SAY[1]), ("acr", OX_SAY[0])]
+    out += [("c", c) for c in d["ctx"] if c]
+    for a in d["items"]:
+        out.append(("q", a[3]))
+        e = d.get("exp", {}).get(a[0])
+        if e and e[0]:
+            out.append(("mean", e[0]))
+    return out
+
+
+def ox_markup(raw):
+    """OX 지문·해설 → 구글에 보낼 markup"""
+    t = raw
+    for a, b in HANJA.items():
+        t = t.replace(a, b)
+    t = re.sub(r"\([\u3400-\u9fff]+\)", "", t)  # 경매인(競買人) → 경매인
+    t = re.sub(r"[「」｢｣‘’“”'\"]", "", t)
+    t = re.sub(r"(\d+)\s*/\s*(\d+)", lambda m: f"{m.group(2)}분의 {m.group(1)}", t)
+    t = t.replace("%", " 퍼센트").replace("×", " 곱하기 ").replace("=", ", 즉 ")
+    t = re.sub(r"[․ㆍ·]", ", ", t)
+    t = re.sub(r"[①②③④⑤]", lambda m: f"{'①②③④⑤'.index(m.group(0)) + 1}번", t)
+    t = re.sub(r"\s*:\s*", ": [pause short] ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def synth(text, key):
     inp = {"markup": text} if not MODEL else {"text": re.sub(r"\s*\[pause[^\]]*\]\s*", " ", text)}
     voice = {"languageCode": "ko-KR", "name": VOICE}
@@ -105,6 +142,11 @@ def main():
         for a in json.loads(extra_p.read_text(encoding="utf-8")).get("acr", []):
             if a.strip():
                 want[key("acr", a.strip())] = markup("acr", a.strip())
+    card_keys = sorted(want)
+    ox_want = {}
+    for part, raw in ox_texts():
+        ox_want[key(part, raw)] = ox_markup(raw)
+    want.update(ox_want)
     outdir.mkdir(parents=True, exist_ok=True)
     man_p = outdir / "manifest.json"
     man = json.loads(man_p.read_text(encoding="utf-8")) if man_p.exists() else {}
@@ -126,7 +168,7 @@ def main():
     for f in outdir.glob("*.mp3"):
         if f.stem not in want:
             f.unlink()
-    man_p.write_text(json.dumps({"sig": SIG, "files": sorted(want)}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+    man_p.write_text(json.dumps({"sig": SIG, "files": card_keys, "ox": sorted(ox_want)}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
     print("완료")
 
 

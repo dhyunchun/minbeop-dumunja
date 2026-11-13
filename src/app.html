@@ -967,7 +967,7 @@ function exOpen(x){return x.kind==="toc"||!!settings().exAll||x.rel.some(rowStar
 function exUnitsOf(x){var o=[];x.rel.forEach(function(rid){var r=rowById(rid);if(r&&r.unit){var k=r.part+"|"+r.unit;if(o.indexOf(k)<0)o.push(k);}});return o;}
 function exKindOk(x,kf){return !kf||kf==="all"||(kf==="case"?x.kind==="case":x.kind==="pair");}
 function exPool(spec,onlyWrong){return EX.filter(function(x){
-  if(typeof spec==="string"&&spec.slice(0,3)==="re:"){var rp=spec.slice(3);if(x.kind!=="case"||!exState()[x.id]||(rp&&x.part!==rp))return false;}
+  if(typeof spec==="string"&&spec.slice(0,3)==="re:"){var rp=spec.slice(3);var s0=exState()[x.id];if(x.kind!=="case"||!(s0&&s0.n)||(rp&&x.part!==rp))return false;}
   else if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;}
   else{if(x.kind==="toc"||!exKindOk(x,spec.kf))return false;var u=exUnitsOf(x);if(!u.some(function(k){return spec.units.indexOf(k)>=0;}))return false;}
   var st=exState()[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
@@ -976,7 +976,7 @@ function exStart(kind,onlyWrong){ // kind: "case"/"pair" 또는 단원 선택 {u
   // 순서: 틀렸던 문제(오늘 이미 본 것 제외) → 안 풀어 본 문제 → 맞혔던 문제(오래된 것부터) → 오늘 틀린 문제
   var pool=exPool(kind,onlyWrong),S=exState(),dk=dayKey(now()),t=now();
   pool.forEach(function(x){var st=S[x.id],g;
-    if(!st)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
+    if(!st||!st.n)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
     var age=st&&st.last?Math.min(365,(t-st.last)/DAY):0;
     x._k=g*1000+(g===2?(365-age):Math.random()*100);});
   pool.sort(function(a,b){return a._k-b._k;});
@@ -986,6 +986,9 @@ function exStart(kind,onlyWrong){ // kind: "case"/"pair" 또는 단원 선택 {u
   if(!q.length)return;
   exSess={kind:kind,wrong:!!onlyWrong,queue:q,total:q.length,ok:0,shown:false};if(typeof kind!=="string"){var se=settings();se.exLast={units:kind.units.slice(),kf:kind.kf};scheduleSave();}render();window.scrollTo(0,0);
 }
+/* 사례 문제 편별 풀이 기록 지우기(기출 OX와 같은 방식: n=0 기록을 최신 시각으로 남겨 동기화로 되살아나지 않게) */
+var exClrArm=null;
+function exClearPart(pt){var S=exState(),t=now();EX.forEach(function(x){var st=S[x.id];if(x.kind!=="case"||x.part!==pt||!st||!st.n)return;S[x.id]={n:0,w:0,last:t};});exClrArm=null;scheduleSave();render();}
 function exAnswer(ok){
   var id=exSess.queue.shift(),S=exState(),st=S[id]||{n:0,w:0};
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[id]=st;if(ok)exSess.ok++;
@@ -1004,6 +1007,7 @@ function ttsOk(){return typeof window!=="undefined"&&"speechSynthesis" in window
 function koVoice(){if(!ttsOk())return null;var v=speechSynthesis.getVoices().filter(function(x){return /^ko/i.test(x.lang);});return v[0]||null;}
 /* mode: today | flag | part:<편 이름>(카드 순서대로) | rand:<장 수>(배운 카드 중 무작위) */
 function listenPool(mode){var dk=dayKey(now()),seen={},kind=mode.split(":")[0],arg=mode.slice(kind.length+1);
+  if(kind==="ox")return oxListenPool(arg);
   var rows=CARDS.filter(function(c){if(!cardOn(c)||seen[c.row.id])return false;var s=cs(c.id);
     var ok=kind==="flag"?isFlag(c.row.id):kind==="today"?!!(s&&s.last&&dayKey(s.last)===dk):kind==="part"?c.row.part===arg:kind==="rand"?rowStarted(c.row.id):false;
     if(ok)seen[c.row.id]=1;return ok;}).map(function(c){return c.row;});
@@ -1013,9 +1017,13 @@ function listenPool(mode){var dk=dayKey(now()),seen={},kind=mode.split(":")[0],a
 var lsPick=false;
 function listenParts(){var seen={},out=[];CARDS.forEach(function(c){var p=c.row.part;if(p&&!seen[p]&&cardOn(c)){seen[p]=1;out.push(p);}});return out;}
 /* 음성 파일의 이름은 '읽을 원문'의 해시. 발음 다듬기는 tools/tts.py 에서만 하므로 여기서 바꿀 필요가 없다. */
-function rawText(r,part){if(part==="q")return r.q||r.topic||(r.mine?"":"이 두문자의 뜻은?");if(part==="acr")return dispAcr(r)||"";return r.mean||"";}
+function rawText(r,part){if(r.ox)return r[part]||"";if(part==="c")return "";if(part==="q")return r.q||r.topic||(r.mine?"":"이 두문자의 뜻은?");if(part==="acr")return dispAcr(r)||"";return r.mean||"";}
 function audioKey(part,raw){return tHash(part+"\n"+raw);}
+var LSP=["c","q","acr","mean"]; // 사실관계(기출 OX만) → 주제·지문 → 두문자·정답 → 뜻·해설
+function lsAcr(r){return r.ox?r.acr:dispAcr(r);}
+function oxSpeak(t){return (t||"").replace(/[甲乙丙丁戊己]/g,function(c){return {"甲":"갑","乙":"을","丙":"병","丁":"정","戊":"무","己":"기"}[c];}).replace(/\([\u3400-\u9fff]+\)/g,"").replace(/[「」｢｣‘’“”]/g,"").replace(/\s+/g," ").trim();}
 function speakText(r,part){
+  if(r.ox)return oxSpeak(r[part]);
   if(part==="q")return rawText(r,"q");
   if(part==="acr"){var a=dispAcr(r);return a?a.replace(/[·\/]/g,", ").replace(/\s+/g," "):"";}
   return (r.mean||"").replace(/\*\*/g,"").replace(/\([^)]*\)/g,"").replace(/\s\/\s/g,". ").replace(/·/g,", ").replace(/→/g,"그래서").replace(/\s+/g," ").trim();}
@@ -1050,7 +1058,7 @@ var lsDec=null;
 function lsDecCtx(){if(lsDec)return lsDec;var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!O)return null;try{lsDec=new O(1,1,24000);}catch(e){lsDec=null;}return lsDec;}
 function lsDecode(h){var c=lsDecCtx();return fetch("audio/"+h+".mp3").then(function(r){if(!r.ok)throw new Error("audio");return r.arrayBuffer();}).then(function(ab){return new Promise(function(res,rej){var pr=c.decodeAudioData(ab,res,rej);if(pr&&pr.then)pr.then(res,rej);});});}
 function lsHasAll(r){if(!HAS_AUDIO||!lsAudio||typeof Blob==="undefined"||!window.URL||!URL.createObjectURL)return false;
-  return ["q","acr","mean"].every(function(p){var raw=rawText(r,p);return !raw||AUDIO[audioKey(p,raw)];});}
+  return LSP.every(function(p){var raw=rawText(r,p);return !raw||AUDIO[audioKey(p,raw)];});}
 function lsCanBlob(r){return lsHasAll(r)&&!!lsDecCtx()&&!(listenSess&&listenSess.noBlob);}
 /* 안드로이드 등: 세션 전체를 끊김 없는 스트림 하나(MediaSource)로 만들어, 카드 사이에서도 재생이 멈추지 않게 한다.
    재생 중에 다음 카드 음성을 뒤에 계속 덧붙인다. 아이폰처럼 지원하지 않으면 카드 단위 재생으로 대신한다. */
@@ -1072,11 +1080,11 @@ function lsStream(){var L=listenSess,tok=++L.tok;L.legacy=false;L.mode2="stream"
     if(idx>=L.rows.length){finish();return;}
     var r=L.rows[idx];if(!lsHasAll(r)){S.stopAt=idx;finish();return;}
     S.loading=true;var gapN=Math.max(1,Math.round(LS_GAP[L.gap]/0.552));
-    var parts=["q","acr","mean"].map(function(p){var raw=rawText(r,p);return raw?lsFetchAB("audio/"+audioKey(p,raw)+".mp3"):Promise.resolve(null);});
+    var parts=LSP.map(function(p){var raw=rawText(r,p);return raw?lsFetchAB("audio/"+audioKey(p,raw)+".mp3"):Promise.resolve(null);});
     Promise.all([lsSilAB?Promise.resolve(lsSilAB):lsFetchAB("sil/s500.mp3")].concat(parts)).then(function(b){
       if(!live())return;lsSilAB=b[0];var sil=b[0],m={start:endT()},seq=[];
-      seq.push(sil);if(b[1])seq.push(b[1]);seq.push("qEnd");for(var g=0;g<gapN;g++)seq.push(sil);
-      seq.push("acrAt");if(b[2])seq.push(b[2]);seq.push(sil);seq.push("meanAt");if(b[3])seq.push(b[3]);seq.push(sil,sil,"end");
+      seq.push(sil);if(b[1])seq.push(b[1],sil);if(b[2])seq.push(b[2]);seq.push("qEnd");for(var g=0;g<gapN;g++)seq.push(sil);
+      seq.push("acrAt");if(b[3])seq.push(b[3]);seq.push(sil);seq.push("meanAt");if(b[4])seq.push(b[4]);seq.push(sil,sil,"end");
       var k=0;function step(){if(!live())return Promise.resolve();if(k>=seq.length)return Promise.resolve();var it=seq[k++];
         if(typeof it==="string"){m[it]=endT();return step();}return append(it).then(step);}
       return step().then(function(){if(!live())return;S.marks[idx]=m;S.next=idx+1;S.loading=false;
@@ -1096,8 +1104,8 @@ function lsStream(){var L=listenSess,tok=++L.tok;L.legacy=false;L.mode2="stream"
 var lsSil={};function lsSilence(sec){if(!lsSil[sec])lsSil[sec]=URL.createObjectURL(lsWav([sec],24000));return lsSil[sec];}
 /* 이어 붙이기가 안 되는 기기용: 파일 → 무음 파일 → 파일 … 을 오디오 요소 하나로 차례로 재생(타이머를 쓰지 않아 화면이 꺼져도 이어진다) */
 function lsChain(){var L=listenSess,r=L.rows[L.i],tok=++L.tok;L.legacy=false;L.mode2="chain";
-  var seq=[];[["q","q"],["acr","acr"],["mean","mean"]].forEach(function(x){var raw=rawText(r,x[0]);if(raw)seq.push({src:"audio/"+audioKey(x[0],raw)+".mp3",ph:x[1]});
-    if(x[0]==="q")seq.push({src:lsSilence(LS_GAP[L.gap]),ph:"wait"});else if(x[0]==="acr")seq.push({src:lsSilence(0.6),ph:"acr"});});
+  var seq=[];[["c","q"],["q","q"],["acr","acr"],["mean","mean"]].forEach(function(x){var raw=rawText(r,x[0]);if(raw)seq.push({src:"audio/"+audioKey(x[0],raw)+".mp3",ph:x[1]});
+    if(x[0]==="c"){if(raw)seq.push({src:lsSilence(0.5),ph:"q"});}else if(x[0]==="q")seq.push({src:lsSilence(LS_GAP[L.gap]),ph:"wait"});else if(x[0]==="acr")seq.push({src:lsSilence(0.6),ph:"acr"});});
   seq.push({src:lsSilence(1.2),ph:"mean"});
   if(L.cur&&L.cur.url)URL.revokeObjectURL(L.cur.url);L.cur={url:""};var k=0;lsMedia(L,r);
   function go(){if(listenSess!==L||L.tok!==tok)return;if(k>=seq.length){L.i++;L.phase="q";listenStep();return;}
@@ -1109,14 +1117,14 @@ function lsWav(parts,sr){var n=0;parts.forEach(function(p){n+=typeof p==="number
   w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
   var o=44;parts.forEach(function(p){if(typeof p==="number"){o+=Math.round(p*sr)*2;return;}for(var i=0;i<p.length;i++){var x=p[i]>1?1:p[i]<-1?-1:p[i];v.setInt16(o,x<0?x*0x8000:x*0x7fff,true);o+=2;}});
   return new Blob([buf],{type:"audio/wav"});}
-function lsBuild(r,gap){var parts=["q","acr","mean"].map(function(p){var raw=rawText(r,p);return raw?lsDecode(audioKey(p,raw)):Promise.resolve(null);});
-  return Promise.all(parts).then(function(b){var sr=(b[0]||b[1]||b[2]).sampleRate,len=function(x){return x?x.length/sr:0;},d=function(x){return x?x.getChannelData(0):0;};
-    var qEnd=0.3+len(b[0]),acrAt=qEnd+gap,meanAt=acrAt+len(b[1])+0.6;
-    var seq=[0.3];if(b[0])seq.push(d(b[0]));seq.push(gap);if(b[1])seq.push(d(b[1]));seq.push(0.6);if(b[2])seq.push(d(b[2]));seq.push(1.2);
+function lsBuild(r,gap){var parts=LSP.map(function(p){var raw=rawText(r,p);return raw?lsDecode(audioKey(p,raw)):Promise.resolve(null);});
+  return Promise.all(parts).then(function(b){var sr=(b[0]||b[1]||b[2]||b[3]).sampleRate,len=function(x){return x?x.length/sr:0;},d=function(x){return x?x.getChannelData(0):0;};
+    var qEnd=0.3+(b[0]?len(b[0])+0.5:0)+len(b[1]),acrAt=qEnd+gap,meanAt=acrAt+len(b[2])+0.6;
+    var seq=[0.3];if(b[0])seq.push(d(b[0]),0.5);if(b[1])seq.push(d(b[1]));seq.push(gap);if(b[2])seq.push(d(b[2]));seq.push(0.6);if(b[3])seq.push(d(b[3]));seq.push(1.2);
     return {url:URL.createObjectURL(lsWav(seq,sr)),qEnd:qEnd,acrAt:acrAt,meanAt:meanAt};});}
 function lsDropNext(L){if(L.next){L.next.p.then(function(c){URL.revokeObjectURL(c.url);},function(){});L.next=null;}}
 function lsMedia(L,r){if(!("mediaSession" in navigator))return;try{
-  if(window.MediaMetadata)navigator.mediaSession.metadata=new MediaMetadata({title:r.topic||r.q||dispAcr(r)||"카드",artist:"민법 두문자 듣기 · "+(L.i+1)+"/"+L.rows.length,album:(r.part||"").replace(/^제\d편 /,"")});
+  if(window.MediaMetadata)navigator.mediaSession.metadata=new MediaMetadata({title:r.topic||r.q||lsAcr(r)||"카드",artist:"민법 두문자 듣기 · "+(L.i+1)+"/"+L.rows.length,album:(r.part||"").replace(/^제\d편 /,"")});
   if(!L.msBound){L.msBound=true;var ms=navigator.mediaSession;
     ms.setActionHandler("play",function(){lsResume();});ms.setActionHandler("pause",function(){lsPause();});
     ms.setActionHandler("nexttrack",function(){lsJump(1);});ms.setActionHandler("previoustrack",function(){lsJump(-1);});}}catch(e){}}
@@ -1149,18 +1157,19 @@ function listenStep(){var L=listenSess;if(!L||!L.playing)return;if(L.i>=L.rows.l
   var r=L.rows[L.i];
   if(L.phase==="q"&&!L.legacy&&lsHasAll(r)){if(lsMseOk()&&!L.noMse)lsStream();else if(lsCanBlob(r))lsPlayCard();else lsChain();return;}
   L.legacy=true;L.mode2="device";render();
-  if(L.phase==="q")listenSay(r,"q",function(){L.phase="wait";render();L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.phase="acr";listenStep();}},LS_GAP[L.gap]*1000);});
+  if(L.phase==="q")listenSay(r,"c",function(){listenSay(r,"q",function(){L.phase="wait";render();L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.phase="acr";listenStep();}},LS_GAP[L.gap]*1000);});});
   else if(L.phase==="wait"){L.phase="acr";listenStep();}
   else if(L.phase==="acr")listenSay(r,"acr",function(){L.phase="mean";listenStep();});
   else listenSay(r,"mean",function(){L.timer=setTimeout(function(){if(listenSess===L&&L.playing){L.i++;L.phase="q";L.legacy=false;listenStep();}},1200);});}
 function renderListen(){var L=listenSess;
-  if(L.done){main.innerHTML='<div class="card"><div class="done"><h2>'+L.rows.length+'장을 다 들었어요</h2><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="lsagain">한 번 더</button><button class="btn" id="lsback">돌아가기</button></div></div></div>';
+  var U=L.rows[0]&&L.rows[0].ox?"지문":"장";
+  if(L.done){main.innerHTML='<div class="card"><div class="done"><h2>'+L.rows.length+U+'을 다 들었어요</h2><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="lsagain">한 번 더</button><button class="btn" id="lsback">돌아가기</button></div></div></div>';
     document.getElementById("lsagain").onclick=function(){listenStart(L.mode);};document.getElementById("lsback").onclick=function(){listenSess=null;render();};return;}
   var r=L.rows[L.i],shown=L.phase==="acr"||L.phase==="mean";
   main.innerHTML='<div class="undo"><span class="muted">듣기 모드 · '+(L.i+1)+' / '+L.rows.length+'</span><button class="link" id="lsq">그만 듣기</button></div>'+
     '<article class="card"><div class="meta"><span class="crumb">'+esc((r.part||"").replace(/^제\d편 /,""))+(r.unit?'<span class="sep">›</span>'+esc(r.unit):"")+'</span></div>'+
-    '<div class="prompt">'+esc(speakText(r,"q"))+'</div>'+(L.phase==="wait"?'<div class="ask">떠올려 보세요…</div>':'')+
-    (shown?'<div class="answer"><div class="acr">'+esc(dispAcr(r))+'</div>'+(L.phase==="mean"?'<div class="mean">'+md(r.mean)+'</div>':'')+'</div>':'')+'</article>'+
+    (r.ox?(r.topic?'<div class="muted" style="font-size:.8rem;margin-bottom:4px">'+esc(r.topic)+'</div>':'')+(r.c?'<div class="oxctx">'+esc(r.c)+'</div>':'')+'<div class="oxt">'+esc(r.q)+'</div>':'<div class="prompt">'+esc(speakText(r,"q"))+'</div>')+(L.phase==="wait"?'<div class="ask">'+(r.ox?'O일까요, X일까요…':'떠올려 보세요…')+'</div>':'')+
+    (shown?'<div class="answer"><div class="acr">'+esc(lsAcr(r))+'</div>'+(L.phase==="mean"&&r.mean?'<div class="mean">'+(r.ox?esc(r.mean):md(r.mean))+'</div>':'')+'</div>':'')+'</article>'+
     '<div class="listenbar"><button class="btn" id="lsprev" aria-label="이전">⏮</button><button class="btn primary" id="lsplay">'+(L.playing?'⏸ 일시정지':'▶ 계속')+'</button><button class="btn" id="lsnext" aria-label="다음">⏭</button></div>'+
     '<div class="row" style="justify-content:center;gap:16px;margin-top:10px;font-size:.85rem"><button class="link" id="lsrate">속도 '+["느리게","보통","빠르게"][L.rate]+'</button><button class="link" id="lsgap">생각할 시간 '+LS_GAP[L.gap]+'초</button></div>'+
     '<p class="muted" style="text-align:center;font-size:.78rem;margin-top:12px">'+(L.mode2==="device"?'이 카드는 기기 음성이라 화면이 켜져 있어야 이어져요':L.mode2==="chain"?'구글 음성 · 화면을 꺼도 이어져요 (파일 이어 재생)':L.mode2==="stream"?'구글 음성 · 화면을 꺼도 이어져요 (연속 재생)':'구글 음성 · 화면을 꺼도 이어져요')+' · 빌드 '+esc(APP_BUILD)+'</p>';
@@ -1174,7 +1183,7 @@ function renderListen(){var L=listenSess;
 var OX=null,OXEXP={},OXQ={},oxLoading=false,oxErr=false,oxSess=null,OX_N=10;
 function oxLoad(){if(OX||oxLoading)return;oxLoading=true;oxErr=false;
   fetch("ox.json").then(function(r){if(!r.ok)throw new Error("ox");return r.json();}).then(function(d){
-    OXEXP=d.exp||{};OXQ=d.q||{};
+    OXEXP=d.exp||{};OXQ=d.q||{};(d.aud||[]).forEach(function(h){AUDIO[h]=1;});if(d.aud&&d.aud.length)HAS_AUDIO=true;
     OX=d.items.map(function(a){var u=d.units[a[1]],i=u.indexOf("|"),p=a[0].split("-");return {id:"ox:"+a[0],n:+p[0],k:+p[1],unit:u,part:u.slice(0,i),uname:u.slice(i+1),o:!!a[2],t:a[3],ctx:a[4]>=0?d.ctx[a[4]]:""};});
     oxLoading=false;if(view==="ex"||view==="stats")render();}).catch(function(){oxLoading=false;oxErr=true;if(view==="ex")render();});}
 function oxUnitsOpen(){var o={};ROWS.forEach(function(r){if(!r.mine&&r.unit&&rowStarted(r.id))o[r.part+"|"+r.unit]=1;});return o;}
@@ -1191,6 +1200,13 @@ function oxPick(v){var p=oxSess;if(!p||p.pick!==null||!p.queue.length)return;var
 /* 편별 풀이 기록 지우기: 기기 간 동기화에서 되살아나지 않도록 n=0 기록을 최신 시각으로 남긴다(☆ 표시는 유지). */
 var oxClrArm=null;
 function oxClearPart(pt){var S=exState(),t=now();(OX||[]).forEach(function(x){var st=S[x.id];if(x.part!==pt||!st||!st.n)return;var o={n:0,w:0,last:t};if(st.f){o.f=st.f;o.ft=st.ft;}S[x.id]=o;});oxClrArm=null;scheduleSave();render();}
+/* OX 듣기: 사실관계 → 지문 → (생각할 시간) → 맞는/틀린 지문 → 해설. tools/tts.py 의 ox_texts 와 같은 원문을 쓴다. 기록에는 남지 않는다. */
+var OX_SAY={1:"맞는 지문이에요.",0:"틀린 지문이에요."};
+function oxRow(x){var e=OXEXP[x.id.slice(3)];return {ox:1,id:x.id,part:x.part,unit:x.uname,topic:"제"+x.n+"회 문"+x.k,c:x.ctx||"",q:x.t,acr:OX_SAY[x.o?1:0],mean:e&&e[0]?e[0]:""};}
+function oxShuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function oxListenPool(arg){if(!OX)return [];var q;
+  if(arg==="wrong")q=oxPool(null,true);else if(arg==="star")q=oxStarred();else if(arg.slice(0,5)==="part:")q=oxPool(arg.slice(5)||null);else if(arg.slice(0,5)==="rand:")q=oxShuffle(oxPool(null)).slice(0,+arg.slice(5)||20);else q=[];
+  return oxShuffle(q.slice()).map(oxRow);}
 function oxStarred(){var S=exState();return (OX||[]).filter(function(x){return S[x.id]&&S[x.id].f;});}
 function oxToggleStar(x){var S=exState(),st=S[x.id]||{n:0,w:0};st.f=st.f?0:1;st.ft=now();S[x.id]=st;scheduleSave();render();}
 function oxExpPool(){return (OX||[]).filter(function(x){return OXEXP[x.id.slice(3)];});}
@@ -1228,6 +1244,10 @@ function oxBox(){
       parts.map(function(pt){var n=oxPool(pt,"re").length;return n?'<button class="btn" data-oxre="'+esc(pt)+'">'+esc(sh(pt))+' '+n+'</button>':'';}).join("")+
       '<button class="btn primary" data-oxre="">한번에 '+Math.min(OX_N,re.length)+'지문</button></div>'+
       '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=oxPool(pt,"re").length;return n?'<button class="link" data-oxclr="'+esc(pt)+'">'+(oxClrArm===pt?'한 번 더 누르면 '+esc(sh(pt))+' '+n+'지문 기록이 지워져요':esc(sh(pt)))+'</button>':'';}).filter(Boolean).join(" · ")+'</p>'):'')+
+    (open.length?fold("oxlsfold","minbeop-ox-ls","듣기로 복습",open.length+'지문','<p>지문을 읽어 주고, 생각할 시간 뒤에 맞는지 틀린지와 해설을 들려줘요. 풀이 기록에는 남지 않아요. '+(AUDIO[audioKey("acr",OX_SAY[1])]?'구글 음성이라 화면을 꺼도 이어져요.':'구글 음성을 준비하는 중이라 지금은 기기 음성으로 읽어요(화면을 켜 두세요).')+'</p><div class="row">'+
+      '<button class="btn primary" data-ls="ox:rand:20">무작위 '+Math.min(20,open.length)+'지문</button>'+(wrong.length?'<button class="btn" data-ls="ox:wrong">틀린 지문 '+wrong.length+'</button>':'')+(star.length?'<button class="btn" data-ls="ox:star">확인할 지문 '+star.length+'</button>':'')+'</div>'+
+      '<div class="muted" style="font-size:.8rem;margin:10px 0 6px">편 전체 (열린 지문을 섞어서)</div><div class="row">'+
+      parts.map(function(pt){var n=oxPool(pt).length;return n?'<button class="btn" data-ls="ox:part:'+esc(pt)+'">'+esc(sh(pt))+' '+n+'</button>':'';}).join("")+'</div>'):'')+
     (star.length?fold("oxstarlist","minbeop-ox-star","확인할 지문",star.length+'개','<p>☆를 눌러 표시한 지문이에요. 해설서에서 「제n회 문m」을 찾아 확인한 뒤 지우세요.</p><ul class="oxsl">'+
       star.map(function(x){return '<li><b>제'+x.n+'회 문'+x.k+'</b> <span class="muted">('+(x.o?'O':'X')+')</span> '+esc(x.t.length>70?x.t.slice(0,70)+'…':x.t)+'<button class="link" data-oxun="'+esc(x.id)+'">지우기</button></li>';}).join("")+
       '</ul><div class="row"><button class="btn" id="oxstarrun">확인할 지문 다시 풀기</button></div>'):'')+'</div>';}
@@ -1270,7 +1290,7 @@ function renderEx(){
   var S=exState();
   function box(kind,name,desc){
     var all=EX.filter(function(x){return x.kind===kind;}),open=exPool(kind),wrong=exPool(kind,true);
-    var done=all.filter(function(x){return S[x.id];}).length;
+    var done=all.filter(function(x){return S[x.id]&&S[x.id].n;}).length;
     return '<div class="exbox"><h3>'+name+'</h3><p>'+desc+'<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all.length+'문제 열림 · '+done+'문제 풀어 봄</span></p><div class="row">'+
       (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">관련 두문자를 하나라도 배우면 열려요</span>')+
       (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div>'+(kind==="case"?reBox():'')+'</div>';
@@ -1280,13 +1300,15 @@ function renderEx(){
     var op=false;try{op=localStorage.getItem("minbeop-ex-re")==="1";}catch(e){}
     return '<details class="exre" id="exre"'+(op?' open':'')+'><summary>풀어 본 문제 다시 풀기 <span class="muted">'+tot+'문제</span></summary><p>단원을 고르지 않고 편 단위로 섞어서 내요. 틀렸던 것, 오래전에 푼 것부터 나와요.</p><div class="row">'+
       parts.map(function(pt){var n=exPool("re:"+pt).length;return n?'<button class="btn" data-ex="re:'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+' '+n+'</button>':'';}).join("")+
-      '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'문제</button></div></details>';}
+      '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'문제</button></div>'+
+      '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'문제 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
   main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
     oxBox()+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
+  main.querySelectorAll("[data-exclr]").forEach(function(b){b.onclick=function(){var pt=b.dataset.exclr;if(exClrArm===pt)exClearPart(pt);else{exClrArm=pt;render();}};});
   var exre=document.getElementById("exre");if(exre)exre.ontoggle=function(){try{localStorage.setItem("minbeop-ex-re",exre.open?"1":"0");}catch(e){}};
   document.getElementById("exall").onchange=function(e){settings().exAll=e.target.checked;scheduleSave();render();};
   bindUnitPanel();bindListenPanel();bindOxBox();foldPanels();
@@ -1306,7 +1328,7 @@ function unitIndex(){ // 편 → 단원 목록(카드 순서) + 단원별 문제
   ROWS.forEach(function(r){if(r.mine||!r.unit)return;if(!pm[r.part]){pm[r.part]={part:r.part,units:[],um:{}};parts.push(pm[r.part]);}
     var P=pm[r.part];if(!P.um[r.unit]){P.um[r.unit]={key:r.part+"|"+r.unit,name:r.unit,n:0,w:0,seen:0};P.units.push(P.um[r.unit]);}});
   var S=exState(),kf="all";
-  EX.forEach(function(x){if(x.kind==="toc"||!exKindOk(x,kf))return;exUnitsOf(x).forEach(function(k){var i=k.indexOf("|"),P=pm[k.slice(0,i)];if(!P)return;var u=P.um[k.slice(i+1)];if(!u)return;u.n++;var st=S[x.id];if(st){u.seen++;if(st.r===0)u.w++;}});});
+  EX.forEach(function(x){if(x.kind==="toc"||!exKindOk(x,kf))return;exUnitsOf(x).forEach(function(k){var i=k.indexOf("|"),P=pm[k.slice(0,i)];if(!P)return;var u=P.um[k.slice(i+1)];if(!u)return;u.n++;var st=S[x.id];if(st&&st.n){u.seen++;if(st.r===0)u.w++;}});});
   return parts;
 }
 function unitPanel(){

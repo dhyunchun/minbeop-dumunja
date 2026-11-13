@@ -36,7 +36,14 @@ exdata = json.dumps(ex, ensure_ascii=False, separators=(",", ":")).replace("</",
 assert "__EXDATA__" in html
 man = root / "static" / "audio" / "manifest.json"
 audio = man.read_text(encoding="utf-8") if man.exists() else '{"files":[]}'
-audio = json.dumps(json.loads(audio), separators=(",", ":"))
+audio = json.loads(audio)
+# OX 음성 목록은 첫 화면에 넣지 않고 ox.json 에 붙인다(기출 OX를 처음 열 때 함께 받는다).
+oxp = out / "ox.json"
+if oxp.exists():
+    oxd = json.loads(oxp.read_text(encoding="utf-8"))
+    oxd["aud"] = audio.get("ox", [])
+    oxp.write_text(json.dumps(oxd, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+audio = json.dumps({"files": audio.get("files", [])}, separators=(",", ":"))
 assert "__AUDIO__" in html
 html = html.replace("__AUDIO__", audio)
 html = html.replace("__BUILD__", build)

@@ -32,8 +32,9 @@
 
 - 음성은 `static/audio/<해시>.mp3` 에 미리 만들어 둔다. 파일 이름은 `부분("q"|"acr"|"mean") + "\n" + 원문`의 FNV-1a 해시(`tools/tts.py` 의 `key`, 앱의 `audioKey`)라서 둘을 같이 바꿔야 한다.
 - 쉼 표시·띄어 읽기 같은 발음 다듬기는 `tools/tts.py` 의 `markup`·`FIXES` 에서만 한다. 규칙을 바꾸면 `NORM_VER` 를 올린다(전체 재생성, 무료 범위 안).
-- `.github/workflows/tts.yml`: `src/cards.json`·`src/tts_extra.json`·`tools/tts.py` 가 바뀌거나 수동 실행하면 바뀐 문장만 만들고 커밋한 뒤 재배포. 저장소 Secret `GOOGLE_TTS_KEY` 필요, 목소리는 `TTS_VOICE` 변수(기본 `ko-KR-Chirp3-HD-Aoede`).
+- `.github/workflows/tts.yml`: `src/cards.json`·`src/tts_extra.json`·`static/ox.json`·`tools/tts.py` 가 바뀌거나 수동 실행하면 바뀐 문장만 만들고 커밋한 뒤 재배포. 저장소 Secret `GOOGLE_TTS_KEY` 필요, 목소리는 `TTS_VOICE` 변수(기본 `ko-KR-Chirp3-HD-Aoede`).
 - `.github/workflows/tts-request.yml`: 앱의 「구글 음성 만들기 요청」이 연 이슈(저장소 주인, 제목 "음성 요청…")를 받아 고친 두문자를 `src/tts_extra.json` 에 더하고 생성한다.
 - 전체를 다시 만들 때마다 저장소 기록이 약 20MB씩 늘어나니 목소리·규칙 변경은 몰아서 한다.
 - 안드로이드 크롬 등 MediaSource(audio/mpeg)를 지원하면 세션 전체를 끊김 없는 스트림 하나로 만들어 재생 중에 다음 카드 mp3와 무음(`static/sil/s500.mp3`, 0.552초)을 뒤에 덧붙인다(카드 사이에도 재생이 멈추지 않음).
 - 그 밖(아이폰 등)에는 카드 한 장(주제·생각할 시간·두문자·뜻)을 WAV 하나로 이어 붙여 재생해서 화면이 꺼져도 이어진다(이어 붙이기가 안 되는 기기는 mp3와 무음 WAV를 차례로 재생, 타이머 없음). 듣기 화면 아래에 재생 방식과 빌드 번호가 나온다. 음성 파일이 없는 부분이 있는 카드(직접 만든 카드 등)는 기기 음성으로 읽어서 화면이 켜져 있어야 한다.
+- 기출 OX 듣기: `static/ox.json` 의 사실관계(`c`)·지문(`q`)·정답 안내(`acr`, 「맞는/틀린 지문이에요.」)·해설(`mean`)도 같은 방식으로 만든다(`tools/tts.py` 의 `ox_texts`, 앱의 `oxRow`). 甲乙丙은 갑을병으로, 1/2은 「2분의 1」로 읽게 다듬는다. OX 파일 목록은 manifest 의 `ox` 에 따로 두고, `build.py` 가 배포용 `ox.json` 의 `aud` 로 옮긴다(첫 화면 크기를 늘리지 않으려고). 듣기는 풀이 기록에 남지 않는다.
