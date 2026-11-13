@@ -101,6 +101,7 @@ main{padding-top:16px}
 .panel.folded>h2{margin-bottom:0}
 .panel.folded>:not(h2){display:none}
 .oxctx{font-size:.86rem;line-height:1.65;color:var(--ink-2);background:var(--paper);border-radius:8px;padding:8px 10px;margin:4px 0 10px}
+.oxq{font-size:.82rem;color:var(--ink-2);margin:2px 0 6px}
 .oxt{font-size:1.05rem;line-height:1.75;margin:4px 0 6px}
 .oxres{display:flex;align-items:center;gap:10px;border-top:1px dashed var(--rule);margin-top:12px;padding-top:12px}
 .oxres b{font-size:1.6rem;line-height:1}
@@ -1168,10 +1169,10 @@ function renderListen(){var L=listenSess;
   document.getElementById("lsrate").onclick=function(){L.rate=(L.rate+1)%3;if(lsAudio&&L.cur&&!L.legacy){lsAudio.playbackRate=lsAudio.defaultPlaybackRate=LS_RATE[L.rate];}render();};
   document.getElementById("lsgap").onclick=function(){L.gap=(L.gap+1)%3;lsDropNext(L);render();};}
 /* ---------- 변시 기출 OX: 선택형 민법 지문(1~15회)을 정답표로 O·X를 매긴 것. ox.json 은 처음 열 때 받아 온다. ---------- */
-var OX=null,OXEXP={},oxLoading=false,oxErr=false,oxSess=null,OX_N=10;
+var OX=null,OXEXP={},OXQ={},oxLoading=false,oxErr=false,oxSess=null,OX_N=10;
 function oxLoad(){if(OX||oxLoading)return;oxLoading=true;oxErr=false;
   fetch("ox.json").then(function(r){if(!r.ok)throw new Error("ox");return r.json();}).then(function(d){
-    OXEXP=d.exp||{};
+    OXEXP=d.exp||{};OXQ=d.q||{};
     OX=d.items.map(function(a){var u=d.units[a[1]],i=u.indexOf("|"),p=a[0].split("-");return {id:"ox:"+a[0],n:+p[0],k:+p[1],unit:u,part:u.slice(0,i),uname:u.slice(i+1),o:!!a[2],t:a[3],ctx:a[4]>=0?d.ctx[a[4]]:""};});
     oxLoading=false;if(view==="ex"||view==="stats")render();}).catch(function(){oxLoading=false;oxErr=true;if(view==="ex")render();});}
 function oxUnitsOpen(){var o={};ROWS.forEach(function(r){if(!r.mine&&r.unit&&rowStarted(r.id))o[r.part+"|"+r.unit]=1;});return o;}
@@ -1198,7 +1199,7 @@ function renderOx(){var p=oxSess,pos=p.total-p.queue.length+(p.queue.length?1:0)
     document.getElementById("oxback").onclick=document.getElementById("oxq").onclick=function(){oxSess=null;render();};return;}
   var x=p.queue[0],st=exState()[x.id],done=p.pick!==null,ok=done&&p.pick===x.o;
   var h=bar+'<article class="card" aria-live="polite"><div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'<span class="sep">›</span>'+esc(x.uname)+'</span><span class="badges"><span class="tag">제'+x.n+'회 문'+x.k+'</span>'+(st&&st.w&&!done?'<span class="tag leech">전에 틀림</span>':'')+'<button class="oxstar'+(st&&st.f?' on':'')+'" id="oxstar" aria-pressed="'+(st&&st.f?'true':'false')+'" title="해설서로 확인할 지문에 표시 (키보드 S)">'+(st&&st.f?'★ 확인할 지문':'☆ 확인할 지문')+'</button></span></div>'+
-    (x.ctx?'<div class="oxctx">'+esc(x.ctx)+'</div>':'')+'<div class="oxt">'+esc(x.t)+'</div>'+
+    (x.ctx?'<div class="oxctx">'+esc(x.ctx)+'</div>':(OXQ[x.n+'-'+x.k]?'<div class="oxq">'+esc(OXQ[x.n+'-'+x.k])+'에 관한 지문</div>':''))+'<div class="oxt">'+esc(x.t)+'</div>'+
     (done?'<div class="oxres '+(ok?'ok':'no')+'"><b>'+(x.o?'O':'X')+'</b><span>'+(ok?'맞혔어요':'틀렸어요')+(x.o?' · 옳은 지문':' · 틀린 지문')+'</span></div>'+(function(){var e=OXEXP[x.id.slice(3)];if(!e)return '';var un=/확인 필요/.test(e[1]);
       return '<div class="oxexp"><p>'+esc(e[0])+'</p><p class="oxref'+(un?' un':'')+'">'+esc(e[1])+'</p></div>';})():'')+'</article>';
   h+=done?'<div class="actions"><button class="reveal" id="oxnext">다음</button><div class="hint">스페이스바 · Enter</div></div>'
