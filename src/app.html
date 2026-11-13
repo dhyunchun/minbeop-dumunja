@@ -1216,7 +1216,7 @@ function oxBox(){
   function sh(pt){return pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");}
   function fold(id,key,title,cnt,body){var op=false;try{op=localStorage.getItem(key)==="1";}catch(e){}
     return '<details class="exre" id="'+id+'" data-k="'+key+'"'+(op?' open':'')+'><summary>'+title+' <span class="muted">'+cnt+'</span></summary>'+body+'</details>';}
-  return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고, 틀린 지문에는 근거와 함께 해설이 붙어 있어요'+(nexp<all/2?'(지금은 일부 회차만)':'')+'.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+re.length+'지문 풀어 봄</span></p><div class="row">'+
+  return '<div class="exbox"><h3>변시 기출 OX</h3><p>변호사시험 1~15회 선택형 민법 지문을 한 줄씩 O·X로 풀어요. 정답은 법무부 정답표 기준이고, 틀린 지문(X)에는 어디가 틀렸는지 해설과 근거가 붙어 있어요. 근거 판례를 확인하지 못한 해설은 붉은 글씨로 표시돼요.<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all+'지문 열림 · '+re.length+'지문 풀어 봄</span></p><div class="row">'+
     (open.length?'<button class="btn primary" data-ox="">'+Math.min(OX_N,open.length)+'지문 풀기</button>':'<span class="muted" style="font-size:.85rem">그 단원의 두문자를 하나라도 배우면 열려요</span>')+
     (wrong.length?'<button class="btn" data-oxw="1">틀린 지문 '+wrong.length+'개</button>':'')+'</div>'+
     (re.length?fold("oxrefold","minbeop-ox-re","풀어 본 지문 다시 풀기",re.length+'지문','<p>편 단위로 섞어서 내요. 틀렸던 것, 오래전에 푼 것부터 나와요.</p><div class="row">'+
