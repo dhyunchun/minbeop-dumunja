@@ -318,7 +318,7 @@ function cardOn(c){var s=settings();return (s.dirs[c.dir]!==false||(c.row.mine&&
 function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
 function cs(id){return state.cards[id];}
-/* 자꾸 잊는 카드
+/* 자주 잊는 카드
    붙음: 정식 복습(하루 이상 지난 복습)에서 「다시」가 LEECH_LAPSES번 쌓이면. 처음 외우는 단계의 「다시」는 세지 않는다.
    뗌: ① 정식 복습에서 LEECH_CLEAR번 연달아 떠올리거나 ② 정식 복습 1번 떠올린 뒤 다른 날 연습에서 한 번에 떠올리면.
        떼면 셈(lk)을 0으로 돌려, 그다음 한 번 틀렸다고 바로 다시 붙지 않는다. 연습만으로는 떼지 않는다.
@@ -552,7 +552,7 @@ function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
 function tagsHtml(c){ // 위치(편 › 단원)는 글자로, 표시는 판례·기출·잊음만
   var r=c.row,crumb=r.mine?"내 카드":esc(r.part.replace(/^제\d편 /,""))+(r.unit?'<span class="sep">›</span>'+esc(r.unit):""),b="";
-  if(isLeech(c.id))b+='<span class="tag leech">자꾸 잊음</span>';
+  if(isLeech(c.id))b+='<span class="tag leech">자주 잊음</span>';
   if(isFlag(r.id))b+='<span class="tag flag" title="헷갈려서 표시한 카드">★ 표시</span>';
   if(r.tags.indexOf("전합")>=0)b+='<span class="tag jh">전합</span>';else if(r.tags.indexOf("판례")>=0)b+='<span class="tag">판례</span>';
   if(r.exam)b+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'">변시 '+examCount(r)+'회</span>';
@@ -583,7 +583,7 @@ function renderStudy(){
   if(!current){
     var tn=practiceSize("random"),td=practiceSize("today"),tl=practiceSize("leech"),tm=practiceSize("mix"),tf=practiceSize("flag");
     var nextDue=null;CARDS.forEach(function(c){var s=cs(c.id);if(s&&s.st==="review"&&cardOn(c)&&(nextDue===null||s.due<nextDue))nextDue=s.due;});
-    main.innerHTML=counts+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(tm?'<button class="btn primary" id="prac-mix">'+(td&&tl?'새 카드 + 자주 잊는 카드':td?'새 카드':'자주 잊는 카드')+' '+tm+'장 복습'+'</button>':'')+(tn?'<button class="btn" id="prac">무작위 '+tn+'장 복습</button>':'')+(tf?'<button class="btn" id="prac-flag">★ 표시한 카드 '+tf+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(tm?'오늘 처음 받은 카드와 자꾸 잊는 카드를 한번에 다시 보거나, 지금까지 배운 카드 중에서 무작위로 고를 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
+    main.innerHTML=counts+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(tm?'<button class="btn primary" id="prac-mix">'+(td&&tl?'새 카드 + 자주 잊는 카드':td?'새 카드':'자주 잊는 카드')+' '+tm+'장 복습'+'</button>':'')+(tn?'<button class="btn" id="prac">무작위 '+tn+'장 복습</button>':'')+(tf?'<button class="btn" id="prac-flag">★ 표시한 카드 '+tf+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(tm?'오늘 처음 받은 카드와 자주 잊는 카드를 한번에 다시 보거나, 지금까지 배운 카드 중에서 무작위로 고를 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
     bindUndo();
     var pb=document.getElementById("prac");if(pb)pb.onclick=function(){startPractice("random");};
     var pm=document.getElementById("prac-mix");if(pm)pm.onclick=function(){startPractice("mix");};
@@ -632,7 +632,7 @@ function practicePool(mode){
   return CARDS.filter(function(c){var s=cs(c.id);if(mode==="flag")return cardOn(c)&&isFlag(c.row.id);if(!s||s.st==="new"||!cardOn(c))return false;var td=!!(s.first&&dayKey(s.first)===dk);return mode==="today"?td:mode==="leech"?isLeech(c.id):mode==="mix"?(td||isLeech(c.id)):true;}).map(function(c){return c.id;});
 }
 function practiceSize(mode){var n=practicePool(mode).length;return mode==="random"?Math.min(n,Math.max(1,settings().newPerDay)):n;}
-var PMODE={mix:"오늘 새 카드 + 자꾸 잊는 카드",today:"오늘 새 카드 복습",random:"무작위 복습",leech:"자꾸 잊는 카드 연습",flag:"표시한 카드 연습"};
+var PMODE={mix:"오늘 새 카드 + 자주 잊는 카드",today:"오늘 새 카드 복습",random:"무작위 복습",leech:"자주 잊는 카드 연습",flag:"표시한 카드 연습"};
 function startPractice(mode){if(!PMODE[mode])mode="random";var ids=practicePool(mode);if(!ids.length)return;
   for(var i=ids.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=ids[i];ids[i]=ids[j];ids[j]=t;}
   ids=ids.slice(0,practiceSize(mode));practice={queue:ids,total:ids.length,known:0,mode:mode,miss:{},cleared:0};revealed=false;render();}
@@ -640,7 +640,7 @@ function renderPractice(){
   var p=practice;
   var bar='<div class="undo"><span class="muted">'+PMODE[p.mode]+' · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
   if(!p.queue.length){
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자꾸 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자꾸 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(p.cleared?' 자꾸 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자주 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자주 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(p.cleared?' 자주 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
     document.getElementById("again").onclick=function(){startPractice(p.mode);};
     document.getElementById("back").onclick=function(){practice=null;render();};
     document.getElementById("pq").onclick=function(){practice=null;render();};
@@ -658,7 +658,7 @@ function renderPractice(){
 function practiceAnswer(ok){
   var p=practice,id=p.queue.shift();
   if(!ok){p.miss[id]=1;p.queue.splice(Math.min(3,p.queue.length),0,id);}
-  else if(!p.miss[id]&&isLeech(id)){var s=cs(id);if((s.ok||0)>=1&&s.st==="review"&&s.last&&dayKey(s.last)!==dayKey(now())){var n=clone(s);leechClear(n);n.mt=now();state.cards[id]=n;p.cleared++;scheduleSave();toast("자꾸 잊는 카드에서 뺐어요");}}
+  else if(!p.miss[id]&&isLeech(id)){var s=cs(id);if((s.ok||0)>=1&&s.st==="review"&&s.last&&dayKey(s.last)!==dayKey(now())){var n=clone(s);leechClear(n);n.mt=now();state.cards[id]=n;p.cleared++;scheduleSave();toast("자주 잊는 카드에서 뺐어요");}}
   revealed=false;render();
 }
 function editForm(r){var cu=custom(r);return '<form class="editf" id="cu-form"><label for="cu-acr">내 두문자 <span class="muted">(비우면 원래 두문자)</span></label><input type="text" id="cu-acr" maxlength="40" value="'+esc(cu.acr||"")+'" placeholder="'+esc(r.acr)+'"><label for="cu-memo">메모</label><textarea id="cu-memo" maxlength="500" placeholder="강의에서 들은 연상, 헷갈리는 포인트 등">'+esc(cu.memo||"")+'</textarea><div class="row"><button class="btn primary" type="submit">저장</button><button class="btn" type="button" id="cu-cancel">닫기</button></div></form>';}
@@ -711,7 +711,7 @@ function rate(g){
 var filterText="",filterPart="";
 function stateLabel(id){var s=cs(id);if(!s||s.st==="new")return "새 카드";if(s.st!=="review")return "다시 보는 중";var d=Math.round((s.due-dayEnd(now())+DAY)/DAY);return d<=0?"오늘 복습":d+"일 뒤";}
 function renderCards(){
-  var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__flag"'+(filterPart==="__flag"?' selected':'')+'>★ 표시한 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자꾸 잊는 카드만</option><option value="__exam"'+(filterPart==="__exam"?' selected':'')+'>변시 기출만</option><option value="__susp"'+(filterPart==="__susp"?' selected':'')+'>보류한 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
+  var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__flag"'+(filterPart==="__flag"?' selected':'')+'>★ 표시한 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자주 잊는 카드만</option><option value="__exam"'+(filterPart==="__exam"?' selected':'')+'>변시 기출만</option><option value="__susp"'+(filterPart==="__susp"?' selected':'')+'>보류한 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
   main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><span class="row" style="gap:6px"><button class="btn" id="mimp">여러 장 가져오기</button><button class="btn primary" id="mnew">+ 내 카드</button></span></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+(mineEdit==="import"?'<section class="panel">'+importForm()+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
   var q=document.getElementById("q"),fp=document.getElementById("fp");
   q.oninput=function(){filterText=q.value;drawList();};fp.onchange=function(){filterPart=fp.value;drawList();};
@@ -855,7 +855,7 @@ function renderStats(){
   var target=Math.round(settings().retention*100), retTxt;
   if(RR>=20){var act=Math.round((RR-RA)/RR*100),diff=act-target;
     retTxt='<div class="row" style="justify-content:space-between"><b style="font-size:1.6rem">'+act+'%</b><span class="muted">목표 '+target+'% · 복습 '+RR+'회</span></div><div class="gauge"><i style="width:'+act+'%"></i><b style="left:'+target+'%"></b></div><p class="muted" style="margin:6px 0 0">'+
-      (Math.abs(diff)<=3?'목표와 거의 같아요. 복습 간격이 잘 맞고 있어요.':diff<0?'목표보다 '+(-diff)+'%p 낮아요. 자꾸 잊는 카드에 내 두문자·메모를 붙여 보거나, 설정에서 목표 기억률을 조금 올려 보세요.':'목표보다 '+diff+'%p 높아요. 여유가 있으니 그대로 두거나 하루 새 카드를 늘려도 돼요.')+'</p>';}
+      (Math.abs(diff)<=3?'목표와 거의 같아요. 복습 간격이 잘 맞고 있어요.':diff<0?'목표보다 '+(-diff)+'%p 낮아요. 자주 잊는 카드에 내 두문자·메모를 붙여 보거나, 설정에서 목표 기억률을 조금 올려 보세요.':'목표보다 '+diff+'%p 높아요. 여유가 있으니 그대로 두거나 하루 새 카드를 늘려도 돼요.')+'</p>';}
   else retTxt='<p class="muted" style="margin:0">하루 이상 간격을 두고 다시 만난 카드의 기억률이에요. 그런 복습이 20회 쌓이면 보여 드려요 (지금 '+RR+'회).'+(R?' 참고로 최근 30일 전체 정답률은 '+Math.round((R-A)/R*100)+'%예요.':'')+'</p>';
   // 공부 달력 (18주)
   var W_=18, todayD=new Date(noon), startD=new Date(noon-(todayD.getDay()+7*(W_-1))*DAY), cells="";
@@ -878,8 +878,8 @@ function renderStats(){
     '<div class="stat"><b>'+today.r+'</b><span>오늘 본 횟수</span></div>'+
     '<div class="stat"><b>'+mature+'</b><span>간격 21일 이상</span></div>'+
     '<div class="stat"><b>'+best+'<small class="muted">일</small></b><span>최장 연속 · 총 '+hk.length+'일</span></div>'+
-    '<div class="stat"><b>'+leeches+'</b><span>자꾸 잊는 카드</span></div></div>'+
-    (leeches?'<div class="row" style="margin-top:10px"><button class="btn primary" id="st-leech">자꾸 잊는 카드 '+leeches+'장 연습</button><button class="btn" id="st-list">목록에서 보기</button></div>':'')+'</section>'+
+    '<div class="stat"><b>'+leeches+'</b><span>자주 잊는 카드</span></div></div>'+
+    (leeches?'<div class="row" style="margin-top:10px"><button class="btn primary" id="st-leech">자주 잊는 카드 '+leeches+'장 연습</button><button class="btn" id="st-list">목록에서 보기</button></div>':'')+'</section>'+
   '<section class="panel"><h2>최근 30일 기억률</h2>'+retTxt+'</section>'+
   '<section class="panel"><h2>공부 달력</h2><div class="heat">'+cells+'</div><div class="heatleg">적게<i style="background:var(--chip)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>많이 <span style="margin-left:auto">최근 18주</span></div></section>'+
   '<section class="panel"><h2>앞으로 14일 복습 예정</h2><div class="bars">'+bars+'</div></section><section class="panel"><h2>편별 진도</h2><div class="prog">'+prog+'</div></section><section class="panel"><h2>편별 연습 정답률</h2>'+accTxt+'</section>';
