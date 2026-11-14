@@ -318,18 +318,16 @@ function cardOn(c){var s=settings();return (s.dirs[c.dir]!==false||(c.row.mine&&
 function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
 function cs(id){return state.cards[id];}
-var LEECH_LAPSES=2, LEECH_FAILS=4;
-var LEECH_CLEAR=2; // 하루 이상 간격을 둔 복습에서 연속으로 이만큼 떠올리면 딱지를 뗀다
-function isLeech(id){var s=cs(id);return !!s&&s.st!=="new"&&((s.lapses||0)>=LEECH_LAPSES||(s.fails||0)>=LEECH_FAILS)&&(s.ok||0)<LEECH_CLEAR;}
+/* 자꾸 잊는 카드
+   붙음: 정식 복습(하루 이상 지난 복습)에서 「다시」가 LEECH_LAPSES번 쌓이면. 처음 외우는 단계의 「다시」는 세지 않는다.
+   뗌: ① 정식 복습에서 LEECH_CLEAR번 연달아 떠올리거나 ② 정식 복습 1번 떠올린 뒤 다른 날 연습에서 한 번에 떠올리면.
+       떼면 셈(lk)을 0으로 돌려, 그다음 한 번 틀렸다고 바로 다시 붙지 않는다. 연습만으로는 떼지 않는다.
+   lk: 마지막으로 뗀 뒤 정식 복습에서 누른 「다시」 수. 예전 기록(lk 없음)은 lapses 로 채운다(이미 뗀 카드는 0). */
+var LEECH_LAPSES=2, LEECH_CLEAR=2;
+function leechCount(s){return !s?0:s.lk!=null?s.lk:((s.ok||0)>=LEECH_CLEAR?0:(s.lapses||0));}
+function isLeech(id){var s=cs(id);return !!s&&s.st!=="new"&&leechCount(s)>=LEECH_LAPSES;}
+function leechClear(n){n.lk=0;delete n.ok;}
 function leechIds(){return CARDS.filter(function(c){return cardOn(c)&&isLeech(c.id);}).map(function(c){return c.id;});}
-function backfillFails(logs){ // 예전 기록에는 '다시' 횟수가 없어서 복습 이력에서 채운다
-  var cnt={};
-  function add(a){(a||[]).forEach(function(e){if(e[2]===1)cnt[e[1]]=(cnt[e[1]]||0)+1;});}
-  if(logs)Object.keys(logs).forEach(function(mk){add(logs[mk]);});
-  else{try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf("minbeop-log-")===0)add(JSON.parse(localStorage.getItem(k)));}}catch(e){}}
-  var ch=false;Object.keys(cnt).forEach(function(id){var c=state.cards[id];if(c&&c.st!=="new"&&(c.fails||0)<cnt[id]){c.fails=cnt[id];ch=true;}});
-  if(ch)saveLocal();
-}
 function todayNewCount(){var k=dayKey(now());return (state.daily[k]&&state.daily[k].n)||0;}
 
 /* ---------- storage ---------- */
@@ -386,7 +384,7 @@ function sameState(x,y){var a=JSON.parse(JSON.stringify(x)),b=JSON.parse(JSON.st
 function adopt(remote){ // 원격 기록을 합쳐 반영. 합친 결과가 원격과 다르면 true(올려야 함)
   if(!remote||remote.v!==1)return true;
   var merged=mergeStates(state,remote),changed=!sameState(merged,state);
-  state=merged;settings();takeSnap();saveLocal();backfillFails();buildCards();
+  state=merged;settings();takeSnap();saveLocal();buildCards();
   if(changed&&!practice&&!editing&&(view==="study"||view==="stats"||view==="cards")){if(!revealed)current=null;render();}
   return !sameState(merged,remote);
 }
@@ -407,30 +405,36 @@ function pull(){ // 다른 기기에서 공부한 내용을 가져온다(앱으�
 }
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")pull();});
 var local=loadLocal(); if(local){state=local;}
-settings();takeSnap();backfillFails();buildCards();
+settings();takeSnap();buildCards();
 
 /* ---------- review log (for later FSRS parameter optimisation): one doc per month ---------- */
 var LOG={}, logSaving={}, logPending={}, logTimer={};
 function monthKey(t){return dayKey(t).slice(0,7);}
 function logLocalKey(mk){return "minbeop-log-"+mk;}
 function loadLogLocal(mk){try{var t=localStorage.getItem(logLocalKey(mk));if(t){var a=JSON.parse(t);if(Array.isArray(a))return a;}}catch(e){}return [];}
-function mergeLog(a,b){var seen={},out=[];a.concat(b).forEach(function(e){var k=e[0]+"|"+e[1]+"|"+e[2];if(!seen[k]){seen[k]=1;out.push(e);}});out.sort(function(x,y){return x[0]-y[0];});return out;}
+var LOGX={};
+function logXKey(mk){return "minbeop-logx-"+mk;}
+function loadLogX(mk){if(LOGX[mk])return LOGX[mk];var a=[];try{a=JSON.parse(localStorage.getItem(logXKey(mk))||"[]");if(!Array.isArray(a))a=[];}catch(e){a=[];}return LOGX[mk]=a;}
+function logEKey(e){return e[0]+"|"+e[1]+"|"+e[2];}
+function mergeLog(a,b,x){var seen={},out=[];(x||[]).forEach(function(k){seen[k]=1;});a.concat(b).forEach(function(e){var k=logEKey(e);if(!seen[k]){seen[k]=1;out.push(e);}});out.sort(function(x,y){return x[0]-y[0];});return out;}
 function logRef(mk){return db&&uid?db.collection("data/users/"+uid).doc("log-"+mk):null;}
 function saveLog(mk){
-  try{localStorage.setItem(logLocalKey(mk),JSON.stringify(LOG[mk]));}catch(e){}
+  try{localStorage.setItem(logLocalKey(mk),JSON.stringify(LOG[mk]));if(LOGX[mk]&&LOGX[mk].length)localStorage.setItem(logXKey(mk),JSON.stringify(LOGX[mk]));}catch(e){}
   var ref=logRef(mk);if(!ref)return;clearTimeout(logTimer[mk]);
   logTimer[mk]=setTimeout(function go(){if(logSaving[mk]){logPending[mk]=true;return;}logSaving[mk]=true;
-    ref.set({v:1,e:LOG[mk]}).catch(function(){}).then(function(){logSaving[mk]=false;if(logPending[mk]){logPending[mk]=false;go();}});},900);
+    ref.set({v:1,e:LOG[mk],x:loadLogX(mk)}).catch(function(){}).then(function(){logSaving[mk]=false;if(logPending[mk]){logPending[mk]=false;go();}});},900);
 }
 function logAdd(id,g){var t=now(),mk=monthKey(t);LOG[mk]=LOG[mk]||loadLogLocal(mk);LOG[mk].push([Math.floor(t/1000),id,g]);saveLog(mk);}
-function logUndo(id){var mk=monthKey(now()),a=LOG[mk]||(LOG[mk]=loadLogLocal(mk));for(var i=a.length-1;i>=0;i--){if(a[i][1]===id){a.splice(i,1);break;}}saveLog(mk);}
+function logUndo(id){var mk=monthKey(now()),a=LOG[mk]||(LOG[mk]=loadLogLocal(mk));for(var i=a.length-1;i>=0;i--){if(a[i][1]===id){var x=loadLogX(mk);x.push(logEKey(a[i]));if(x.length>500)x.splice(0,x.length-500);a.splice(i,1);break;}}saveLog(mk);}
 function syncLogMonth(mk){var ref=logRef(mk);LOG[mk]=LOG[mk]||loadLogLocal(mk);if(!ref)return;
-  ref.get().then(function(s){var r=s.exists&&s.data()&&Array.isArray(s.data().e)?s.data().e:[];var before=LOG[mk].length;LOG[mk]=mergeLog(LOG[mk],r);if(LOG[mk].length!==r.length||before!==LOG[mk].length)saveLog(mk);else{try{localStorage.setItem(logLocalKey(mk),JSON.stringify(LOG[mk]));}catch(e){}}}).catch(function(){});}
+  ref.get().then(function(s){var dd=s.exists&&s.data()||{},r=Array.isArray(dd.e)?dd.e:[],rx=Array.isArray(dd.x)?dd.x:[],x=loadLogX(mk),xn=x.length;
+    rx.forEach(function(k){if(x.indexOf(k)<0)x.push(k);});var before=LOG[mk].length;LOG[mk]=mergeLog(LOG[mk],r,x);
+    if(LOG[mk].length!==r.length||before!==LOG[mk].length||x.length!==rx.length||x.length!==xn)saveLog(mk);else{try{localStorage.setItem(logLocalKey(mk),JSON.stringify(LOG[mk]));}catch(e){}}}).catch(function(){});}
 function allLogs(){
   var ref=db&&uid?db.collection("data/users/"+uid):null;
   var local={};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf("minbeop-log-")===0)local[k.slice(12)]=JSON.parse(localStorage.getItem(k))||[];}}catch(e){}
   if(!ref)return Promise.resolve(local);
-  return ref.get().then(function(q){q.docs.forEach(function(d){if(d.id.indexOf("log-")===0){var e=(d.data()||{}).e||[];var mk=d.id.slice(4);local[mk]=mergeLog(local[mk]||[],e);}});return local;}).catch(function(){return local;});
+  return ref.get().then(function(q){q.docs.forEach(function(d){if(d.id.indexOf("log-")===0){var dd=d.data()||{},e=dd.e||[];var mk=d.id.slice(4);local[mk]=mergeLog(local[mk]||[],e,loadLogX(mk).concat(dd.x||[]));}});return local;}).catch(function(){return local;});
 }
 
 function connect(){
@@ -447,7 +451,6 @@ function connect(){
         var remote=snapR.exists?snapR.data():null;
         var needUp=remote?adopt(remote):!!state.updatedAt;
         if(needUp)flush();else setSync("계정에 저장됨 · 다른 기기에서도 이어서");
-        allLogs().then(backfillFails);
       });
     });
   }).catch(function(){setSync("이 기기에 저장 중");});
@@ -633,12 +636,12 @@ function practiceSize(mode){var n=practicePool(mode).length;return mode==="rando
 var PMODE={today:"오늘 새 카드 복습",random:"무작위 복습",leech:"자꾸 잊는 카드 연습",flag:"표시한 카드 연습"};
 function startPractice(mode){if(!PMODE[mode])mode="random";var ids=practicePool(mode);if(!ids.length)return;
   for(var i=ids.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=ids[i];ids[i]=ids[j];ids[j]=t;}
-  ids=ids.slice(0,practiceSize(mode));practice={queue:ids,total:ids.length,known:0,mode:mode};revealed=false;render();}
+  ids=ids.slice(0,practiceSize(mode));practice={queue:ids,total:ids.length,known:0,mode:mode,miss:{},cleared:0};revealed=false;render();}
 function renderPractice(){
   var p=practice;
   var bar='<div class="undo"><span class="muted">'+PMODE[p.mode]+' · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
   if(!p.queue.length){
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자꾸 잊는 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자꾸 잊는 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(p.cleared?' 자꾸 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
     document.getElementById("again").onclick=function(){startPractice(p.mode);};
     document.getElementById("back").onclick=function(){practice=null;render();};
     document.getElementById("pq").onclick=function(){practice=null;render();};
@@ -655,7 +658,8 @@ function renderPractice(){
 }
 function practiceAnswer(ok){
   var p=practice,id=p.queue.shift();
-  if(!ok)p.queue.splice(Math.min(3,p.queue.length),0,id);
+  if(!ok){p.miss[id]=1;p.queue.splice(Math.min(3,p.queue.length),0,id);}
+  else if(!p.miss[id]&&isLeech(id)){var s=cs(id);if((s.ok||0)>=1&&s.st==="review"&&s.last&&dayKey(s.last)!==dayKey(now())){var n=clone(s);leechClear(n);n.mt=now();state.cards[id]=n;p.cleared++;scheduleSave();toast("자꾸 잊는 카드에서 뺐어요");}}
   revealed=false;render();
 }
 function editForm(r){var cu=custom(r);return '<form class="editf" id="cu-form"><label for="cu-acr">내 두문자 <span class="muted">(비우면 원래 두문자)</span></label><input type="text" id="cu-acr" maxlength="40" value="'+esc(cu.acr||"")+'" placeholder="'+esc(r.acr)+'"><label for="cu-memo">메모</label><textarea id="cu-memo" maxlength="500" placeholder="강의에서 들은 연상, 헷갈리는 포인트 등">'+esc(cu.memo||"")+'</textarea><div class="row"><button class="btn primary" type="submit">저장</button><button class="btn" type="button" id="cu-cancel">닫기</button></div></form>';}
@@ -694,6 +698,9 @@ function rate(g){
   n.first=(was&&was.first)||((!was||was.st==="new")?now():undefined);
   n.mt=now();n.fails=((was&&was.fails)||0)+(g===1?1:0);if(!n.fails)delete n.fails;
   n.ok=g===1?0:(was&&was.st==="review")?((was.ok||0)+1):((was&&was.ok)||0);if(!n.ok)delete n.ok;
+  n.lk=leechCount(was)+(g===1&&was&&was.st==="review"?1:0);
+  if(n.lk>=LEECH_LAPSES&&(n.ok||0)>=LEECH_CLEAR)leechClear(n);
+  if(!n.lk)n.lk=0;
   if(!n.first)delete n.first;
   state.cards[id]=n;
   logAdd(id,g);
@@ -717,7 +724,7 @@ function renderCards(){
 }
 function drawList(){
   var t=filterText.trim(), list=document.getElementById("list");
-  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__flag"){if(!isFlag(r.id))return false;}else if(filterPart==="__leech"){if(!isLeech(r.id+"-g")&&!isLeech(r.id+"-n"))return false;}else if(filterPart==="__exam"){if(!r.exam)return false;}else if(filterPart==="__susp"){if(!state.susp[r.id])return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.part+(r.sub||"")+r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
+  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__flag"){if(!isFlag(r.id))return false;}else if(filterPart==="__leech"){if(!["-g","-n"].some(function(x){var c=BYID[r.id+x];return c&&cardOn(c)&&isLeech(c.id);}))return false;}else if(filterPart==="__exam"){if(!r.exam)return false;}else if(filterPart==="__susp"){if(!state.susp[r.id])return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.part+(r.sub||"")+r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
   if(filterPart==="__exam")rows.sort(function(a,b){return examCount(b)-examCount(a);});
   var grouped=!t&&(filterPart===""||PARTS.indexOf(filterPart)>=0);
   function itemHtml(r){
