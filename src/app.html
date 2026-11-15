@@ -21,7 +21,7 @@ body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{dis
   --paper:#ecebe4; --sheet:#f6f5ef; --ink:#2a2f38; --ink-2:#5a6170; --rule:#d6d4ca;
   --accent:#3d7468; --accent-ink:#f6f5ef; --accent-soft:#dde8e3; --seal:#a2493c;
   --again:#a9503f; --hard:#8a6620; --good:#3d7468; --easy:#3f6390;
-  --chip:#e3e2da; --shadow:0 1px 2px rgba(42,47,56,.05),0 6px 18px rgba(42,47,56,.05);
+  --chip:#e3e2da; --bark:#5e4a2c; --shadow:0 1px 2px rgba(42,47,56,.05),0 6px 18px rgba(42,47,56,.05);
   --f-display:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo",serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -29,12 +29,12 @@ body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{dis
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42; --rv-bg:#2f3e3a; --rv-ink:#cfe0d8; --rv-line:#3f5550;
   --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
-  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
+  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137; --bark:#8b6f4a;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#1a1d21; --sheet:#23272c; --ink:#d8dbd5; --ink-2:#9aa1ab; --rule:#343a42; --rv-bg:#2f3e3a; --rv-ink:#cfe0d8; --rv-line:#3f5550;
   --accent:#7fae9f; --accent-ink:#16201d; --accent-soft:#263632; --seal:#d28c7f;
-  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137;
+  --again:#d28c7f; --hard:#c8a565; --good:#7fae9f; --easy:#8ea9cc; --chip:#2c3137; --bark:#8b6f4a;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
 html,body{min-height:100%}
@@ -133,6 +133,18 @@ table.acc{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numer
 table.acc th,table.acc td{padding:6px 4px;text-align:left;border-bottom:1px solid var(--rule)}
 table.acc thead th{font-weight:500;color:var(--ink-2);font-size:.8rem}
 .leechtip{margin-top:12px;font-size:.86rem;padding:8px 10px;border-radius:8px;border:1px dashed var(--again);color:var(--ink-2)}
+.garden .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.garden .ghead b{font-family:var(--f-display);font-size:1.5rem;color:var(--accent)}
+.gweek{display:flex;justify-content:space-between;max-width:340px;margin:10px 0 2px}
+.gd{display:flex;flex-direction:column;align-items:center;gap:1px}.gd small{font-size:.72rem;color:var(--ink-2)}.gd.now small{color:var(--ink);font-weight:700}
+.gnote{font-size:.78rem;margin:4px 0 6px}
+.gtrees{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+.gtree{text-align:center}.gtree svg{width:100%;max-width:200px;display:block;margin:0 auto}
+.gname{font-size:.9rem;margin-top:-4px}.gcount{font-size:.75rem;white-space:nowrap}
+.gleg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:.74rem;color:var(--ink-2);margin-top:10px}
+.gleg i{width:10px;height:6px;border-radius:5px;display:inline-block;margin-right:-6px}.gleg span{margin-left:auto}
+details.gcal>summary{list-style:none;display:flex;justify-content:space-between;align-items:baseline;cursor:pointer}
+details.gcal>summary::-webkit-details-marker{display:none}details.gcal>summary h2{margin:0}details.gcal[open]>summary .muted{visibility:hidden}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;max-width:520px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--chip);display:block}
 .heat i.l1{background:color-mix(in srgb,var(--accent) 30%,var(--chip))}
@@ -835,6 +847,57 @@ function bindImport(){
     buildCards();mineEdit=null;impRows=null;impText="";scheduleSave();toast("내 카드 "+ok.length+"장을 만들었어요 · 새 카드로 먼저 나와요");render();};
 }
 function mineDelete(id){var m=state.mine&&state.mine[id];if(!m)return;state.mine[id]={id:id,del:true,t:m.t,u:now()};delete state.custom[id];buildCards();if(current&&current.row.id===id)current=null;scheduleSave();}
+/* ---------- 공부 정원: 편마다 나무 한 그루. 잎 = 카드(카드 순서대로 안쪽부터 돋는다).
+   진한 잎 = 복습 간격 7일 이상, 연한 잎 = 익히는 중, 시든 잎 = 자주 잊는 카드. 아직 안 연 카드는 비어 있고, 점선이 다 자란 크기.
+   물주기 = 공부한 날. 한 주(월~일)에 하루는 「비 오는 날」로 쳐서 쉬어도 이어진다. 기록(state.hist)에서 계산하므로 따로 저장하지 않는다. ---------- */
+var GARDEN_FIRM=7;
+function waterRun(t){ // {streak, rain:{dayKey:1}, todayDone}
+  var noon=new Date(dayKey(t)+"T12:00:00").getTime(),on=function(k){return ((state.hist[k]&&state.hist[k].r)||0)>0;};
+  var todayDone=on(dayKey(noon)),streak=0,rain={},used={},i=todayDone?0:1;
+  function wk(tt){var d=new Date(tt),m=(d.getDay()+6)%7;return dayKey(tt-m*DAY);}
+  for(;i<3650;i++){var tt=noon-i*DAY,k=dayKey(tt);
+    if(on(k)){streak++;continue;}
+    var w=wk(tt);if(streak>0&&!used[w]&&on(dayKey(tt-DAY))){used[w]=1;rain[k]=1;continue;}
+    break;}
+  return {streak:streak,rain:rain,todayDone:todayDone,noon:noon,wk:wk,used:used};}
+function leafKind(c){var s=cs(c.id);if(!s||s.st==="new")return 0;if(isLeech(c.id))return 3;return s.st==="review"&&(s.ivl||0)>=GARDEN_FIRM?2:1;}
+var STAGES=["씨앗","새싹","묘목","어린 나무","큰 나무"];
+function treeSvg(cards,watered){
+  var N=cards.length,ks=cards.map(leafKind),open=ks.filter(Boolean).length,f=N?open/N:0;
+  var stage=open===0?0:f<.1?1:f<.35?2:f<.7?3:4;
+  var Rmax=54,R=open?8+46*Math.sqrt(f):0,cyF=148-30-Rmax*.85,cy=open?148-30*f-R*.85:140;
+  var soil=watered?"color-mix(in srgb,var(--hard) 38%,var(--sheet))":"color-mix(in srgb,var(--hard) 16%,var(--sheet))";
+  var bark="var(--bark)";
+  var g='<svg viewBox="0 0 160 166" class="tree" aria-hidden="true">';
+  g+='<circle cx="80" cy="'+cyF.toFixed(1)+'" r="'+Rmax+'" fill="none" stroke="var(--rule)" stroke-dasharray="2 4"/>';
+  g+='<ellipse cx="80" cy="150" rx="46" ry="9" fill="'+soil+'"/>';
+  if(!open){g+='<ellipse cx="80" cy="146" rx="6" ry="4" fill="'+bark+'"/><path d="M80 143 q2 -6 6 -7" stroke="var(--accent)" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".6"/></svg>';return {svg:g,stage:0,ks:ks};}
+  var top=cy+R*.35,tw=2+5*f;
+  g+='<path d="M'+(80-tw)+' 150 Q'+(80-tw*.6)+' '+((150+top)/2)+' '+(80-tw*.35)+' '+top+' L'+(80+tw*.35)+' '+top+' Q'+(80+tw*.6)+' '+((150+top)/2)+' '+(80+tw)+' 150Z" fill="'+bark+'"/>';
+  if(R>22){[[-1,.55],[1,.4],[-1,.15],[1,-.05]].forEach(function(b,j){if(j>=Math.round(R/14))return;var y0=top+(150-top)*0+R*b[1]*.6,x1=80+b[0]*R*.62,y1=cy+R*(b[1]-.35);
+    g+='<path d="M80 '+(y0+4).toFixed(1)+' Q'+(80+b[0]*R*.25).toFixed(1)+' '+(y0-2).toFixed(1)+' '+x1.toFixed(1)+' '+y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+(1+tw*.35).toFixed(1)+'" fill="none" stroke-linecap="round"/>';});}
+  var col=[null,"color-mix(in srgb,var(--accent) 42%,var(--sheet))","var(--accent)","var(--hard)"];
+  for(var i=0;i<N;i++){if(!ks[i])continue;var r=R*Math.sqrt((i+.5)/Math.max(open,1)),a=i*2.39996,x=80+r*Math.cos(a),y=cy+r*Math.sin(a)*.92,deg=(a*180/Math.PI)%360;
+    g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="4.6" ry="2.5" transform="rotate('+deg.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"'+(ks[i]===3?' opacity=".85"':'')+'/>';}
+  return {svg:g+'</svg>',stage:stage,ks:ks};}
+function dropSvg(kind){ // done, rain, miss, today, fut
+  var d='M8 1.5C8 1.5 2.5 8 2.5 11.2A5.5 5.5 0 0 0 13.5 11.2C13.5 8 8 1.5 8 1.5Z';
+  var fill=kind==="done"?"var(--accent)":kind==="rain"?"var(--easy)":"none",st=kind==="fut"?"var(--rule)":kind==="done"?"var(--accent)":kind==="rain"?"var(--easy)":"var(--ink-2)";
+  return '<svg viewBox="0 0 16 18" width="18" height="20" aria-hidden="true"><path d="'+d+'" fill="'+fill+'" stroke="'+st+'" stroke-width="1.3"'+(kind==="today"?' stroke-dasharray="2 2"':'')+'/></svg>';}
+function gardenHtml(t){
+  var W=waterRun(t),mon=W.noon-((new Date(W.noon).getDay()+6)%7)*DAY,days="";
+  for(var i=0;i<7;i++){var tt=mon+i*DAY,k=dayKey(tt),on=((state.hist[k]&&state.hist[k].r)||0)>0,isT=k===dayKey(W.noon);
+    var kind=tt>W.noon?"fut":on?"done":W.rain[k]?"rain":isT?"today":"miss";
+    days+='<div class="gd'+(isT?' now':'')+'">'+dropSvg(kind)+'<small>'+"월화수목금토일"[i]+'</small></div>';}
+  var rainLeft=!W.used[W.wk(W.noon)];
+  var head='<div class="ghead"><div><b>'+W.streak+'일째</b> 물 주는 중</div><span class="muted">'+(W.todayDone?'오늘 물을 줬어요':'오늘은 아직이에요')+'</span></div>'+
+    '<div class="gweek">'+days+'</div><p class="muted gnote">'+(rainLeft?'이번 주 비 오는 날 1번 남았어요 · 하루 쉬어도 이어져요':'이번 주는 비가 한 번 왔어요 · 다음 주에 다시 생겨요')+'</p>';
+  var trees=PARTS.filter(partOn).map(function(p){var cards=CARDS.filter(function(c){return c.row.part===p&&cardOn(c);}).sort(function(a,b){return a.order-b.order;});
+    var T=treeSvg(cards,W.todayDone),n=[0,0,0,0];T.ks.forEach(function(k){n[k]++;});
+    return '<div class="gtree">'+T.svg+'<div class="gname"><b>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</b> <span class="muted">'+STAGES[T.stage]+'</span></div>'+
+      '<div class="gcount muted">잎 '+(n[1]+n[2])+(n[3]?' · <span style="color:var(--hard)">시든 '+n[3]+'</span>':'')+' · 남은 '+n[0]+'</div></div>';}).join("");
+  return '<section class="panel garden"><h2>공부 정원</h2>'+head+'<div class="gtrees">'+trees+'</div>'+
+    '<div class="gleg"><i style="background:var(--accent)"></i>외운 카드<i style="background:color-mix(in srgb,var(--accent) 42%,var(--sheet))"></i>익히는 중<i style="background:var(--hard)"></i>자주 잊는 카드<span>점선 = 다 자란 크기</span></div></section>';}
 function renderStats(){
   var t=now(),end=dayEnd(t),learned=0,mature=0,total=0,fc=[];
   for(var i=0;i<14;i++)fc.push(0);
@@ -872,8 +935,9 @@ function renderStats(){
   var anyEx=PARTS.some(function(p){return acc[p].c[0]||acc[p].o[0];});
   var accTxt=anyEx?'<table class="acc"><thead><tr><th></th><th>사례 문제</th><th>기출 OX</th></tr></thead><tbody>'+PARTS.map(function(p){return '<tr><th>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</th><td>'+pc(acc[p].c)+'</td><td>'+pc(acc[p].o)+'</td></tr>';}).join("")+'</tbody></table><p class="muted" style="margin:8px 0 0">한 번이라도 푼 문제 중 가장 최근에 맞힌 비율이에요.'+(!OX&&!oxErr?' 기출 OX 기록을 불러오는 중이에요.':'')+'</p>'
     :'<p class="muted" style="margin:0">연습 탭에서 사례 문제나 기출 OX를 풀면 편별 정답률이 여기 나와요.</p>';
-  main.innerHTML='<section class="panel"><h2>지금까지</h2><div class="stats">'+
-    '<div class="stat"><b>'+streak+'<small class="muted">일</small></b><span>연속 공부'+(d0&&streak?' (오늘 아직)':'')+'</span></div>'+
+  var WR=waterRun(t);
+  main.innerHTML=gardenHtml(t)+'<section class="panel"><h2>지금까지</h2><div class="stats">'+
+    '<div class="stat"><b>'+WR.streak+'<small class="muted">일</small></b><span>연속 물주기'+(!WR.todayDone&&WR.streak?' (오늘 아직)':'')+'</span></div>'+
     '<div class="stat"><b>'+learned+'<small class="muted"> / '+total+'</small></b><span>시작한 카드</span></div>'+
     '<div class="stat"><b>'+today.r+'</b><span>오늘 본 횟수</span></div>'+
     '<div class="stat"><b>'+mature+'</b><span>간격 21일 이상</span></div>'+
@@ -881,7 +945,7 @@ function renderStats(){
     '<div class="stat"><b>'+leeches+'</b><span>자주 잊는 카드</span></div></div>'+
     (leeches?'<div class="row" style="margin-top:10px"><button class="btn primary" id="st-leech">자주 잊는 카드 '+leeches+'장 연습</button><button class="btn" id="st-list">목록에서 보기</button></div>':'')+'</section>'+
   '<section class="panel"><h2>최근 30일 기억률</h2>'+retTxt+'</section>'+
-  '<section class="panel"><h2>공부 달력</h2><div class="heat">'+cells+'</div><div class="heatleg">적게<i style="background:var(--chip)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>많이 <span style="margin-left:auto">최근 18주</span></div></section>'+
+  '<section class="panel"><details class="gcal"><summary><h2>공부 달력</h2><span class="muted">최근 18주 · 펼치기</span></summary><div class="heat" style="margin-top:12px">'+cells+'</div><div class="heatleg">적게<i style="background:var(--chip)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>많이 <span style="margin-left:auto">최근 18주</span></div></details></section>'+
   '<section class="panel"><h2>앞으로 14일 복습 예정</h2><div class="bars">'+bars+'</div></section><section class="panel"><h2>편별 진도</h2><div class="prog">'+prog+'</div></section><section class="panel"><h2>편별 연습 정답률</h2>'+accTxt+'</section>';
   var sl=document.getElementById("st-leech");if(sl)sl.onclick=function(){view="study";startPractice("leech");};
   var so=document.getElementById("st-list");if(so)so.onclick=function(){view="cards";filterPart="__leech";filterText="";render();};
