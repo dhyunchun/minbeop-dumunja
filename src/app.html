@@ -652,7 +652,7 @@ function renderPractice(){
   var p=practice;
   var bar='<div class="undo"><span class="muted">'+PMODE[p.mode]+' · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
   if(!p.queue.length){
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자주 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자주 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(p.cleared?' 자주 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자주 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자주 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(GRASS_MODES[p.mode]?(p.grass?' 정원에 잔디가 '+p.grass+'장만큼 자랐어요.':' 오늘 이 연습에서 이미 센 카드라 잔디는 그대로예요.'):'')+(p.cleared?' 자주 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
     document.getElementById("again").onclick=function(){startPractice(p.mode);};
     document.getElementById("back").onclick=function(){practice=null;render();};
     document.getElementById("pq").onclick=function(){practice=null;render();};
@@ -668,16 +668,17 @@ function renderPractice(){
   var o=document.getElementById("p-ok");if(o)o.onclick=function(){practiceAnswer(true);};
 }
 /* 잔디: 자율 복습(새 카드+자주 잊는 카드, 무작위, 자주 잊는 카드 연습)에서 떠올린 카드 수를 날마다 hist[dk].pc 에 센다.
-   같은 날 같은 카드는 한 번만(이 기기 기준). 정원의 잔디는 최근 14일 합으로 자란다. */
+   같은 날 같은 연습 종류에서 같은 카드는 한 번만(이 기기 기준) — 「한 번 더」로 숫자만 불리는 것을 막는다.
+   새+자주 잊는 카드와 무작위는 따로 센다(무작위에 오늘 카드가 섞여 있어도 새+자주 잊는 카드 복습에서 다시 센다). 정원의 잔디는 최근 14일 합으로 자란다. */
 var GRASS_MODES={mix:1,random:1,leech:1};
-function grassCount(id){var dk=dayKey(now()),o=null;try{o=JSON.parse(localStorage.getItem("minbeop-pseen")||"null");}catch(e){}
-  if(!o||o.dk!==dk||!Array.isArray(o.ids))o={dk:dk,ids:[]};if(o.ids.indexOf(id)>=0)return;o.ids.push(id);
+function grassCount(id,mode){var dk=dayKey(now()),o=null;id=mode+":"+id;try{o=JSON.parse(localStorage.getItem("minbeop-pseen")||"null");}catch(e){}
+  if(!o||o.dk!==dk||!Array.isArray(o.ids))o={dk:dk,ids:[]};if(o.ids.indexOf(id)>=0)return false;o.ids.push(id);
   try{localStorage.setItem("minbeop-pseen",JSON.stringify(o));}catch(e){}
-  var hh=state.hist[dk]=state.hist[dk]||{r:0,a:0,n:0};hh.pc=(hh.pc||0)+1;scheduleSave();}
+  var hh=state.hist[dk]=state.hist[dk]||{r:0,a:0,n:0};hh.pc=(hh.pc||0)+1;scheduleSave();return true;}
 function grassRecent(t){var s=0,noon=new Date(dayKey(t)+"T12:00:00").getTime();for(var i=0;i<14;i++){var x=state.hist[dayKey(noon-i*DAY)];if(x)s+=x.pc||0;}return s;}
 function practiceAnswer(ok){
   var p=practice,id=p.queue.shift();
-  if(ok&&GRASS_MODES[p.mode])grassCount(id);
+  if(ok&&GRASS_MODES[p.mode]){if(grassCount(id,p.mode))p.grass=(p.grass||0)+1;}
   if(!ok){p.miss[id]=1;p.queue.splice(Math.min(3,p.queue.length),0,id);}
   else if(!p.miss[id]&&isLeech(id)){var s=cs(id);if((s.ok||0)>=1&&s.st==="review"&&s.last&&dayKey(s.last)!==dayKey(now())){var n=clone(s);leechClear(n);n.mt=now();state.cards[id]=n;p.cleared++;scheduleSave();toast("자주 잊는 카드에서 뺐어요");}}
   revealed=false;render();
