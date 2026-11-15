@@ -851,15 +851,14 @@ function mineDelete(id){var m=state.mine&&state.mine[id];if(!m)return;state.mine
    진한 잎 = 복습 간격 7일 이상, 연한 잎 = 익히는 중, 시든 잎 = 자주 잊는 카드. 아직 안 연 카드는 비어 있고, 점선이 다 자란 크기.
    물주기 = 공부한 날. 한 주(월~일)에 하루는 「비 오는 날」로 쳐서 쉬어도 이어진다. 기록(state.hist)에서 계산하므로 따로 저장하지 않는다. ---------- */
 var GARDEN_FIRM=7;
-function waterRun(t){ // {streak, rain:{dayKey:1}, todayDone}
+function waterRun(t){ // 공부한 날 = 물 준 날. 설정의 쉬는 요일에 쉬면 「비 오는 날」이라 연속이 끊기지 않는다(세지는 않음).
   var noon=new Date(dayKey(t)+"T12:00:00").getTime(),on=function(k){return ((state.hist[k]&&state.hist[k].r)||0)>0;};
-  var todayDone=on(dayKey(noon)),streak=0,rain={},used={},i=todayDone?0:1;
-  function wk(tt){var d=new Date(tt),m=(d.getDay()+6)%7;return dayKey(tt-m*DAY);}
-  for(;i<3650;i++){var tt=noon-i*DAY,k=dayKey(tt);
-    if(on(k)){streak++;continue;}
-    var w=wk(tt);if(streak>0&&!used[w]&&on(dayKey(tt-DAY))){used[w]=1;rain[k]=1;continue;}
-    break;}
-  return {streak:streak,rain:rain,todayDone:todayDone,noon:noon,wk:wk,used:used};}
+  var ez=settings().easyDays||[],isEz=function(tt){return ez.indexOf(new Date(tt).getDay())>=0;};
+  var todayDone=on(dayKey(noon)),streak=0,rain={},i=todayDone?0:1;
+  for(;i<3650;i++){var tt=noon-i*DAY,k=dayKey(tt);if(on(k)){streak++;continue;}if(isEz(tt)){rain[k]=1;continue;}break;}
+  var hk=Object.keys(state.hist).filter(on).sort(),best=0,run=0;
+  if(hk.length){for(var tt2=new Date(hk[0]+"T12:00:00").getTime();tt2<=noon;tt2+=DAY){var k2=dayKey(tt2);if(on(k2)){run++;if(run>best)best=run;}else if(!isEz(tt2)&&k2!==dayKey(noon))run=0;}}
+  return {streak:streak,best:Math.max(best,streak),rain:rain,todayDone:todayDone,noon:noon,isEz:isEz,ez:ez};}
 function leafKind(c){var s=cs(c.id);if(!s||s.st==="new")return 0;if(isLeech(c.id))return 3;return s.st==="review"&&(s.ivl||0)>=GARDEN_FIRM?2:1;}
 var STAGES=["씨앗","새싹","묘목","어린 나무","큰 나무"];
 function treeSvg(cards,cx,base){ // 정원 안 한 그루: cx = 줄기 위치, base = 땅 높이
@@ -892,11 +891,12 @@ function dropSvg(kind){ // done, rain, miss, today, fut
 function gardenHtml(t){
   var W=waterRun(t),mon=W.noon-((new Date(W.noon).getDay()+6)%7)*DAY,days="";
   for(var i=0;i<7;i++){var tt=mon+i*DAY,k=dayKey(tt),on=((state.hist[k]&&state.hist[k].r)||0)>0,isT=k===dayKey(W.noon);
-    var kind=tt>W.noon?"fut":on?"done":W.rain[k]?"rain":isT?"today":"miss";
+    var kind=on?"done":W.isEz(tt)?"rain":tt>W.noon?"fut":isT?"today":"miss";
     days+='<div class="gd'+(isT?' now':'')+'">'+dropSvg(kind)+'<small>'+"월화수목금토일"[i]+'</small></div>';}
-  var rainLeft=!W.used[W.wk(W.noon)];
-  var head='<div class="ghead"><div><b>'+W.streak+'일째</b> 물 주는 중</div><span class="muted">'+(W.todayDone?'오늘 물을 줬어요':'오늘은 아직이에요')+'</span></div>'+
-    '<div class="gweek">'+days+'</div><p class="muted gnote">'+(rainLeft?'이번 주 비 오는 날 1번 남았어요 · 하루 쉬어도 이어져요':'이번 주는 비가 한 번 왔어요 · 다음 주에 다시 생겨요')+'</p>';
+  var ezNames=W.ez.slice().sort(function(a,b){return ((a+6)%7)-((b+6)%7);}).map(function(d){return "일월화수목금토"[d];}).join("·");
+  var todayEz=W.isEz(W.noon);
+  var head='<div class="ghead"><div><b>'+W.streak+'일째</b> 물 주는 중</div><span class="muted">'+(W.todayDone?'오늘 물을 줬어요':todayEz?'오늘은 비 오는 날':'오늘은 아직이에요')+'</span></div>'+
+    '<div class="gweek">'+days+'</div><p class="muted gnote">'+(W.ez.length?'쉬는 요일('+ezNames+')에는 비가 와요 · 쉬어도 이어져요':'설정에서 쉬는 요일을 고르면 그날은 비가 와서, 쉬어도 이어져요')+'</p>';
   var ps=PARTS.filter(partOn).map(function(p){return {name:p,cards:CARDS.filter(function(c){return c.row.part===p&&cardOn(c);}).sort(function(a,b){return a.order-b.order;})};});
   var G=gardenScene(ps,W.todayDone);
   var trees='<div class="gscenewrap">'+G.svg+'</div><div class="glabels" style="grid-template-columns:repeat('+ps.length+',1fr)">'+ps.map(function(p,i){var T=G.trees[i],n=[0,0,0,0];T.ks.forEach(function(k){n[k]++;});
@@ -946,7 +946,7 @@ function renderStats(){
     '<div class="stat"><b>'+learned+'<small class="muted"> / '+total+'</small></b><span>시작한 카드</span></div>'+
     '<div class="stat"><b>'+today.r+'</b><span>오늘 본 횟수</span></div>'+
     '<div class="stat"><b>'+mature+'</b><span>간격 21일 이상</span></div>'+
-    '<div class="stat"><b>'+best+'<small class="muted">일</small></b><span>최장 연속 · 총 '+hk.length+'일</span></div>'+
+    '<div class="stat"><b>'+WR.best+'<small class="muted">일</small></b><span>최장 연속 · 총 '+hk.length+'일</span></div>'+
     '<div class="stat"><b>'+leeches+'</b><span>자주 잊는 카드</span></div></div>'+
     (leeches?'<div class="row" style="margin-top:10px"><button class="btn primary" id="st-leech">자주 잊는 카드 '+leeches+'장 연습</button><button class="btn" id="st-list">목록에서 보기</button></div>':'')+'</section>'+
   '<section class="panel"><h2>최근 30일 기억률</h2>'+retTxt+'</section>'+
