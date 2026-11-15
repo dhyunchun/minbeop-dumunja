@@ -138,9 +138,9 @@ table.acc thead th{font-weight:500;color:var(--ink-2);font-size:.8rem}
 .gweek{display:flex;justify-content:space-between;max-width:340px;margin:10px 0 2px}
 .gd{display:flex;flex-direction:column;align-items:center;gap:1px}.gd small{font-size:.72rem;color:var(--ink-2)}.gd.now small{color:var(--ink);font-weight:700}
 .gnote{font-size:.78rem;margin:4px 0 6px}
-.gtrees{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
-.gtree{text-align:center}.gtree svg{width:100%;max-width:200px;display:block;margin:0 auto}
-.gname{font-size:.9rem;margin-top:-4px}.gcount{font-size:.75rem;white-space:nowrap}
+.gscenewrap{margin:6px -6px 0;border-radius:0 0 10px 10px;overflow:hidden}.gscene{width:100%;display:block}
+.glabels{display:grid;gap:4px;text-align:center;margin-top:2px}
+.glabels>div{display:flex;flex-direction:column;line-height:1.35}.glabels b{font-size:.92rem}.glabels span.muted{font-size:.78rem}.glabels small{font-size:.72rem;margin-top:2px}
 .gleg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:.74rem;color:var(--ink-2);margin-top:10px}
 .gleg i{width:10px;height:6px;border-radius:5px;display:inline-block;margin-right:-6px}.gleg span{margin-left:auto}
 details.gcal>summary{list-style:none;display:flex;justify-content:space-between;align-items:baseline;cursor:pointer}
@@ -862,24 +862,29 @@ function waterRun(t){ // {streak, rain:{dayKey:1}, todayDone}
   return {streak:streak,rain:rain,todayDone:todayDone,noon:noon,wk:wk,used:used};}
 function leafKind(c){var s=cs(c.id);if(!s||s.st==="new")return 0;if(isLeech(c.id))return 3;return s.st==="review"&&(s.ivl||0)>=GARDEN_FIRM?2:1;}
 var STAGES=["씨앗","새싹","묘목","어린 나무","큰 나무"];
-function treeSvg(cards,watered){
+function treeSvg(cards,cx,base){ // 정원 안 한 그루: cx = 줄기 위치, base = 땅 높이
   var N=cards.length,ks=cards.map(leafKind),open=ks.filter(Boolean).length,f=N?open/N:0;
   var stage=open===0?0:f<.1?1:f<.35?2:f<.7?3:4;
-  var Rmax=54,R=open?8+46*Math.sqrt(f):0,cyF=148-30-Rmax*.85,cy=open?148-30*f-R*.85:140;
-  var soil=watered?"color-mix(in srgb,var(--hard) 38%,var(--sheet))":"color-mix(in srgb,var(--hard) 16%,var(--sheet))";
-  var bark="var(--bark)";
-  var g='<svg viewBox="0 0 160 166" class="tree" aria-hidden="true">';
-  g+='<circle cx="80" cy="'+cyF.toFixed(1)+'" r="'+Rmax+'" fill="none" stroke="var(--rule)" stroke-dasharray="2 4"/>';
-  g+='<ellipse cx="80" cy="150" rx="46" ry="9" fill="'+soil+'"/>';
-  if(!open){g+='<ellipse cx="80" cy="146" rx="6" ry="4" fill="'+bark+'"/><path d="M80 143 q2 -6 6 -7" stroke="var(--accent)" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".6"/></svg>';return {svg:g,stage:0,ks:ks};}
-  var top=cy+R*.35,tw=2+5*f;
-  g+='<path d="M'+(80-tw)+' 150 Q'+(80-tw*.6)+' '+((150+top)/2)+' '+(80-tw*.35)+' '+top+' L'+(80+tw*.35)+' '+top+' Q'+(80+tw*.6)+' '+((150+top)/2)+' '+(80+tw)+' 150Z" fill="'+bark+'"/>';
-  if(R>22){[[-1,.55],[1,.4],[-1,.15],[1,-.05]].forEach(function(b,j){if(j>=Math.round(R/14))return;var y0=top+(150-top)*0+R*b[1]*.6,x1=80+b[0]*R*.62,y1=cy+R*(b[1]-.35);
-    g+='<path d="M80 '+(y0+4).toFixed(1)+' Q'+(80+b[0]*R*.25).toFixed(1)+' '+(y0-2).toFixed(1)+' '+x1.toFixed(1)+' '+y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+(1+tw*.35).toFixed(1)+'" fill="none" stroke-linecap="round"/>';});}
+  var Rmax=50,R=open?7+43*Math.sqrt(f):0,cyF=base-28-Rmax*.85,cy=base-28*f-R*.85-2;
+  var bark="var(--bark)",g='<circle cx="'+cx+'" cy="'+cyF.toFixed(1)+'" r="'+Rmax+'" fill="none" stroke="var(--rule)" stroke-dasharray="2 4" opacity=".8"/>';
+  if(!open)return {svg:g+'<ellipse cx="'+cx+'" cy="'+(base-2)+'" rx="5.5" ry="3.6" fill="'+bark+'"/><path d="M'+cx+' '+(base-5)+' q2 -6 6 -7" stroke="var(--accent)" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".7"/>',stage:0,ks:ks};
+  var top=cy+R*.35,tw=1.8+4.5*f,mid=(base+top)/2;
+  g+='<path d="M'+(cx-tw)+' '+(base+1)+' Q'+(cx-tw*.6)+' '+mid+' '+(cx-tw*.35)+' '+top+' L'+(cx+tw*.35)+' '+top+' Q'+(cx+tw*.6)+' '+mid+' '+(cx+tw)+' '+(base+1)+'Z" fill="'+bark+'"/>';
+  if(R>20){[[-1,.55],[1,.4],[-1,.15],[1,-.05]].forEach(function(b,j){if(j>=Math.round(R/13))return;var y0=top+R*b[1]*.6,x1=cx+b[0]*R*.62,y1=cy+R*(b[1]-.35);
+    g+='<path d="M'+cx+' '+(y0+4).toFixed(1)+' Q'+(cx+b[0]*R*.25).toFixed(1)+' '+(y0-2).toFixed(1)+' '+x1.toFixed(1)+' '+y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+(1+tw*.35).toFixed(1)+'" fill="none" stroke-linecap="round"/>';});}
   var col=[null,"color-mix(in srgb,var(--accent) 42%,var(--sheet))","var(--accent)","var(--hard)"];
-  for(var i=0;i<N;i++){if(!ks[i])continue;var r=R*Math.sqrt((i+.5)/Math.max(open,1)),a=i*2.39996,x=80+r*Math.cos(a),y=cy+r*Math.sin(a)*.92,deg=(a*180/Math.PI)%360;
-    g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="4.6" ry="2.5" transform="rotate('+deg.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"'+(ks[i]===3?' opacity=".85"':'')+'/>';}
-  return {svg:g+'</svg>',stage:stage,ks:ks};}
+  for(var i=0;i<N;i++){if(!ks[i])continue;var r=R*Math.sqrt((i+.5)/Math.max(open,1)),a=i*2.39996,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a)*.92,deg=(a*180/Math.PI)%360;
+    g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="4.4" ry="2.4" transform="rotate('+deg.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"'+(ks[i]===3?' opacity=".9"':'')+'/>';}
+  return {svg:g,stage:stage,ks:ks};}
+function gardenScene(parts,watered){ // 한 정원: 완만한 언덕 위에 편 순서대로
+  var W=440,H=178,n=parts.length,xs=parts.map(function(_,i){return Math.round(W*(i+.5)/n);});
+  var hill=function(x){return 150+5*Math.sin(x/W*Math.PI*2.2+.6);};
+  var soil=watered?"color-mix(in srgb,var(--hard) 34%,var(--sheet))":"color-mix(in srgb,var(--hard) 14%,var(--sheet))";
+  var d="M0 "+H;for(var x=0;x<=W;x+=20)d+=" L"+x+" "+hill(x).toFixed(1);d+=" L"+W+" "+H+"Z";
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="gscene" role="img" aria-label="공부 정원"><path d="'+d+'" fill="'+soil+'"/>';
+  for(var k=0;k<14;k++){var gx=12+k*31.5+(k%3)*5,gy=hill(gx)+5+(k%2)*6;s+='<path d="M'+gx+' '+gy+' l-2 -5 M'+gx+' '+gy+' l0 -6 M'+gx+' '+gy+' l2 -5" stroke="var(--accent)" stroke-width="1" opacity=".35" fill="none"/>';}
+  var out=parts.map(function(p,i){var T=treeSvg(p.cards,xs[i],hill(xs[i]));s+=T.svg;return T;});
+  return {svg:s+'</svg>',trees:out};}
 function dropSvg(kind){ // done, rain, miss, today, fut
   var d='M8 1.5C8 1.5 2.5 8 2.5 11.2A5.5 5.5 0 0 0 13.5 11.2C13.5 8 8 1.5 8 1.5Z';
   var fill=kind==="done"?"var(--accent)":kind==="rain"?"var(--easy)":"none",st=kind==="fut"?"var(--rule)":kind==="done"?"var(--accent)":kind==="rain"?"var(--easy)":"var(--ink-2)";
@@ -892,11 +897,11 @@ function gardenHtml(t){
   var rainLeft=!W.used[W.wk(W.noon)];
   var head='<div class="ghead"><div><b>'+W.streak+'일째</b> 물 주는 중</div><span class="muted">'+(W.todayDone?'오늘 물을 줬어요':'오늘은 아직이에요')+'</span></div>'+
     '<div class="gweek">'+days+'</div><p class="muted gnote">'+(rainLeft?'이번 주 비 오는 날 1번 남았어요 · 하루 쉬어도 이어져요':'이번 주는 비가 한 번 왔어요 · 다음 주에 다시 생겨요')+'</p>';
-  var trees=PARTS.filter(partOn).map(function(p){var cards=CARDS.filter(function(c){return c.row.part===p&&cardOn(c);}).sort(function(a,b){return a.order-b.order;});
-    var T=treeSvg(cards,W.todayDone),n=[0,0,0,0];T.ks.forEach(function(k){n[k]++;});
-    return '<div class="gtree">'+T.svg+'<div class="gname"><b>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</b> <span class="muted">'+STAGES[T.stage]+'</span></div>'+
-      '<div class="gcount muted">잎 '+(n[1]+n[2])+(n[3]?' · <span style="color:var(--hard)">시든 '+n[3]+'</span>':'')+' · 남은 '+n[0]+'</div></div>';}).join("");
-  return '<section class="panel garden"><h2>공부 정원</h2>'+head+'<div class="gtrees">'+trees+'</div>'+
+  var ps=PARTS.filter(partOn).map(function(p){return {name:p,cards:CARDS.filter(function(c){return c.row.part===p&&cardOn(c);}).sort(function(a,b){return a.order-b.order;})};});
+  var G=gardenScene(ps,W.todayDone);
+  var trees='<div class="gscenewrap">'+G.svg+'</div><div class="glabels" style="grid-template-columns:repeat('+ps.length+',1fr)">'+ps.map(function(p,i){var T=G.trees[i],n=[0,0,0,0];T.ks.forEach(function(k){n[k]++;});
+    return '<div><b>'+esc(p.name.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</b><span class="muted">'+STAGES[T.stage]+'</span><small class="muted">잎 '+(n[1]+n[2])+(n[3]?' · <span style="color:var(--hard)">시든 '+n[3]+'</span>':'')+'<br>남은 '+n[0]+'</small></div>';}).join("")+'</div>';
+  return '<section class="panel garden"><h2>공부 정원</h2>'+head+trees+
     '<div class="gleg"><i style="background:var(--accent)"></i>외운 카드<i style="background:color-mix(in srgb,var(--accent) 42%,var(--sheet))"></i>익히는 중<i style="background:var(--hard)"></i>자주 잊는 카드<span>점선 = 다 자란 크기</span></div></section>';}
 function renderStats(){
   var t=now(),end=dayEnd(t),learned=0,mature=0,total=0,fc=[];
