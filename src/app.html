@@ -928,7 +928,7 @@ function gardenHtml(t){
   var ps=PARTS.filter(partOn).map(function(p){return {name:p,cards:CARDS.filter(function(c){return c.row.part===p&&cardOn(c);}).sort(function(a,b){return a.order-b.order;})};});
   var gN=grassRecent(t),GS=grassState(gN),G=gardenScene(ps,W.todayDone,gN);
   var trees='<div class="gscenewrap">'+G.svg+'</div><div class="glabels" style="grid-template-columns:repeat('+ps.length+',1fr)">'+ps.map(function(p,i){var T=G.trees[i],n=[0,0,0,0];T.ks.forEach(function(k){n[k]++;});
-    return '<div><b>'+esc(p.name.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</b><span class="muted">'+STAGES[T.stage]+'</span><small class="muted">잎 '+(n[1]+n[2])+' · 남은 '+n[0]+(n[3]?'<br><span style="color:var(--hard)">시든 잎 '+n[3]+'</span>':'')+'</small></div>';}).join("")+'</div>';
+    return '<div><b>'+esc(p.name.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</b><span class="muted">'+STAGES[T.stage]+'</span><small class="muted">잎 '+(n[1]+n[2])+'<br>남은 '+n[0]+(n[3]?'<br><span style="color:var(--hard)">시든 잎 '+n[3]+'</span>':'')+'</small></div>';}).join("")+'</div>';
   return '<section class="panel garden"><h2>공부 정원</h2>'+head+trees+
     '<p class="muted gnote" style="margin-top:8px">'+(GS.full?'잔디 가득':'잔디 '+GS.tufts+'포기')+(GS.flowers?' · 들꽃 '+GS.flowers+'송이':'')+' · 최근 2주 자율 복습 '+gN+'장'+(GS.full&&GS.flowers>=FLOWER_MAX?'':'<br>'+(GS.full?'다음 들꽃까지 '+(FLOWER_PER-((gN-(GRASS_MAX-GRASS_MIN)*GRASS_PER)%FLOWER_PER)):'다음 포기까지 '+(GRASS_PER-gN%GRASS_PER))+'장')+'</p>'+
     '<div class="gleg"><i style="background:var(--accent)"></i>외운 카드<i style="background:color-mix(in srgb,var(--accent) 42%,var(--sheet))"></i>익히는 중<i style="background:var(--hard)"></i>자주 잊는 카드<span>점선 = 다 자란 크기</span></div></section>';}
