@@ -145,6 +145,7 @@ table.acc thead th{font-weight:500;color:var(--ink-2);font-size:.8rem}
 .gleg i{width:10px;height:6px;border-radius:5px;display:inline-block;margin-right:-6px}.gleg span{margin-left:auto}
 details.gcal>summary{list-style:none;display:flex;justify-content:space-between;align-items:baseline;cursor:pointer}
 details.gcal>summary::-webkit-details-marker{display:none}details.gcal>summary h2{margin:0}details.gcal[open]>summary .muted{visibility:hidden}
+.leechhint{font-size:.78rem;color:var(--hard);margin:8px 4px 0;line-height:1.45}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;max-width:520px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--chip);display:block}
 .heat i.l1{background:color-mix(in srgb,var(--accent) 30%,var(--chip))}
@@ -562,6 +563,12 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&am
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
 function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
+/* 자주 잊는 카드: 딱지를 떼려면 무엇이 남았는지(정답을 연 뒤 카드 아래에 보여 준다) */
+function leechHint(c,inPractice){if(!isLeech(c.id))return "";var s=cs(c.id),ok=s.ok||0,d=new Date(s.due),due=(d.getMonth()+1)+"/"+d.getDate(),today=dayKey(now());
+  var t=s.st!=="review"?"딱지 떼기: 다시 익히는 중이에요. 다음 정식 복습부터 세요."
+    :ok>=1?(inPractice&&s.last&&dayKey(s.last)!==today?"딱지 떼기: 이번 연습에서 한 번에 떠올리면 떼져요.":"딱지 떼기: 정식 복습 1번 통과 · 다른 날 연습에서 한 번에 떠올리거나 다음 정식 복습("+due+")에서 떠올리면 떼져요.")
+    :"딱지 떼기: 정식 복습에서 아직 못 떠올렸어요 · 다음 정식 복습("+due+")에서 떠올리면 시작돼요."+(inPractice?" 연습만으로는 안 떼져요.":"");
+  return '<p class="leechhint">'+esc(t)+'</p>';}
 function tagsHtml(c){ // 위치(편 › 단원)는 글자로, 표시는 판례·기출·잊음만
   var r=c.row,crumb=r.mine?"내 카드":esc(r.part.replace(/^제\d편 /,""))+(r.unit?'<span class="sep">›</span>'+esc(r.unit):""),b="";
   if(isLeech(c.id))b+='<span class="tag leech">자주 잊음</span>';
@@ -610,7 +617,7 @@ function renderStudy(){
     var labels=["다시","어려움","알맞음","쉬움"];
     acts='<div class="rates">'+[1,2,3,4].map(function(g){return '<button class="rate r'+g+'" data-g="'+g+'"><span>'+labels[g-1]+'</span><small>'+fmtIvl(preview(c.id,g))+'</small></button>';}).join("")+'</div><div class="hint">떠올린 정도대로 고르세요 · 키보드 1~4 · S 헷갈림 표시</div>';
   }
-  main.innerHTML=counts+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+front+back+'</article><div class="actions">'+acts+'</div>';
+  main.innerHTML=counts+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+front+back+'</article>'+(revealed?leechHint(c,false):'')+'<div class="actions">'+acts+'</div>';
   bindUndo();
   var rv=document.getElementById("reveal");if(rv)rv.onclick=function(){revealed=true;render();};
   main.querySelectorAll(".rate").forEach(function(b){b.onclick=function(){rate(+b.dataset.g);};});
@@ -661,7 +668,7 @@ function renderPractice(){
   var c=BYID[p.queue[0]],f=faceHtml(c,revealed,false);
   var acts=!revealed?'<button class="reveal" id="reveal">정답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
     :'<div class="rates two"><button class="rate r1" id="p-again"><span>다시 볼게요</span><small>몇 장 뒤에 다시</small></button><button class="rate r3" id="p-ok"><span>기억났어요</span><small>이번 연습에서 빼기</small></button></div><div class="hint">키보드 1 · 2</div>';
-  main.innerHTML=bar+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+f.front+f.back+'</article><div class="actions">'+acts+'</div>';
+  main.innerHTML=bar+'<article class="card" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+f.front+f.back+'</article>'+(revealed?leechHint(c,true):'')+'<div class="actions">'+acts+'</div>';
   document.getElementById("pq").onclick=function(){practice=null;revealed=false;render();};
   var rv=document.getElementById("reveal");if(rv)rv.onclick=function(){revealed=true;render();};
   var a=document.getElementById("p-again");if(a)a.onclick=function(){practiceAnswer(false);};
