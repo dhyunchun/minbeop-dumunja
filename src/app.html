@@ -112,7 +112,7 @@ main{padding-top:16px}
 .oxexp p{margin:0}
 .oxexp .oxref{margin-top:6px;font-size:.8rem;color:var(--ink-2)}
 .oxexp .oxref.un{color:var(--again)}
-.exrel{margin-top:10px;font-size:.82rem;color:var(--ink-2)}.exsrc{margin-top:8px;font-size:.75rem;color:var(--ink-2);opacity:.85}
+.exrel{margin-top:10px;font-size:.82rem;color:var(--ink-2)}.exsrc{margin-top:8px;font-size:.75rem;color:var(--ink-2);opacity:.85;word-break:keep-all}
 .exhome{display:grid;gap:10px}
 .exbox{padding:14px;border-radius:12px;background:var(--paper)}
 .exbox h3{margin:0 0 4px;font-size:1rem}
@@ -812,6 +812,19 @@ function drawList(){
 var openRow=null, mineEdit=null, mineDelArm=null;
 /* ---------- 카드 탭: 사례 찾아보기 (두문자 카드처럼 검색·열람) ---------- */
 function setCmode(m){cardMode=m;try{localStorage.setItem("minbeop-cmode",m);}catch(e){}}
+/* 사례 출처: 기출을 바꾼 사례는 src, 직접 만든 사례는 관련 카드의 변시 출제 회차를 모아 보여 준다 */
+function caseSrc(x){
+  if(x.src)return x.src;
+  var m={},order=["사례","기록","선택"];
+  x.rel.forEach(function(rid){var r=rowById(rid);if(!r||!r.exam)return;
+    var cur=null;String(r.exam).split(/\s+/).forEach(function(tk){
+      if(order.indexOf(tk)>=0){cur=tk;m[cur]=m[cur]||{};}
+      else if(cur)tk.split("·").forEach(function(n){if(/^\d+$/.test(n))m[cur][n]=1;});
+    });});
+  var parts=order.filter(function(k){return m[k]&&Object.keys(m[k]).length;}).map(function(k){
+    return k+"형 "+Object.keys(m[k]).map(Number).sort(function(a,b){return a-b;}).join("·")+"회";});
+  return "직접 만든 변시형 문제"+(parts.length?" · 관련 법리 변시 "+parts.join(", ")+" 출제":"");
+}
 function caseList(){return EX.filter(function(x){return x.kind==="case";});}
 var CASEBY=null;
 function caseCountFor(rid){if(!CASEBY){CASEBY={};caseList().forEach(function(x){x.rel.forEach(function(r){CASEBY[r]=(CASEBY[r]||0)+1;});});}return CASEBY[rid]||0;}
@@ -844,7 +857,7 @@ function drawCases(){
     else if(casePart==="__new"){if(st&&st.n)return false;}
     else if(casePart&&x.part!==casePart)return false;
     if(!t)return true;
-    var hay=(x.title+" "+x.q+" "+x.a+" "+x.acr+" "+(x.src||"")).toLowerCase();
+    var hay=(x.title+" "+x.q+" "+x.a+" "+x.acr+" "+caseSrc(x)).toLowerCase();
     return t.split(" ").every(function(w){return hay.indexOf(w)>=0;});
   });
   function item(x){
@@ -853,7 +866,7 @@ function drawCases(){
     var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<button class="relbtn" data-row="'+esc(rid)+'"><b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||"")+'</button>':"";}).join("");
     return '<details class="item case" data-c="'+esc(x.id)+'"'+(openCase===x.id?' open':'')+'><summary><span class="ct">'+esc(x.title)+'</span><span class="st'+(st==="틀림"?' bad':'')+'">'+st+'</span><span class="t">'+esc(caseIssue(x))+'</span></summary>'+
       '<div class="body"><div class="cq">'+q+'</div>'+
-      (shown?'<div class="exa">'+exBlock(x)+'<div class="exrel">관련 두문자'+(rels?'<div class="rels">'+rels+'</div>':' · '+esc(x.acr))+'</div>'+(x.src?'<div class="exsrc">출처 · '+esc(x.src)+'</div>':'')+'</div>'
+      (shown?'<div class="exa">'+exBlock(x)+'<div class="exrel">관련 두문자'+(rels?'<div class="rels">'+rels+'</div>':' · '+esc(x.acr))+'</div>'+(x.kind==="case"?'<div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'')+'</div>'
         :'<button class="btn reveal-sm" data-show="1">답 보기</button>')+'</div></details>';
   }
   var grouped=!t&&!caseRel&&(casePart===""||parts4(casePart));
@@ -1466,7 +1479,7 @@ function renderEx(){
     var front='<div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'</span><span class="badges"><span class="tag">'+(x.kind==="card"?"카드":x.kind!=="pair"?"사례":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span></span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
       '<div class="exq">'+(x.kind==="card"?(x.q?esc(x.q):'두문자 <b>'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</b>는 무엇의 두문자인가요?'):esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) '))+'</div><div class="ask">'+(x.kind==="card"?(x.q?'요건과 결론을 떠올려 보세요.':'뜻과 결론까지 떠올려 보세요.'):x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요. <span class="muted">(두문자 '+letters(x.acr)+'글자)</span>':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
-    var back=p.shown?'<div class="exa">'+(x.kind==="card"?'<div class="acr" style="margin-bottom:6px">'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</div>':x.kind==="toc"?'<div class="acr" style="margin-bottom:6px">'+esc(x.acr)+'</div>':x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div>'+(x.src?'<div class="exsrc">출처 · '+esc(x.src)+'</div>':'')+'</div>':'';
+    var back=p.shown?'<div class="exa">'+(x.kind==="card"?'<div class="acr" style="margin-bottom:6px">'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</div>':x.kind==="toc"?'<div class="acr" style="margin-bottom:6px">'+esc(x.acr)+'</div>':x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div>'+(x.kind==="case"?'<div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'')+'</div>':'';
     var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
       :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>'+(x.kind==="toc"?'빠졌거나 순서가 달라요':'쟁점·결론을 놓쳤어요')+'</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>'+(x.kind==="toc"?'목차를 모두':'쟁점과 결론 모두')+'</small></button></div><div class="hint">키보드 1 · 2</div>';
     main.innerHTML=bar+'<article class="card" aria-live="polite">'+front+back+'</article><div class="actions">'+acts+'</div>';
