@@ -1,6 +1,7 @@
 # 민법 두문자 복습장
 
 민법(총칙·물권·채권) 두문자를 간격 반복(FSRS-5)으로 복습하는 웹 앱입니다.
+개발을 이어 받을 때는 [HANDOFF.md](HANDOFF.md)부터 읽어 주세요.
 앱 주소: https://dhyunchun.github.io/minbeop-dumunja/
 
 ## 구조
