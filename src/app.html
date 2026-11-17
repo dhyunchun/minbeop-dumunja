@@ -1059,14 +1059,14 @@ function renderStats(){
     cells+='<i class="'+lv+(key===dayKey(t)?" today":"")+'" title="'+(dd2.getMonth()+1)+'/'+dd2.getDate()+(fut?'':' · '+v2+'회')+'"></i>';}
   var leeches=leechIds().length;
   // 편별 연습 정답률: 사례 문제·기출 OX 각각, 한 번이라도 푼 문제 중 마지막에 맞힌 비율
-  if(!OX&&!oxErr)oxLoad();
+  var showOx=!!settings().showOx;if(showOx&&!OX&&!oxErr)oxLoad();
   var S=exState(),acc={};PARTS.forEach(function(p){acc[p]={c:[0,0],o:[0,0]};});
   EX.forEach(function(x){var st=S[x.id];if(x.kind!=="case"||!st||!st.n||!acc[x.part])return;acc[x.part].c[0]++;if(st.r===1)acc[x.part].c[1]++;});
   (OX||[]).forEach(function(x){var st=S[x.id];if(!st||!st.n||!acc[x.part])return;acc[x.part].o[0]++;if(st.r===1)acc[x.part].o[1]++;});
   function pc(a){return a[0]?'<b>'+Math.round(a[1]/a[0]*100)+'%</b> <span class="muted">'+a[1]+'/'+a[0]+'</span>':'<span class="muted">—</span>';}
-  var anyEx=PARTS.some(function(p){return acc[p].c[0]||acc[p].o[0];});
-  var accTxt=anyEx?'<table class="acc"><thead><tr><th></th><th>사례 문제</th><th>기출 OX</th></tr></thead><tbody>'+PARTS.map(function(p){return '<tr><th>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</th><td>'+pc(acc[p].c)+'</td><td>'+pc(acc[p].o)+'</td></tr>';}).join("")+'</tbody></table><p class="muted" style="margin:8px 0 0">한 번이라도 푼 문제 가운데 마지막으로 풀었을 때 맞힌 비율이에요.'+(!OX&&!oxErr?' 기출 OX 기록을 불러오는 중이에요.':'')+'</p>'
-    :'<p class="muted" style="margin:0">연습 탭에서 사례 문제나 기출 OX를 풀면 편별 정답률이 여기 나와요.</p>';
+  var anyEx=PARTS.some(function(p){return acc[p].c[0]||(showOx&&acc[p].o[0]);});
+  var accTxt=anyEx?'<table class="acc"><thead><tr><th></th><th>사례 문제</th>'+(showOx?'<th>기출 OX</th>':'')+'</tr></thead><tbody>'+PARTS.map(function(p){return '<tr><th>'+esc(p.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+'</th><td>'+pc(acc[p].c)+'</td>'+(showOx?'<td>'+pc(acc[p].o)+'</td>':'')+'</tr>';}).join("")+'</tbody></table><p class="muted" style="margin:8px 0 0">한 번이라도 푼 문제 가운데 마지막으로 풀었을 때 맞힌 비율이에요.'+(showOx&&!OX&&!oxErr?' 기출 OX 기록을 불러오는 중이에요.':'')+'</p>'
+    :'<p class="muted" style="margin:0">연습 탭에서 사례 문제'+(showOx?'나 기출 OX':'')+'를 풀면 편별 정답률이 여기 나와요.</p>';
   var WR=waterRun(t);
   main.innerHTML=gardenHtml(t)+'<section class="panel"><h2>지금까지</h2><div class="stats">'+
     '<div class="stat"><b>'+WR.streak+'<small class="muted">일</small></b><span>연속 물주기</span></div>'+
@@ -1104,7 +1104,7 @@ function renderSettings(){
   '<section class="panel"><h2>학습량</h2><div class="field"><label for="npd">하루 새 카드</label><div class="row"><input type="number" id="npd" min="0" max="100" value="'+s.newPerDay+'" style="width:6em"><span class="sub">장 · 복습 카드는 제한 없이 모두 나와요</span></div></div>'+
   '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div>'+
   '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+["일","월","화","수","목","금","토"].map(function(n,i){return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드만 앞뒤로 하루~며칠 옮기기 때문에, 하루이틀 뒤 복습이나 밀린 복습은 그날에도 나올 수 있어요. 공부 정원에서는 이날 쉬어도 비가 와서 연속 기록이 이어져요. 고르지 않아도 복습이 덜 몰린 날로 알아서 나눠 잡아요.</span></div></section>'+
-  '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div></section>'+
+  '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div><div class="field"><label>연습 탭</label><div class="checks"><label><input type="checkbox" id="showox"'+(s.showOx?" checked":"")+'> 변시 기출 OX 보이기</label></div><p class="muted" style="margin:6px 0 0;font-size:.82rem">꺼 두어도 풀이 기록은 그대로 남아요.</p></div></section>'+
   '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-selected="'+(themePref()===o[0])+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
   '<details class="more" id="setmore"'+(setMore?' open':'')+'><summary><b>더 보기</b> · 백업, 간격 맞춤화, 원리, 기록 지우기</summary>'+
@@ -1134,6 +1134,7 @@ function renderSettings(){
   main.querySelectorAll("[data-wd]").forEach(function(el){el.onchange=function(){var a=(s.easyDays||[]).filter(function(x){return x!==+el.dataset.wd;});if(el.checked)a.push(+el.dataset.wd);a.sort();if(a.length>=7){el.checked=false;toast("모든 요일을 쉴 수는 없어요");return;}s.easyDays=a;scheduleSave();toast(a.length?"쉬는 요일: "+a.map(function(x){return "일월화수목금토"[x];}).join(", "):"쉬는 요일 없음");};});
   var npd=document.getElementById("npd");npd.onchange=function(){var v=Math.max(0,Math.min(100,parseInt(npd.value,10)||0));s.newPerDay=v;npd.value=v;scheduleSave();toast("하루 새 카드 "+v+"장");};
   var ret=document.getElementById("ret");ret.oninput=function(){document.getElementById("retv").textContent=ret.value+"%";};ret.onchange=function(){s.retention=(+ret.value)/100;scheduleSave();toast("목표 기억률 "+ret.value+"%");};
+  var sox=document.getElementById("showox");if(sox)sox.onchange=function(){s.showOx=sox.checked;scheduleSave();toast(sox.checked?"연습 탭에 기출 OX가 보여요":"기출 OX를 숨겼어요");};
   ["g","n"].forEach(function(d){var el=document.getElementById("dir-"+d);el.onchange=function(){s.dirs[d]=el.checked;if(!s.dirs.g&&!s.dirs.n){s.dirs[d]=true;el.checked=true;toast("한 방향은 켜 두어야 해요");return;}current=null;scheduleSave();};});
   main.querySelectorAll("[data-p]").forEach(function(el){el.onchange=function(){s.parts[el.dataset.p]=el.checked;current=null;scheduleSave();};});
   document.getElementById("exp").onclick=function(){
@@ -1506,7 +1507,7 @@ function renderEx(){
       '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'문제 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
   main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
     box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
-    oxBox()+
+    (settings().showOx?oxBox():'')+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
