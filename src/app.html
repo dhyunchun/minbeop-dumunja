@@ -249,6 +249,18 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .editf input[type=text]{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
 .editf textarea{font-family:var(--f-body);font-size:.9rem;min-height:70px}
 .item.off .a{opacity:.5;text-decoration:line-through}
+.cmode{margin-bottom:12px}.cmode small{font-size:.72rem;opacity:.7;margin-left:2px;font-variant-numeric:tabular-nums}
+.item.case .ct{font-weight:700;font-size:.98rem;min-width:0;word-break:keep-all;line-height:1.4}
+.item.case .st.bad{color:var(--again)}
+.item.case .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item.case .cq{line-height:1.7;font-size:.95rem}.item.case .cq .qm{display:block;margin-top:8px;font-weight:600;color:var(--accent)}
+.item.case .exa{padding-top:12px;font-size:.92rem}
+.reveal-sm{justify-self:start}
+.rels{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.relbtn{font:inherit;font-size:.82rem;text-align:left;background:none;border:0;padding:2px 0;color:var(--ink-2);cursor:pointer}.relbtn b{color:var(--accent)}
+.relchip{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;margin:-4px 0 12px;border-radius:10px;background:var(--accent-soft);font-size:.85rem}.relchip b{color:var(--accent)}
+.caselink{justify-self:start;font-size:.85rem}
+.cnt{margin:0 2px 6px;font-size:.8rem}
 .seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--chip);margin-bottom:6px}
 .seg button{flex:1;font:inherit;font-size:.88rem;font-weight:500;padding:7px;border:none;border-radius:8px;background:transparent;color:var(--ink-2);cursor:pointer}
 .seg button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
@@ -741,12 +753,15 @@ function rate(g){
   lastShown=id;current=null;revealed=false;editing=false;scheduleSave();render();
 }
 var filterText="",filterPart="";
+var cardMode=(function(){try{return localStorage.getItem("minbeop-cmode")==="case"?"case":"acr";}catch(e){return "acr";}})(),caseText="",casePart="",openCase=null,caseShown={},caseRel=null;
 function stateLabel(id){var s=cs(id);if(!s||s.st==="new")return "새 카드";if(s.st!=="review")return "다시 보는 중";var d=Math.round((s.due-dayEnd(now())+DAY)/DAY);return d<=0?"오늘 복습":d+"일 뒤";}
 function renderCards(){
+  if(cardMode==="case"){renderCaseBrowse();return;}
   var opts='<option value="">모든 편</option><option value="__mine"'+(filterPart==="__mine"?' selected':'')+'>내 카드만</option><option value="__flag"'+(filterPart==="__flag"?' selected':'')+'>★ 표시한 카드만</option><option value="__leech"'+(filterPart==="__leech"?' selected':'')+'>자주 잊는 카드만</option><option value="__exam"'+(filterPart==="__exam"?' selected':'')+'>변시 기출만</option><option value="__susp"'+(filterPart==="__susp"?' selected':'')+'>보류한 카드만</option>'+PARTS.map(function(p){return '<option'+(p===filterPart?' selected':'')+'>'+esc(p)+'</option>';}).join("");
-  main.innerHTML='<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><span class="row" style="gap:6px"><button class="btn" id="mimp">여러 장 가져오기</button><button class="btn primary" id="mnew">+ 내 카드</button></span></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+(mineEdit==="import"?'<section class="panel">'+importForm()+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
+  main.innerHTML=cmodeSeg()+'<div class="row" style="margin-bottom:10px;justify-content:space-between"><span class="muted" style="font-size:.85rem">수업 필기·강조 판례를 직접 카드로 만들 수 있어요</span><span class="row" style="gap:6px"><button class="btn" id="mimp">여러 장 가져오기</button><button class="btn primary" id="mnew">+ 내 카드</button></span></div>'+(mineEdit==="new"?'<section class="panel">'+mineForm(null)+'</section>':'')+(mineEdit==="import"?'<section class="panel">'+importForm()+'</section>':'')+'<div class="row" style="margin-bottom:12px"><input type="search" id="q" placeholder="두문자·내용·판례번호 검색" value="'+esc(filterText)+'" style="flex:1;min-width:0"><select id="fp" aria-label="편 선택">'+opts+'</select></div><div class="list" id="list"></div>';
   var q=document.getElementById("q"),fp=document.getElementById("fp");
   q.oninput=function(){filterText=q.value;drawList();};fp.onchange=function(){filterPart=fp.value;drawList();};
+  bindCmodeSeg();
   document.getElementById("mnew").onclick=function(){mineEdit=mineEdit==="new"?null:"new";renderCards();var f=document.getElementById("mq");if(f)f.focus();};
   document.getElementById("mimp").onclick=function(){mineEdit=mineEdit==="import"?null:"import";impRows=null;renderCards();var f=document.getElementById("imptext");if(f)f.focus();};
   if(mineEdit==="new")bindMineForm(null);
@@ -761,7 +776,7 @@ function drawList(){
   function itemHtml(r){
     var cu=custom(r),sus=!!state.susp[r.id];
     return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+(isFlag(r.id)?'<i class="fstar" aria-label="표시">★</i>':'')+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':(r.mine&&!r.acr)?stateLabel(r.id+"-g"):(stateLabel(r.id+"-g")===stateLabel(r.id+"-n")?'가·나 '+stateLabel(r.id+"-g"):'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n")))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
-      '<div class="tools">'+(r.mine?'<button class="link" data-act="medit">수정</button><button class="link" data-act="mdel">'+(mineDelArm===r.id?'한 번 더 누르면 삭제':'삭제')+'</button>':'<button class="link" data-act="edit">내 두문자·메모</button>')+'<button class="link" data-act="flag">'+(isFlag(r.id)?'★ 표시 해제':'☆ 헷갈림 표시')+'</button><button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+(r.mine&&mineEdit===r.id?mineForm(r.id):'')+'</div></details>';
+      (caseCountFor(r.id)?'<button class="link caselink" data-act="cases">관련 사례 '+caseCountFor(r.id)+'개 보기</button>':'')+'<div class="tools">'+(r.mine?'<button class="link" data-act="medit">수정</button><button class="link" data-act="mdel">'+(mineDelArm===r.id?'한 번 더 누르면 삭제':'삭제')+'</button>':'<button class="link" data-act="edit">내 두문자·메모</button>')+'<button class="link" data-act="flag">'+(isFlag(r.id)?'★ 표시 해제':'☆ 헷갈림 표시')+'</button><button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+(r.mine&&mineEdit===r.id?mineForm(r.id):'')+'</div></details>';
   }
   if(!rows.length)list.innerHTML='<p class="muted">찾는 카드가 없어요. 검색어를 줄여 보세요.</p>';
   else if(!grouped)list.innerHTML=rows.map(itemHtml).join("");
@@ -784,6 +799,7 @@ function drawList(){
   }
   list.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(){
     var id=b.closest("details").dataset.r,r=ROWS.filter(function(x){return x.id===id;})[0];openRow=id;
+    if(b.dataset.act==="cases"){setCmode("case");caseText="";casePart="";caseRel=id;openCase=null;renderCards();window.scrollTo(0,0);return;}
     if(b.dataset.act==="flag"){flagRow(r,!isFlag(id));}
     else if(b.dataset.act==="susp"){suspendRow(r,!state.susp[id]);editing=false;current=null;}
     else if(b.dataset.act==="medit"){mineEdit=mineEdit===id?null:id;editing=false;}
@@ -794,6 +810,75 @@ function drawList(){
   if(openRow&&editing){var row=ROWS.filter(function(x){return x.id===openRow;})[0];bindEditForm(row,function(){drawList();});}
 }
 var openRow=null, mineEdit=null, mineDelArm=null;
+/* ---------- 카드 탭: 사례 찾아보기 (두문자 카드처럼 검색·열람) ---------- */
+function setCmode(m){cardMode=m;try{localStorage.setItem("minbeop-cmode",m);}catch(e){}}
+function caseList(){return EX.filter(function(x){return x.kind==="case";});}
+var CASEBY=null;
+function caseCountFor(rid){if(!CASEBY){CASEBY={};caseList().forEach(function(x){x.rel.forEach(function(r){CASEBY[r]=(CASEBY[r]||0)+1;});});}return CASEBY[rid]||0;}
+function cmodeSeg(){var n=caseList().length;
+  return '<div class="seg cmode" role="tablist" aria-label="보기"><button role="tab" data-cm="acr" aria-selected="'+(cardMode==="acr")+'">두문자 <small>'+ROWS.length+'</small></button><button role="tab" data-cm="case" aria-selected="'+(cardMode==="case")+'">사례 <small>'+n+'</small></button></div>';}
+function bindCmodeSeg(){main.querySelectorAll(".cmode [data-cm]").forEach(function(b){b.onclick=function(){if(cardMode===b.dataset.cm)return;setCmode(b.dataset.cm);renderCards();};});}
+function caseStatus(x){var st=exState()[x.id];if(!st||!st.n)return "";return st.r===1?"맞힘":st.r===0?"틀림":"";}
+function caseIssue(x){var m=/\*\*쟁점\*\*\s*([^\n]*)/.exec(x.a);return m?m[1]:"";}
+function caseUnit(x){var r=null;for(var i=0;i<x.rel.length&&!r;i++){var q=rowById(x.rel[i]);if(q&&q.part===x.part)r=q;}r=r||rowById(x.rel[0]);return r?groupName(r):"기타";}
+function renderCaseBrowse(){
+  var parts=[];caseList().forEach(function(x){if(parts.indexOf(x.part)<0)parts.push(x.part);});parts.sort();
+  var opts='<option value="">모든 편</option>'+parts.map(function(pt){return '<option value="'+esc(pt)+'"'+(casePart===pt?' selected':'')+'>'+esc(pt)+'</option>';}).join("")+'<option value="__wrong"'+(casePart==="__wrong"?' selected':'')+'>틀린 사례만</option><option value="__new"'+(casePart==="__new"?' selected':'')+'>안 푼 사례만</option>';
+  var rel=caseRel?rowById(caseRel):null;
+  main.innerHTML=cmodeSeg()+
+    '<div class="row" style="margin-bottom:12px"><input type="search" id="cq" placeholder="제목·내용·판례번호" value="'+esc(caseText)+'" style="flex:1;min-width:0"><select id="cp" aria-label="편 선택">'+opts+'</select></div>'+
+    (rel?'<div class="relchip"><span>관련 두문자 <b>'+esc(dispAcr(rel))+'</b></span><button class="link" id="relx" aria-label="관련 두문자 필터 해제">✕ 해제</button></div>':'')+
+    '<div id="clist"></div>';
+  bindCmodeSeg();
+  var cq=document.getElementById("cq"),cp=document.getElementById("cp");
+  cq.oninput=function(){caseText=cq.value;drawCases();};cp.onchange=function(){casePart=cp.value;drawCases();};
+  var rx=document.getElementById("relx");if(rx)rx.onclick=function(){caseRel=null;renderCaseBrowse();};
+  drawCases();
+}
+function drawCases(){
+  var t=caseText.trim().toLowerCase().replace(/\s+/g," "),box=document.getElementById("clist"),S=exState();
+  var xs=caseList().filter(function(x){
+    if(caseRel&&x.rel.indexOf(caseRel)<0)return false;
+    var st=S[x.id];
+    if(casePart==="__wrong"){if(!st||!st.n||st.r!==0)return false;}
+    else if(casePart==="__new"){if(st&&st.n)return false;}
+    else if(casePart&&x.part!==casePart)return false;
+    if(!t)return true;
+    var hay=(x.title+" "+x.q+" "+x.a+" "+x.acr+" "+(x.src||"")).toLowerCase();
+    return t.split(" ").every(function(w){return hay.indexOf(w)>=0;});
+  });
+  function item(x){
+    var st=caseStatus(x),shown=!!caseShown[x.id];
+    var q=esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) ');
+    var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<button class="relbtn" data-row="'+esc(rid)+'"><b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||"")+'</button>':"";}).join("");
+    return '<details class="item case" data-c="'+esc(x.id)+'"'+(openCase===x.id?' open':'')+'><summary><span class="ct">'+esc(x.title)+'</span><span class="st'+(st==="틀림"?' bad':'')+'">'+st+'</span><span class="t">'+esc(caseIssue(x))+'</span></summary>'+
+      '<div class="body"><div class="cq">'+q+'</div>'+
+      (shown?'<div class="exa">'+exBlock(x)+'<div class="exrel">관련 두문자'+(rels?'<div class="rels">'+rels+'</div>':' · '+esc(x.acr))+'</div>'+(x.src?'<div class="exsrc">출처 · '+esc(x.src)+'</div>':'')+'</div>'
+        :'<button class="btn reveal-sm" data-show="1">답 보기</button>')+'</div></details>';
+  }
+  var grouped=!t&&!caseRel&&(casePart===""||parts4(casePart));
+  function parts4(p){return /^제\d편/.test(p);}
+  if(!xs.length){box.innerHTML='<p class="muted">찾는 사례가 없어요. 검색어를 줄여 보세요.</p>';return;}
+  if(!grouped){box.innerHTML='<p class="muted cnt">'+xs.length+'개</p><div class="list">'+xs.map(item).join("")+'</div>';}
+  else{
+    var gs=[],gm={},openG=openGroups();
+    xs.forEach(function(x){var k="c|"+x.part+"|"+caseUnit(x);if(!gm[k]){gm[k]={part:x.part,name:caseUnit(x),xs:[]};gs.push(gm[k]);}gm[k].xs.push(x);});
+    var order={};ROWS.forEach(function(r,i){var k="c|"+r.part+"|"+groupName(r);if(!(k in order))order[k]=i;});
+    gs.sort(function(a,b){return a.part<b.part?-1:a.part>b.part?1:(order["c|"+a.part+"|"+a.name]||0)-(order["c|"+b.part+"|"+b.name]||0);});
+    if(openCase){var oc=caseList().filter(function(x){return x.id===openCase;})[0];if(oc)openG["c|"+oc.part+"|"+caseUnit(oc)]=1;}
+    var html="",last=null;
+    gs.forEach(function(g){
+      if(g.part!==last){last=g.part;var px=xs.filter(function(x){return x.part===g.part;}),pd=px.filter(function(x){var st=S[x.id];return st&&st.n;}).length;html+=(html?'</div>':'')+'<h3 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+pd+' / '+px.length+' 풀어 봄</span></h3><div class="glist">';}
+      var k="c|"+g.part+"|"+g.name,done=g.xs.filter(function(x){var st=S[x.id];return st&&st.n;}).length,wr=g.xs.filter(function(x){return caseStatus(x)==="틀림";}).length;
+      html+='<details class="grp" data-g="'+esc(k)+'"'+(openG[k]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+done+'/'+g.xs.length+(wr?' · <span style="color:var(--again)">틀림 '+wr+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(done/g.xs.length*100)+'%"></i></span></summary><div class="list">'+g.xs.map(item).join("")+'</div></details>';
+    });
+    box.innerHTML=html+'</div>';
+    box.querySelectorAll("details.grp").forEach(function(d){d.ontoggle=function(){var o=openGroups();if(d.open)o[d.dataset.g]=1;else delete o[d.dataset.g];saveOpenGroups(o);};});
+  }
+  box.querySelectorAll("details.case").forEach(function(d){d.ontoggle=function(){if(d.open)openCase=d.dataset.c;else if(openCase===d.dataset.c)openCase=null;};});
+  box.querySelectorAll("[data-show]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;caseShown[id]=1;openCase=id;drawCases();};});
+  box.querySelectorAll(".relbtn").forEach(function(b){b.onclick=function(){setCmode("acr");filterText="";filterPart="";openRow=b.dataset.row;editing=false;renderCards();var el=document.querySelector('details.item[data-r="'+openRow+'"]');if(el)el.scrollIntoView({block:"center"});};});
+}
 function groupName(r){var s=r.sub||"";if(r.mine)return "내 카드";if(r.unit)return r.unit;if(/^판례 두문자/.test(s))return "표준판례";if(/^변시 기출/.test(s))return "변시 기출";if(/^사례 목차/.test(s))return "사례 답안 목차";return s.replace(/^보충 단원 — /,"보충 · ");}
 var OG_KEY="minbeop-open-groups";
 function openGroups(){try{var o=JSON.parse(localStorage.getItem(OG_KEY)||"{}");return o&&typeof o==="object"?o:{};}catch(e){return {};}}
