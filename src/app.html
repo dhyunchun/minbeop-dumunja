@@ -1166,7 +1166,7 @@ var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];
 var exSess=null, EX_N=10, EXNAME={case:"사례 문제",pair:"기간·숫자, 헷갈리는 개념",card:"카드 문제"};
 function exState(){if(!state.ex)state.ex={};return state.ex;}
 function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
-function exOpen(x){return x.kind==="toc"||!!settings().exAll||x.rel.some(rowStarted);}
+function exOpen(x){return x.kind==="toc"||!!settings().exAll||(x.kind==="case"?x.rel.every(rowStarted):x.rel.some(rowStarted));} // 사례는 관련 카드를 모두 연 뒤에만 출제
 function exUnitsOf(x){var o=[];x.rel.forEach(function(rid){var r=rowById(rid);if(r&&r.unit){var k=r.part+"|"+r.unit;if(o.indexOf(k)<0)o.push(k);}});return o;}
 function exKindOk(x,kf){return !kf||kf==="all"||(kf==="case"?x.kind==="case":x.kind==="pair");}
 function exPool(spec,onlyWrong){return EX.filter(function(x){
@@ -1495,7 +1495,7 @@ function renderEx(){
     var all=EX.filter(function(x){return x.kind===kind;}),open=exPool(kind),wrong=exPool(kind,true);
     var done=all.filter(function(x){return S[x.id]&&S[x.id].n;}).length;
     return '<div class="exbox"><h3>'+name+'</h3><p>'+desc+'<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all.length+'문제 열림 · '+done+'문제 풀어 봄</span></p><div class="row">'+
-      (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">관련 두문자를 하나라도 배우면 열려요</span>')+
+      (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">'+(kind==="case"?'관련 두문자를 모두 배우면 열려요':'관련 두문자를 하나라도 배우면 열려요')+'</span>')+
       (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div>'+(kind==="case"?reBox():'')+'</div>';
   }
   function reBox(){var tot=exPool("re:").length;if(!tot)return '';
@@ -1506,7 +1506,7 @@ function renderEx(){
       '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'문제</button></div>'+
       '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'문제 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
   main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
-    box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요.")+
+    box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요. 관련 두문자를 모두 배운 사례만 나와요.")+
     (settings().showOx?oxBox():'')+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
