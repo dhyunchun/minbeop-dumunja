@@ -995,7 +995,7 @@ function treeShape(seed,cx,base,f){
 function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위치, base = 땅 높이
   var N=cards.length,ks=cards.map(leafKind),open=ks.filter(Boolean).length,f=N?open/N:0,stage=open===0?0:f<.1?1:f<.35?2:f<.7?3:4;
   var bark="var(--bark)",soft="color-mix(in srgb,var(--accent) 16%,var(--sheet))",ghost="color-mix(in srgb,var(--rule) 45%,transparent)";
-  var full=treeShape(seed,cx,base,1),cr=function(S,ff){return 8+18.5*Math.sqrt(ff);};
+  var full=treeShape(seed,cx,base,1),cr=function(S,ff){return 8.4+19.4*Math.sqrt(ff);};
   var g='';full.segs.forEach(function(s,j){if(!j)return;g+='<path d="M'+s.x0.toFixed(1)+' '+s.y0.toFixed(1)+' Q'+((s.x0+s.x1)/2+(s.c||0)).toFixed(1)+' '+((s.y0+s.y1)/2).toFixed(1)+' '+s.x1.toFixed(1)+' '+s.y1.toFixed(1)+'" stroke="'+ghost+'" stroke-width="'+Math.max(.8,s.w*.6).toFixed(1)+'" fill="none" stroke-linecap="round"/>';});g+='<path d="M'+cx+' '+base+' L'+full.segs[0].x1.toFixed(1)+' '+full.segs[0].y1.toFixed(1)+'" stroke="'+ghost+'" stroke-width="'+(full.tw*.6).toFixed(1)+'" stroke-linecap="round"/>'; // 다 자란 모습(옅은 가지)
   g+='<ellipse cx="'+cx+'" cy="'+(base+2)+'" rx="'+(8+26*Math.sqrt(f))+'" ry="3" fill="'+bark+'" opacity=".13"/>';
   if(!open)return {svg:g+'<path d="M'+(cx-9)+' '+(base+1)+' Q'+cx+' '+(base-6)+' '+(cx+9)+' '+(base+1)+'Z" fill="color-mix(in srgb,var(--bark) 35%,var(--sheet))"/><ellipse cx="'+cx+'" cy="'+(base-3)+'" rx="3.6" ry="2.6" fill="'+bark+'"/><path d="M'+cx+' '+(base-5)+' q1 -5 5 -6" stroke="var(--accent)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75"/>',stage:0,ks:ks};
@@ -1004,14 +1004,20 @@ function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위�
   S.segs.forEach(function(s,j){var mx=(s.x0+s.x1)/2+(s.c||0),my=(s.y0+s.y1)/2;
     if(j===0){var w=s.w,root=w*1.9;g+='<path d="M'+(s.x0-root).toFixed(1)+' '+s.y0+' Q'+(s.x0-w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0-w*.55).toFixed(1)+' '+my.toFixed(1)+' L'+(s.x1-w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x1+w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x0+w*.55).toFixed(1)+' '+my.toFixed(1)+' Q'+(s.x0+w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0+root).toFixed(1)+' '+s.y0+'Z" fill="'+bark+'"/>';}
     else g+='<path d="M'+s.x0.toFixed(1)+' '+s.y0.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+s.x1.toFixed(1)+' '+s.y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+s.w.toFixed(1)+'" fill="none" stroke-linecap="round"/>';});
-  var T=S.tips.length,rnd=gRand(seed+"leaf"),idx=0,fallen=0;
+  var T=S.tips.length,rnd=gRand(seed+"leaf"),idx=0,fallen=0,L=[];
   for(var i=0;i<N;i++){if(!ks[i])continue;var j=idx%T,m=Math.floor(idx/T),per=Math.ceil(open/T),p=S.tips[j];idx++;
     var x,y,a;
     if(stage===1){var side=(m%2?1:-1),hy=S.segs[0].y1-(S.H*.3)*(m/Math.max(1,per));x=cx+side*5;y=hy+4;a=side>0?-25:205;}
     else{var r=R*Math.sqrt((m+.5)/per),th=m*2.39996+j;x=p.x+r*Math.cos(th);y=p.y+r*Math.sin(th)*.85;a=th*57.3+(rnd()-.5)*40;}
     var sz=(.85+rnd()*.25)*(1+.1*f);
     if(ks[i]===3&&(fallen++%3===2)){x=cx+(rnd()-.5)*(20+30*f);y=base+3+rnd()*3;a=(rnd()-.5)*30;}
-    g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="'+(4.4*sz).toFixed(1)+'" ry="'+(2.3*sz).toFixed(1)+'" transform="rotate('+a.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"/>';}
+    L.push({x:x,y:y,a:a,sz:sz,k:ks[i],fix:y>base,ox:x,oy:y});}
+  // 잎끼리 겹치지 않게 살짝 밀어낸다(가지 끝 자리에서 크게 벗어나지 않도록 제자리로 당기는 힘도 둔다).
+  if(stage>=2){for(var it=0;it<30;it++){for(var u=0;u<L.length;u++){var A=L[u];if(A.fix)continue;
+      for(var v=u+1;v<L.length;v++){var B=L[v];if(B.fix)continue;var dx=B.x-A.x,dy=B.y-A.y,dd=dx*dx+dy*dy,mn=3.6*(A.sz+B.sz);
+        if(dd<mn*mn){var dl=Math.sqrt(dd)||.01,push=(mn-dl)/2*.6,ux=dx/dl,uy=dy/dl;A.x-=ux*push;A.y-=uy*push;B.x+=ux*push;B.y+=uy*push;}}
+      A.x+=(A.ox-A.x)*.02;A.y+=(A.oy-A.y)*.02;}}}
+  L.forEach(function(e){g+='<ellipse cx="'+e.x.toFixed(1)+'" cy="'+e.y.toFixed(1)+'" rx="'+(4.4*e.sz).toFixed(1)+'" ry="'+(2.3*e.sz).toFixed(1)+'" transform="rotate('+e.a.toFixed(0)+' '+e.x.toFixed(1)+' '+e.y.toFixed(1)+')" fill="'+col[e.k]+'"/>';});
   return {svg:g,stage:stage,ks:ks};}
 var GRASS_MIN=4,GRASS_MAX=72,GRASS_PER=3,FLOWER_PER=25,FLOWER_MAX=8;
 function grassState(n){var tufts=Math.min(GRASS_MAX,GRASS_MIN+Math.floor(n/GRASS_PER)),over=Math.max(0,n-(GRASS_MAX-GRASS_MIN)*GRASS_PER);
