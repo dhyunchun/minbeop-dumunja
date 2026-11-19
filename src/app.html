@@ -1168,18 +1168,20 @@ function exState(){if(!state.ex)state.ex={};return state.ex;}
 function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
 function exOpen(x){return x.kind==="toc"||!!settings().exAll||(x.kind==="case"?x.rel.every(rowStarted):x.rel.some(rowStarted));} // 사례는 관련 카드를 모두 연 뒤에만 출제
 function exUnitsOf(x){var o=[];x.rel.forEach(function(rid){var r=rowById(rid);if(r&&r.unit){var k=r.part+"|"+r.unit;if(o.indexOf(k)<0)o.push(k);}});return o;}
+/* 틀린 문제: 마지막 풀이에서 틀렸거나, 카드 문제라면 그 카드가 복습에서 「자주 잊는 카드」일 때 */
+function exWrong(x,st){if(st&&st.n&&st.r===0)return true;if(x.kind!=="card")return false;var r=x.rel[0];return isLeech(r+"-g")||isLeech(r+"-n");}
 function exKindOk(x,kf){return !kf||kf==="all"||(kf==="case"?x.kind==="case":x.kind==="pair");}
 function exPool(spec,onlyWrong){return EX.filter(function(x){
   if(typeof spec==="string"&&spec.slice(0,3)==="re:"){var rp=spec.slice(3);var s0=exState()[x.id];if(x.kind!=="case"||!(s0&&s0.n)||(rp&&x.part!==rp))return false;}
   else if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;}
   else{if(x.kind==="toc"||!exKindOk(x,spec.kf))return false;var u=exUnitsOf(x);if(!u.some(function(k){return spec.units.indexOf(k)>=0;}))return false;}
-  var st=exState()[x.id];return onlyWrong?!!(st&&st.r===0):true;});}
+  var st=exState()[x.id];return onlyWrong?exWrong(x,st):true;});}
 function unitLabel(units){if(!units.length)return "";var f=units[0].split("|")[1];return units.length>1?f+" 외 "+(units.length-1)+"개":f;}
 function exStart(kind,onlyWrong){ // kind: "case"/"pair" 또는 단원 선택 {units,kf}
   // 순서: 틀렸던 문제(오늘 이미 본 것 제외) → 안 풀어 본 문제 → 맞혔던 문제(오래된 것부터) → 오늘 틀린 문제
   var pool=exPool(kind,onlyWrong),S=exState(),dk=dayKey(now()),t=now();
   pool.forEach(function(x){var st=S[x.id],g;
-    if(!st||!st.n)g=1;else if(st.r===0)g=(st.last&&dayKey(st.last)===dk)?3:0;else g=2;
+    if(exWrong(x,st))g=(st&&st.last&&dayKey(st.last)===dk)?3:0;else if(!st||!st.n)g=1;else g=2;
     var age=st&&st.last?Math.min(365,(t-st.last)/DAY):0;
     x._k=g*1000+(g===2?(365-age):Math.random()*100);});
   pool.sort(function(a,b){return a._k-b._k;});
@@ -1531,7 +1533,7 @@ function unitIndex(){ // 편 → 단원 목록(카드 순서) + 단원별 문제
   ROWS.forEach(function(r){if(r.mine||!r.unit)return;if(!pm[r.part]){pm[r.part]={part:r.part,units:[],um:{}};parts.push(pm[r.part]);}
     var P=pm[r.part];if(!P.um[r.unit]){P.um[r.unit]={key:r.part+"|"+r.unit,name:r.unit,n:0,w:0,seen:0};P.units.push(P.um[r.unit]);}});
   var S=exState(),kf="all";
-  EX.forEach(function(x){if(x.kind==="toc"||!exKindOk(x,kf))return;exUnitsOf(x).forEach(function(k){var i=k.indexOf("|"),P=pm[k.slice(0,i)];if(!P)return;var u=P.um[k.slice(i+1)];if(!u)return;u.n++;var st=S[x.id];if(st&&st.n){u.seen++;if(st.r===0)u.w++;}});});
+  EX.forEach(function(x){if(x.kind==="toc"||!exKindOk(x,kf))return;exUnitsOf(x).forEach(function(k){var i=k.indexOf("|"),P=pm[k.slice(0,i)];if(!P)return;var u=P.um[k.slice(i+1)];if(!u)return;u.n++;var st=S[x.id];if(st&&st.n)u.seen++;if(exWrong(x,st))u.w++;});});
   return parts;
 }
 function unitPanel(){
@@ -1542,7 +1544,7 @@ function unitPanel(){
   var spec={units:sel,kf:kf},pool=sel.length?exPool(spec):[],wrong=sel.length?exPool(spec,true):[];
   var last=se.exLast&&se.exLast.units&&se.exLast.units.filter(function(k){return valid[k];});
   var lastSame=last&&last.length&&last.join()===sel.join();
-  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">단원을 골라 그 단원 문제만 풀어요. 사례·비교 문제가 없는 카드는 카드 문제로 함께 나와서, 단원의 모든 카드가 빠짐없이 들어가요. 고른 단원은 다음에도 그대로 남아 있어요. 배우지 않은 두문자의 문제도 함께 나와요.</p>';
+  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">단원을 골라 그 단원 문제만 풀어요. 사례·비교 문제가 없는 카드는 카드 문제로 함께 나와서, 단원의 모든 카드가 빠짐없이 들어가요. 고른 단원은 다음에도 그대로 남아 있어요. 배우지 않은 두문자의 문제도 함께 나와요. ✕는 마지막에 틀린 문제와, 복습에서 자주 잊는 카드의 카드 문제를 합한 수예요.</p>';
   if(last&&last.length&&!lastSame)h+='<button class="btn resume" id="uresume">↻ 지난번 단원 다시: '+esc(unitLabel(last))+'</button>';
   h+='<div class="ptabs" role="tablist">'+parts.map(function(P){var c=P.units.filter(function(u){return sel.indexOf(u.key)>=0;}).length;return '<button role="tab" data-up="'+esc(P.part)+'" aria-selected="'+(P.part===unitOpenPart)+'">'+esc(P.part.replace(/^제\d편 /,""))+(c?' <b>'+c+'</b>':'')+'</button>';}).join("")+'</div>';
   parts.forEach(function(P){if(P.part!==unitOpenPart)return;
