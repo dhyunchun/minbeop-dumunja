@@ -968,7 +968,7 @@ function mineDelete(id){var m=state.mine&&state.mine[id];if(!m)return;state.mine
 /* ---------- 공부 정원: 편마다 나무 한 그루. 잎 = 카드(카드 순서대로 안쪽부터 돋는다).
    진한 잎 = 복습 간격 7일 이상, 연한 잎 = 익히는 중, 시든 잎 = 자주 잊는 카드. 아직 안 연 카드는 비어 있고, 점선이 다 자란 크기.
    물주기 = 공부한 날. 한 주(월~일)에 하루는 「비 오는 날」로 쳐서 쉬어도 이어진다. 기록(state.hist)에서 계산하므로 따로 저장하지 않는다. ---------- */
-var GARDEN_FIRM=7,GARDEN_CROWN=true;
+var GARDEN_FIRM=7,GARDEN_CROWN=false;
 function waterRun(t){ // 공부한 날 = 물 준 날. 설정의 쉬는 요일에 쉬면 「비 오는 날」이라 연속이 끊기지 않는다(세지는 않음).
   var noon=new Date(dayKey(t)+"T12:00:00").getTime(),on=function(k){return ((state.hist[k]&&state.hist[k].r)||0)>0;};
   var ez=settings().easyDays||[],isEz=function(tt){return ez.indexOf(new Date(tt).getDay())>=0;};
@@ -1005,11 +1005,14 @@ function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위�
     if(j===0){var w=s.w,root=w*1.9;g+='<path d="M'+(s.x0-root).toFixed(1)+' '+s.y0+' Q'+(s.x0-w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0-w*.55).toFixed(1)+' '+my.toFixed(1)+' L'+(s.x1-w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x1+w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x0+w*.55).toFixed(1)+' '+my.toFixed(1)+' Q'+(s.x0+w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0+root).toFixed(1)+' '+s.y0+'Z" fill="'+bark+'"/>';}
     else g+='<path d="M'+s.x0.toFixed(1)+' '+s.y0.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+s.x1.toFixed(1)+' '+s.y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+s.w.toFixed(1)+'" fill="none" stroke-linecap="round"/>';});
   var T=S.tips.length,rnd=gRand(seed+"leaf"),idx=0,fallen=0;
+  // 수관: 가지가 갈라지는 곳(줄기 끝)부터 가지 끝을 감싸는 타원. 잎은 그 안을 안쪽부터 해바라기 배열로 채운다.
+  var fy=S.segs[0].y1,x0=1e9,x1=-1e9,y0=1e9;S.tips.forEach(function(p){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);});
+  var pad=R*.75,crx=(x1-x0)/2+pad,cbot=fy+2,ctop=Math.min(y0-pad,cbot-1.75*crx),ccx=(x0+x1)/2,ccy=(ctop+cbot)/2,cry=(cbot-ctop)/2,lob=rnd()*6;
   for(var i=0;i<N;i++){if(!ks[i])continue;var j=idx%T,m=Math.floor(idx/T),per=Math.ceil(open/T),p=S.tips[j];idx++;
     var x,y,a;
     if(stage===1){var side=(m%2?1:-1),hy=S.segs[0].y1-(S.H*.3)*(m/Math.max(1,per));x=cx+side*5;y=hy+4;a=side>0?-25:205;}
-    else{var r=R*Math.sqrt((m+.5)/per),th=m*2.39996+j;x=p.x+r*Math.cos(th);y=p.y+r*Math.sin(th)*.85;a=th*57.3+(rnd()-.5)*40;}
-    var sz=(.85+rnd()*.3)*(1+.15*f);
+    else{var q=idx-1,r=Math.sqrt((q+.5)/open),th=q*2.39996;r*=1+.09*r*Math.sin(3*th+lob)+.05*r*Math.sin(5*th+lob*2);x=ccx+r*crx*Math.cos(th);y=ccy+r*cry*Math.sin(th);a=th*57.3+(rnd()-.5)*24;}
+    var sz=(.9+rnd()*.2)*(1+.15*f);
     if(ks[i]===3&&(fallen++%3===2)){x=cx+(rnd()-.5)*(20+30*f);y=base+3+rnd()*3;a=(rnd()-.5)*30;}
     g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="'+(4.4*sz).toFixed(1)+'" ry="'+(2.3*sz).toFixed(1)+'" transform="rotate('+a.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"/>';}
   return {svg:g,stage:stage,ks:ks};}
