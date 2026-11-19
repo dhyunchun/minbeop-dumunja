@@ -995,7 +995,7 @@ function treeShape(seed,cx,base,f){
 function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위치, base = 땅 높이
   var N=cards.length,ks=cards.map(leafKind),open=ks.filter(Boolean).length,f=N?open/N:0,stage=open===0?0:f<.1?1:f<.35?2:f<.7?3:4;
   var bark="var(--bark)",soft="color-mix(in srgb,var(--accent) 16%,var(--sheet))",ghost="color-mix(in srgb,var(--rule) 45%,transparent)";
-  var full=treeShape(seed,cx,base,1),cr=function(S,ff){return 7+16*Math.sqrt(ff);};
+  var full=treeShape(seed,cx,base,1),cr=function(S,ff){return 8+18.5*Math.sqrt(ff);};
   var g='';full.segs.forEach(function(s,j){if(!j)return;g+='<path d="M'+s.x0.toFixed(1)+' '+s.y0.toFixed(1)+' Q'+((s.x0+s.x1)/2+(s.c||0)).toFixed(1)+' '+((s.y0+s.y1)/2).toFixed(1)+' '+s.x1.toFixed(1)+' '+s.y1.toFixed(1)+'" stroke="'+ghost+'" stroke-width="'+Math.max(.8,s.w*.6).toFixed(1)+'" fill="none" stroke-linecap="round"/>';});g+='<path d="M'+cx+' '+base+' L'+full.segs[0].x1.toFixed(1)+' '+full.segs[0].y1.toFixed(1)+'" stroke="'+ghost+'" stroke-width="'+(full.tw*.6).toFixed(1)+'" stroke-linecap="round"/>'; // 다 자란 모습(옅은 가지)
   g+='<ellipse cx="'+cx+'" cy="'+(base+2)+'" rx="'+(8+26*Math.sqrt(f))+'" ry="3" fill="'+bark+'" opacity=".13"/>';
   if(!open)return {svg:g+'<path d="M'+(cx-9)+' '+(base+1)+' Q'+cx+' '+(base-6)+' '+(cx+9)+' '+(base+1)+'Z" fill="color-mix(in srgb,var(--bark) 35%,var(--sheet))"/><ellipse cx="'+cx+'" cy="'+(base-3)+'" rx="3.6" ry="2.6" fill="'+bark+'"/><path d="M'+cx+' '+(base-5)+' q1 -5 5 -6" stroke="var(--accent)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75"/>',stage:0,ks:ks};
@@ -1005,21 +1005,11 @@ function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위�
     if(j===0){var w=s.w,root=w*1.9;g+='<path d="M'+(s.x0-root).toFixed(1)+' '+s.y0+' Q'+(s.x0-w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0-w*.55).toFixed(1)+' '+my.toFixed(1)+' L'+(s.x1-w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x1+w*.35).toFixed(1)+' '+s.y1.toFixed(1)+' L'+(s.x0+w*.55).toFixed(1)+' '+my.toFixed(1)+' Q'+(s.x0+w*.7).toFixed(1)+' '+(s.y0-4)+' '+(s.x0+root).toFixed(1)+' '+s.y0+'Z" fill="'+bark+'"/>';}
     else g+='<path d="M'+s.x0.toFixed(1)+' '+s.y0.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+s.x1.toFixed(1)+' '+s.y1.toFixed(1)+'" stroke="'+bark+'" stroke-width="'+s.w.toFixed(1)+'" fill="none" stroke-linecap="round"/>';});
   var T=S.tips.length,rnd=gRand(seed+"leaf"),idx=0,fallen=0;
-  // 수관: 가지가 갈라지는 곳(줄기 끝)부터 가지 끝을 감싸는 타원. 잎은 그 안을 안쪽부터 해바라기 배열로 채운다.
-  var fy=S.segs[0].y1,x0=1e9,x1=-1e9,y0=1e9;S.tips.forEach(function(p){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);});
-  // 수관 = 가지를 따라 놓은 원들의 합집합(갈라지는 곳부터 가지 끝으로 갈수록 커짐). 그 안을 고른 간격(해바라기 배열)으로 채우고, 안쪽 잎부터 쓴다.
-  var blobs=[];S.segs.forEach(function(sg,j){if(!j)return;[.45,1].forEach(function(t){var mx=sg.x0+(sg.x1-sg.x0)*t+(sg.c||0)*(1-Math.abs(2*t-1))*.5,my=sg.y0+(sg.y1-sg.y0)*t;blobs.push({x:mx,y:my,r:R*(t<1?.62:1)*(.9+rnd()*.2)});});});
-  var bx0=1e9,bx1=-1e9,by0=1e9,by1=-1e9;blobs.forEach(function(o){bx0=Math.min(bx0,o.x-o.r);bx1=Math.max(bx1,o.x+o.r);by0=Math.min(by0,o.y-o.r);by1=Math.max(by1,o.y+o.r);});
-  var ccx=(bx0+bx1)/2,ccy=(by0+by1)/2,pts=[],M=Math.max(60,open*8);
-  for(var q0=0;q0<M;q0++){var rr=Math.sqrt((q0+.5)/M),tt=q0*2.39996,px=ccx+rr*(bx1-bx0)/2*Math.cos(tt),py=ccy+rr*(by1-by0)/2*Math.sin(tt);
-    if(py>fy+3)continue;for(var bi=0;bi<blobs.length;bi++){var o=blobs[bi];if((px-o.x)*(px-o.x)+(py-o.y)*(py-o.y)<=o.r*o.r){pts.push({x:px,y:py,a:tt});break;}}}
-  for(var si=pts.length-1;si>0;si--){var sj=Math.floor(rnd()*(si+1)),tmp=pts[si];pts[si]=pts[sj];pts[sj]=tmp;}
-  var pick=pts.slice(0,open).sort(function(u,v){return Math.hypot(u.x-ccx,u.y-ccy)-Math.hypot(v.x-ccx,v.y-ccy);});
   for(var i=0;i<N;i++){if(!ks[i])continue;var j=idx%T,m=Math.floor(idx/T),per=Math.ceil(open/T),p=S.tips[j];idx++;
     var x,y,a;
     if(stage===1){var side=(m%2?1:-1),hy=S.segs[0].y1-(S.H*.3)*(m/Math.max(1,per));x=cx+side*5;y=hy+4;a=side>0?-25:205;}
-    else{var P0=pick[idx-1]||{x:cx,y:fy,a:0};x=P0.x+(rnd()-.5)*1.5;y=P0.y+(rnd()-.5)*1.5;a=P0.a*57.3+(rnd()-.5)*30;}
-    var sz=(.9+rnd()*.2)*(1+.15*f);
+    else{var r=R*Math.sqrt((m+.5)/per),th=m*2.39996+j;x=p.x+r*Math.cos(th);y=p.y+r*Math.sin(th)*.85;a=th*57.3+(rnd()-.5)*40;}
+    var sz=(.85+rnd()*.25)*(1+.1*f);
     if(ks[i]===3&&(fallen++%3===2)){x=cx+(rnd()-.5)*(20+30*f);y=base+3+rnd()*3;a=(rnd()-.5)*30;}
     g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="'+(4.4*sz).toFixed(1)+'" ry="'+(2.3*sz).toFixed(1)+'" transform="rotate('+a.toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')" fill="'+col[ks[i]]+'"/>';}
   return {svg:g,stage:stage,ks:ks};}
