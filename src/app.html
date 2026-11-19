@@ -615,7 +615,7 @@ function renderStudy(){
   if(!current){
     var tn=practiceSize("random"),td=practiceSize("today"),tl=practiceSize("leech"),tm=practiceSize("mix"),tf=practiceSize("flag");
     var nextDue=null;CARDS.forEach(function(c){var s=cs(c.id);if(s&&s.st==="review"&&cardOn(c)&&(nextDue===null||s.due<nextDue))nextDue=s.due;});
-    main.innerHTML=counts+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(tm?'<button class="btn primary" id="prac-mix">'+(td&&tl?'새 카드 + 자주 잊는 카드':td?'새 카드':'자주 잊는 카드')+' '+tm+'장 복습'+'</button>':'')+(tn?'<button class="btn" id="prac">무작위 '+tn+'장 복습</button>':'')+(tf?'<button class="btn" id="prac-flag">★ 표시한 카드 '+tf+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+(tm?'오늘 처음 받은 카드와 자주 잊는 카드를 한번에 다시 보거나, 지금까지 배운 카드 중에서 무작위로 골라 볼 수 있어요. ':'지금까지 배운 카드 중에서 무작위로 골라요. ')+'연습이라 복습 일정에는 영향을 주지 않아요.</p>':'')+'</div></div>';
+    main.innerHTML=counts+'<div class="card"><div class="done"><h2>오늘 분량을 마쳤어요</h2><p>새 카드는 하루 '+settings().newPerDay+'장씩 열려요.</p>'+(nextDue?'<p>다음 복습: '+new Date(nextDue).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})+'</p>':'')+'<div class="row" style="justify-content:center;margin-top:16px">'+(tm?'<button class="btn primary" id="prac-mix">'+(td&&tl?'새 카드 + 자주 잊는 카드':td?'새 카드':'자주 잊는 카드')+' '+tm+'장 복습'+'</button>':'')+(tn?'<button class="btn" id="prac">무작위 '+tn+'장 복습</button>':'')+(tf?'<button class="btn" id="prac-flag">★ 표시한 카드 '+tf+'장</button>':'')+'<button class="btn" id="more">새 카드 3장 더 보기</button></div>'+(tn?'<p class="muted" style="margin-top:10px">'+'연습은 복습 일정과는 따로예요.</p>':'')+'</div></div>';
     bindUndo();
     var pb=document.getElementById("prac");if(pb)pb.onclick=function(){startPractice("random");};
     var pm=document.getElementById("prac-mix");if(pm)pm.onclick=function(){startPractice("mix");};
@@ -672,7 +672,7 @@ function renderPractice(){
   var p=practice;
   var bar='<div class="undo"><span class="muted">'+PMODE[p.mode]+' · 남은 '+p.queue.length+'장 / '+p.total+'장</span><button class="link" id="pq">연습 끝내기</button></div>';
   if(!p.queue.length){
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자주 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자주 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p><p class="muted">연습은 복습 일정에 영향을 주지 않아요.'+(GRASS_MODES[p.mode]?(p.grass?' 정원에 잔디가 '+p.grass+'장만큼 자랐어요.':' 1시간 안에 이미 센 카드라 잔디는 그대로예요. 시간을 두고 다시 하면 또 자라요.'):'')+(p.cleared?' 자주 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>연습을 마쳤어요</h2><p>'+({mix:"오늘 새 카드와 자주 잊는 카드 ",today:"오늘 새로 받은 ",random:"무작위로 고른 ",leech:"자주 잊는 카드 ",flag:"표시한 카드 "})[p.mode]+p.total+'장을 모두 떠올렸어요.</p>'+(function(){var m=(GRASS_MODES[p.mode]?(p.grass?' 정원에 잔디가 '+p.grass+'장만큼 자랐어요.':' 1시간 안에 이미 센 카드라 잔디는 그대로예요.'):'')+(p.cleared?' 자주 잊는 카드 '+p.cleared+'장은 딱지를 뗐어요.':'');return m?'<p class="muted">'+m.trim()+'</p>':'';})()+'<div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="again">한 번 더</button><button class="btn" id="back">돌아가기</button></div></div></div>';
     document.getElementById("again").onclick=function(){startPractice(p.mode);};
     document.getElementById("back").onclick=function(){practice=null;render();};
     document.getElementById("pq").onclick=function(){practice=null;render();};
@@ -1038,7 +1038,7 @@ function renderStats(){
   var today=state.hist[dayKey(t)]||{r:0,a:0,n:0};
   var max=Math.max(1,Math.max.apply(null,fc));
   var bars=fc.map(function(v,i){var dd=new Date(end-DAY+i*DAY);return '<div class="bar" title="'+v+'장"><em>'+(v||"")+'</em><i style="height:'+Math.round(v/max*90)+'px"></i><small>'+(i===0?"오늘":(i%2===0?(dd.getMonth()+1)+"/"+dd.getDate():"&nbsp;"))+'</small></div>';}).join("");
-  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 한 줄마다 (가) 주제 → 두문자, (나) 두문자 → 뜻 카드가 한 장씩 있어서, 두 방향을 모두 켜면 '+CARDS.filter(function(c){return !c.row.mine;}).length+'장이에요.</p>';
+  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 하나에 카드가 두 방향으로 한 장씩 있어요.</p>';
   // 연속 공부 일수
   function rOn(k){return (state.hist[k]&&state.hist[k].r)||0;}
   var noon=end-DAY+12*3600000, streak=0, d0=rOn(dayKey(t))?0:1;
@@ -1051,7 +1051,7 @@ function renderStats(){
   if(RR>=20){var act=Math.round((RR-RA)/RR*100),diff=act-target;
     retTxt='<div class="row" style="justify-content:space-between"><b style="font-size:1.6rem">'+act+'%</b><span class="muted">목표 '+target+'% · 복습 '+RR+'회</span></div><div class="gauge"><i style="width:'+act+'%"></i><b style="left:'+target+'%"></b></div><p class="muted" style="margin:6px 0 0">'+
       (Math.abs(diff)<=3?'목표와 거의 같아요. 복습 간격이 잘 맞고 있어요.':diff<0?'목표보다 '+(-diff)+'%p 낮아요. 자주 잊는 카드에 내 두문자·메모를 붙여 보거나, 설정에서 목표 기억률을 조금 올려 보세요.':'목표보다 '+diff+'%p 높아요. 여유가 있으니 그대로 두거나 하루 새 카드를 늘려도 돼요.')+'</p>';}
-  else retTxt='<p class="muted" style="margin:0">하루 이상 간격을 두고 다시 만난 카드의 기억률이에요. 그런 복습이 20회 쌓이면 보여 드려요 (지금 '+RR+'회).'+(R?' 참고로 최근 30일 전체 정답률은 '+Math.round((R-A)/R*100)+'%예요.':'')+'</p>';
+  else retTxt='<p class="muted" style="margin:0">하루 이상 지나 다시 본 카드의 기억률이에요. 20회 쌓이면 보여 드려요 (지금 '+RR+'회).'+(R?' 참고로 최근 30일 전체 정답률은 '+Math.round((R-A)/R*100)+'%예요.':'')+'</p>';
   // 공부 달력 (18주)
   var W_=18, todayD=new Date(noon), startD=new Date(noon-(todayD.getDay()+7*(W_-1))*DAY), cells="";
   for(var k2=0;k2<W_*7;k2++){var tt=startD.getTime()+k2*DAY,key=dayKey(tt),v2=rOn(key),fut=tt>noon+1000;
@@ -1109,7 +1109,7 @@ function renderSettings(){
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
   '<details class="more" id="setmore"'+(setMore?' open':'')+'><summary><b>더 보기</b> · 백업, 간격 맞춤화, 원리, 기록 지우기</summary>'+
   '<section class="panel"><h2>기록 백업</h2><p class="muted" style="margin-top:0">'+(docRef?"기록은 계정에 저장돼서 다른 기기에서 열어도 이어져요. 만일을 위해 파일로도 받아 둘 수 있어요.":"지금은 이 기기에만 저장돼요. 기기를 바꾸기 전에 로그인하거나 백업 파일을 받아 두세요.")+" Claude 버전에서 받은 백업 파일과 복습 기록 파일도 여기서 불러올 수 있어요."+'</p><div class="row"><button class="btn" id="exp">'+(downloads?"백업 파일 받기":"백업 내용 보기")+'</button><label class="btn" for="imp" style="display:inline-flex;align-items:center">백업 불러오기<input type="file" id="imp" accept="application/json,.json" multiple hidden></label></div><textarea id="expbox" hidden readonly aria-label="백업 내용"></textarea></section>'+
-  '<section class="panel"><h2>복습 간격 맞춤화</h2><p class="muted" style="margin-top:0">지금은 '+(s.w?'내 기록으로 최적화한 값':'FSRS-5 기본값(수많은 사용자 기록으로 학습된 값)')+'으로 간격을 정해요. 평가할 때마다 기록이 쌓이고, 1,000회쯤 모이면 이 기록으로 나에게 맞춘 값을 계산할 수 있어요.</p><div class="row"><button class="btn" id="logexp">복습 기록 받기</button><span class="muted" id="logcount"></span></div></section>'+
+  '<section class="panel"><h2>복습 간격 맞춤화</h2><p class="muted" style="margin-top:0">지금은 '+(s.w?'내 기록으로 최적화한 값':'FSRS-5 기본값')+'으로 간격을 정해요. 기록이 1,000회쯤 쌓이면 나에게 맞춘 값을 계산할 수 있어요.</p><div class="row"><button class="btn" id="logexp">복습 기록 받기</button><span class="muted" id="logcount"></span></div></section>'+
   '<section class="panel"><h2>원리</h2><p class="muted" style="margin:0">잊어버릴 즈음 다시 보면 기억이 더 오래가요(간격 효과, 에빙하우스 망각곡선). 답을 보기 전에 먼저 떠올리는 연습이 다시 읽기보다 오래 남아요(인출 연습, Roediger·Karpicke 2006). 다음 복습일은 FSRS-5 알고리즘이 카드마다 안정도와 난이도를 추정해 정해요. 오늘 복습 카드는 편과 단원을 섞어서 보여 줘요.</p></section>'+
   '<section class="panel"><h2>처음부터 다시</h2><p class="muted" style="margin-top:0">모든 카드의 복습 기록을 지워요. 내 카드, 내 두문자·메모, 보류 설정은 남아요. 되돌릴 수 없어요.</p><button class="btn danger" id="reset">'+(resetArm?"한 번 더 누르면 지워요":"기록 지우기")+'</button></section>'+
   '</details>';
@@ -1241,7 +1241,7 @@ function listenPanel(){
       parts.map(function(p){return '<button class="btn" data-ls="part:'+esc(p)+'">'+esc(p.replace(/^제\d편 /,""))+' '+listenPool("part:"+p).length+'장</button>';}).join("")+'</div>'+
       '<div class="muted" style="font-size:.85rem;margin:14px 0 6px">배운 카드 중 무작위</div><div class="row">'+
       (learned?[10,20,30].filter(function(n){return n<learned;}).map(function(n){return '<button class="btn" data-ls="rand:'+n+'">'+n+'장</button>';}).join("")+'<button class="btn" data-ls="rand:'+learned+'">전부 '+learned+'장</button>':'<span class="muted">아직 배운 카드가 없어요</span>')+'</div></div>';}
-  return '<section class="panel"><h2>듣기 모드</h2><p class="muted" style="margin-top:0">이동하면서 손을 쓰지 않고 복습해요. 주제를 읽어 주고 잠시 기다린 뒤 두문자와 뜻을 들려줘요. 복습 일정에는 영향을 주지 않아요. '+(HAS_AUDIO?'기본 카드는 구글 음성으로 읽고, 화면을 꺼도 계속 재생돼요. 직접 만들거나 고친 카드는 기기 음성으로 읽어서 화면이 켜져 있어야 해요.':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
+  return '<section class="panel"><h2>듣기 모드</h2><p class="muted" style="margin-top:0">주제를 읽어 주고 잠시 뒤 두문자와 뜻을 들려줘요. '+(HAS_AUDIO?'화면을 꺼도 계속 재생돼요(직접 만들거나 고친 카드는 화면을 켜 둬야 해요).':'기기의 한국어 음성을 써서 법률 용어 발음이 어색할 수 있어요.')+'</p>'+
     '<div class="row">'+(t?'<button class="btn" data-ls="today">오늘 복습한 '+t+'장</button>':'')+(f?'<button class="btn" data-ls="flag">★ 표시한 '+f+'장</button>':'')+'<button class="btn primary" id="lspick">'+(lsPick?'접기':'골라 듣기')+'</button></div>'+pick+
     (function(){var m=missingCustomAcr();return m.length?'<p class="muted" style="margin:12px 0 0;font-size:.85rem">직접 고친 두문자 '+m.length+'개는 아직 기기 음성으로 읽어요. <button class="link" id="lsreq">구글 음성 만들기 요청</button><br>GitHub 새 이슈 화면이 열리면 그대로 제출하세요. 10분쯤 뒤 새로고침하면 반영돼요.</p>':'';})()+'</section>';}
 var TTS_REPO="dhyunchun/minbeop-dumunja";
@@ -1472,7 +1472,7 @@ function renderEx(){
     var pos=p.total-p.queue.length+(p.queue.length?1:0);
     var bar='<div class="undo"><span class="muted">'+label+(p.wrong?' · 틀린 문제':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="exq">그만 풀기</button></div>';
     if(!p.queue.length){
-      main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+p.ok+' / '+p.total+' 맞혔어요</h2><p>'+(p.ok===p.total?'모두 맞혔어요.':'틀린 문제는 다음에 먼저 나와요.')+'</p><p class="muted">연습문제는 오늘 복습 일정에 영향을 주지 않아요.</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="exagain">한 번 더</button><button class="btn" id="exback">돌아가기</button></div></div></div>';
+      main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+p.ok+' / '+p.total+' 맞혔어요</h2><p>'+(p.ok===p.total?'모두 맞혔어요.':'틀린 문제는 다음에 먼저 나와요.')+'</p><div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="exagain">한 번 더</button><button class="btn" id="exback">돌아가기</button></div></div></div>';
       document.getElementById("exagain").onclick=function(){exStart(p.kind,p.wrong);};
       document.getElementById("exback").onclick=document.getElementById("exq").onclick=function(){exSess=null;render();};
       return;
@@ -1507,8 +1507,8 @@ function renderEx(){
       parts.map(function(pt){var n=exPool("re:"+pt).length;return n?'<button class="btn" data-ex="re:'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+' '+n+'</button>':'';}).join("")+
       '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'문제</button></div>'+
       '<p class="oxclr">풀이 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'문제 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
-  main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">오늘 복습을 마친 뒤 실전처럼 풀어 보세요. 단원이 섞여 나오고, 틀렸던 문제와 안 풀어 본 문제가 먼저 나와요. 복습 일정에는 영향을 주지 않아요.</p><div class="exhome">'+
-    box("case","사례 문제","甲·乙·丙이 나오는 사실관계를 읽고 〈문제〉의 청구가 받아들여지는지 쟁점 → 법리 → 결론 순서로 따져 보는 문제예요. 관련 두문자를 모두 배운 사례만 나와요.")+
+  main.innerHTML='<section class="panel"><h2>섞어서 풀기</h2><p class="muted" style="margin-top:0">틀렸던 문제와 안 풀어 본 문제부터 섞여 나와요. 복습 일정과는 따로예요.</p><div class="exhome">'+
+    box("case","사례 문제","쟁점 → 법리 → 결론으로 따져요. 관련 두문자를 모두 배운 사례만 나와요.")+
     (settings().showOx?oxBox():'')+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
@@ -1544,14 +1544,14 @@ function unitPanel(){
   var spec={units:sel,kf:kf},pool=sel.length?exPool(spec):[],wrong=sel.length?exPool(spec,true):[];
   var last=se.exLast&&se.exLast.units&&se.exLast.units.filter(function(k){return valid[k];});
   var lastSame=last&&last.length&&last.join()===sel.join();
-  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">단원을 골라 그 단원 문제만 풀어요. 사례·비교 문제가 없는 카드는 카드 문제로 함께 나와서, 단원의 모든 카드가 빠짐없이 들어가요. 고른 단원은 다음에도 그대로 남아 있어요. 배우지 않은 두문자의 문제도 함께 나와요. ✕는 마지막에 틀린 문제와, 복습에서 자주 잊는 카드의 카드 문제를 합한 수예요.</p>';
+  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">고른 단원의 모든 카드가 문제로 나와요(아직 안 배운 카드 포함). ✕는 마지막에 틀린 문제와 자주 잊는 카드 수예요.</p>';
   if(last&&last.length&&!lastSame)h+='<button class="btn resume" id="uresume">↻ 지난번 단원 다시: '+esc(unitLabel(last))+'</button>';
   h+='<div class="ptabs" role="tablist">'+parts.map(function(P){var c=P.units.filter(function(u){return sel.indexOf(u.key)>=0;}).length;return '<button role="tab" data-up="'+esc(P.part)+'" aria-selected="'+(P.part===unitOpenPart)+'">'+esc(P.part.replace(/^제\d편 /,""))+(c?' <b>'+c+'</b>':'')+'</button>';}).join("")+'</div>';
   parts.forEach(function(P){if(P.part!==unitOpenPart)return;
     var us=P.units.filter(function(u){return u.n;}),allOn=us.length&&us.every(function(u){return sel.indexOf(u.key)>=0;});
     h+='<div class="uchips">'+us.map(function(u){var on=sel.indexOf(u.key)>=0;return '<button class="uchip" data-u="'+esc(u.key)+'" aria-pressed="'+on+'">'+esc(u.name)+'<small>'+u.n+(u.w?' · <i>✕'+u.w+'</i>':'')+'</small></button>';}).join("")+
       '<button class="uchip all" data-uall="'+esc(P.part)+'" aria-pressed="'+allOn+'">'+(allOn?'이 편 해제':'이 편 전체')+'</button></div>';});
-  h+='<div class="ufoot">'+(sel.length?'<div class="muted usel">'+sel.length+'개 단원 · '+pool.length+'문제<button class="link" id="uclear">선택 해제</button></div>':'<div class="muted usel">위에서 단원을 눌러 고르세요. 여러 개를 함께 고를 수 있어요.</div>')+
+  h+='<div class="ufoot">'+(sel.length?'<div class="muted usel">'+sel.length+'개 단원 · '+pool.length+'문제<button class="link" id="uclear">선택 해제</button></div>':'<div class="muted usel">단원을 눌러 고르세요 · 여러 개 가능</div>')+
     '<div class="row"><button class="btn primary" id="ustart"'+(pool.length?'':' disabled')+'>'+(pool.length?Math.min(EX_N,pool.length)+'문제 풀기':'문제 풀기')+'</button>'+(wrong.length?'<button class="btn" id="uwrong">틀린 문제 '+wrong.length+'개</button>':'')+'</div></div></section>';
   return h;
 }
