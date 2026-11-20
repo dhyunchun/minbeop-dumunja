@@ -1013,13 +1013,19 @@ function treeSvg(cards,cx,base,seed){ // 정원 안 한 그루: cx = 줄기 위�
     if(ks[i]===3&&(fallen++%3===2)){x=cx+(rnd()-.5)*(20+30*f);y=base+3+rnd()*3;a=(rnd()-.5)*30;}
     L.push({x:x,y:y,a:a,sz:sz,k:ks[i],fix:y>base,ox:x,oy:y});}
   // 잎끼리 겹치지 않게 살짝 밀어낸다(가지 끝 자리에서 크게 벗어나지 않도록 제자리로 당기는 힘도 둔다).
+  // 가지에 붙어 있게: 잎 중심이 가장 가까운 가지에서 LEAF_REACH 넘게 떨어지면 그쪽으로 당긴다.
+  var BP=[];S.segs.forEach(function(s,j){if(!j)return;var mx=(s.x0+s.x1)/2+(s.c||0),my=(s.y0+s.y1)/2;for(var q=0;q<=8;q++){var t=q/8,a1=(1-t)*(1-t),b1=2*t*(1-t),c1=t*t;BP.push([a1*s.x0+b1*mx+c1*s.x1,a1*s.y0+b1*my+c1*s.y1]);}});
+  var reach=function(A){if(A.fix||!BP.length)return;var bx=0,by=0,bd=1e9;for(var q=0;q<BP.length;q++){var dx=A.x-BP[q][0],dy=A.y-BP[q][1],dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bx=BP[q][0];by=BP[q][1];}}
+    var lim=LEAF_REACH*A.sz,dl=Math.sqrt(bd);if(dl>lim){A.x=bx+(A.x-bx)*lim/dl;A.y=by+(A.y-by)*lim/dl;}};
   if(stage>=2){for(var it=0;it<30;it++){for(var u=0;u<L.length;u++){var A=L[u];if(A.fix)continue;
       for(var v=u+1;v<L.length;v++){var B=L[v];if(B.fix)continue;var dx=B.x-A.x,dy=B.y-A.y,dd=dx*dx+dy*dy,mn=3.6*(A.sz+B.sz);
         if(dd<mn*mn){var dl=Math.sqrt(dd)||.01,push=(mn-dl)/2*.6,ux=dx/dl,uy=dy/dl;A.x-=ux*push;A.y-=uy*push;B.x+=ux*push;B.y+=uy*push;}}
-      A.x+=(A.ox-A.x)*.02;A.y+=(A.oy-A.y)*.02;}}}
+      A.x+=(A.ox-A.x)*.02;A.y+=(A.oy-A.y)*.02;}
+      L.forEach(reach);}}
+  else L.forEach(reach);
   L.forEach(function(e){g+='<ellipse cx="'+e.x.toFixed(1)+'" cy="'+e.y.toFixed(1)+'" rx="'+(4.4*e.sz).toFixed(1)+'" ry="'+(2.3*e.sz).toFixed(1)+'" transform="rotate('+e.a.toFixed(0)+' '+e.x.toFixed(1)+' '+e.y.toFixed(1)+')" fill="'+col[e.k]+'"/>';});
   return {svg:g,stage:stage,ks:ks};}
-var GRASS_MIN=4,GRASS_MAX=72,GRASS_PER=3,FLOWER_PER=25,FLOWER_MAX=8;
+var LEAF_REACH=11,GRASS_MIN=4,GRASS_MAX=72,GRASS_PER=3,FLOWER_PER=25,FLOWER_MAX=8;
 function grassState(n){var tufts=Math.min(GRASS_MAX,GRASS_MIN+Math.floor(n/GRASS_PER)),over=Math.max(0,n-(GRASS_MAX-GRASS_MIN)*GRASS_PER);
   return {tufts:tufts,lush:(tufts-GRASS_MIN)/(GRASS_MAX-GRASS_MIN),flowers:Math.min(FLOWER_MAX,Math.floor(over/FLOWER_PER)),full:tufts>=GRASS_MAX};}
 function gardenScene(parts,watered,grass){ // 한 정원: 완만한 언덕 위에 편 순서대로
