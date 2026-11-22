@@ -1206,7 +1206,8 @@ function exWrong(x,st){if(st&&st.n&&st.r===0)return true;if(x.kind!=="card")retu
 function exKindOk(x,kf){return !kf||kf==="all"||(kf==="case"?x.kind==="case":x.kind==="pair");}
 function exPool(spec,onlyWrong){return EX.filter(function(x){
   if(typeof spec==="string"&&spec.slice(0,3)==="re:"){var rp=spec.slice(3);var s0=exState()[x.id];if(x.kind!=="case"||!(s0&&s0.n)||(rp&&x.part!==rp))return false;}
-  else if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;}
+  else if(typeof spec==="string"){if(x.kind!==spec||!exOpen(x))return false;
+    if(spec==="case"&&!onlyWrong){var s1=exState()[x.id];if(s1&&s1.n)return false;}} // 사례 「N문제 풀기」는 안 풀어 본 사례만(다시 풀기·틀린 문제는 따로)
   else{if(x.kind==="toc"||!exKindOk(x,spec.kf))return false;var u=exUnitsOf(x);if(!u.some(function(k){return spec.units.indexOf(k)>=0;}))return false;}
   var st=exState()[x.id];return onlyWrong?exWrong(x,st):true;});}
 function unitLabel(units){if(!units.length)return "";var f=units[0].split("|")[1];return units.length>1?f+" 외 "+(units.length-1)+"개":f;}
@@ -1527,10 +1528,10 @@ function renderEx(){
   }
   var S=exState();
   function box(kind,name,desc){
-    var all=EX.filter(function(x){return x.kind===kind;}),open=exPool(kind),wrong=exPool(kind,true);
+    var all=EX.filter(function(x){return x.kind===kind;}),open=all.filter(exOpen),fresh=exPool(kind),wrong=exPool(kind,true);
     var done=all.filter(function(x){return S[x.id]&&S[x.id].n;}).length;
     return '<div class="exbox"><h3>'+name+'</h3><p>'+desc+'<br><span style="font-variant-numeric:tabular-nums">'+open.length+' / '+all.length+'문제 열림 · '+done+'문제 풀어 봄</span></p><div class="row">'+
-      (open.length?'<button class="btn primary" data-ex="'+kind+'">'+Math.min(EX_N,open.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">'+(kind==="case"?'관련 두문자를 모두 배우면 열려요':'관련 두문자를 하나라도 배우면 열려요')+'</span>')+
+      (fresh.length?'<button class="btn primary" data-ex="'+kind+'">'+(kind==="case"?'새 사례 ':'')+Math.min(EX_N,fresh.length)+'문제 풀기</button>':'<span class="muted" style="font-size:.85rem">'+(open.length?'열린 사례를 모두 풀었어요. 두문자를 더 배우면 새 사례가 열려요':kind==="case"?'관련 두문자를 모두 배우면 열려요':'관련 두문자를 하나라도 배우면 열려요')+'</span>')+
       (wrong.length?'<button class="btn" data-exw="'+kind+'">틀린 문제 '+wrong.length+'개</button>':'')+'</div>'+(kind==="case"?reBox():'')+'</div>';
   }
   function reBox(){var tot=exPool("re:").length;if(!tot)return '';
