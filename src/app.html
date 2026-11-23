@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>민법 두문자 복습장</title>
-<meta name="theme-color" content="#24564d">
+<meta name="theme-color" content="#ecebe4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1d21" media="(prefers-color-scheme: dark)">
 <script>try{var __t=localStorage.getItem("minbeop-theme");if(__t==="light"||__t==="dark")document.documentElement.setAttribute("data-theme",__t);}catch(e){}</script>
 <meta name="description" content="민법 두문자를 간격 반복(FSRS)으로 복습하는 암기장">
 <link rel="manifest" href="manifest.webmanifest">
@@ -19,7 +20,7 @@ body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{dis
 /* Layout: one narrow study column like a 수험 단권화 노트 — tabs on top, one card at a time, controls at thumb height */
 :root{
   --paper:#ecebe4; --sheet:#f6f5ef; --ink:#2a2f38; --ink-2:#5a6170; --rule:#d6d4ca;
-  --accent:#3d7468; --accent-ink:#f6f5ef; --accent-soft:#dde8e3; --seal:#a2493c;
+  --accent:#3d7468; --accent-ink:#f6f5ef; --accent-soft:#e6efeb; --seal:#a2493c;
   --again:#a9503f; --hard:#8a6620; --good:#3d7468; --easy:#3f6390;
   --chip:#e3e2da; --bark:#5e4a2c; --water:#4a7fb8; --leaf-young:#9cc47e; --leaf:#3f7537; --shadow:0 1px 2px rgba(42,47,56,.05),0 6px 18px rgba(42,47,56,.05);
   --f-display:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo",serif;
@@ -216,6 +217,7 @@ input[type=number],input[type=search],select{font:inherit;padding:8px 10px;borde
 input[type=range]{width:100%;accent-color:var(--accent)}
 .checks{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.9rem}
 .checks label{display:flex;gap:6px;align-items:center}
+.checks.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px 4px}.checks.wk label{gap:3px}
 .list{display:flex;flex-direction:column;gap:6px}
 .item{background:var(--sheet);border:1px solid var(--rule);border-radius:10px}
 .item summary{list-style:none;cursor:pointer;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline}
@@ -1037,11 +1039,11 @@ function gardenScene(parts,watered,grass){ // 한 정원: 완만한 언덕 위�
   var out=parts.map(function(p,i){var T=treeSvg(p.cards,xs[i],hill(xs[i]),p.name);s+=T.svg;return T;});
   var gr=grassState(grass||0);
   var gR=gRand("grass");for(var k=0;k<gr.tufts;k++){var gx=6+((k*0.6180339887)%1)*(W-12),gy=hill(gx)+3+gR()*(H-hill(gx)-5),ht=6+gR()*4+gr.lush*5,sw=1+gr.lush*.6;
-    s+='<path d="M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q-4 '+(-ht*.45).toFixed(1)+' -6 '+(-ht*.6).toFixed(1)+' M'+(gx+2).toFixed(1)+' '+gy.toFixed(1)+' q3.5 '+(-ht*.5).toFixed(1)+' 6 '+(-ht*.7).toFixed(1)+'" stroke="var(--accent)" stroke-width="'+sw.toFixed(1)+'" stroke-linecap="round" opacity="'+(.4+.35*gr.lush).toFixed(2)+'" fill="none"/>';
-    s+='<path d="M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q-2.5 '+(-ht*.6).toFixed(1)+' -3.5 '+(-ht*.9).toFixed(1)+' M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q0 '+(-ht*.7).toFixed(1)+' .4 '+(-ht).toFixed(1)+' M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q2.5 '+(-ht*.6).toFixed(1)+' 3.5 '+(-ht*.85).toFixed(1)+'" stroke="var(--accent)" stroke-width="'+sw.toFixed(1)+'" stroke-linecap="round" opacity="'+(.5+.4*gr.lush).toFixed(2)+'" fill="none"/>';}
+    s+='<path d="M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q-4 '+(-ht*.45).toFixed(1)+' -6 '+(-ht*.6).toFixed(1)+' M'+(gx+2).toFixed(1)+' '+gy.toFixed(1)+' q3.5 '+(-ht*.5).toFixed(1)+' 6 '+(-ht*.7).toFixed(1)+'" stroke="var(--leaf)" stroke-width="'+sw.toFixed(1)+'" stroke-linecap="round" opacity="'+(.4+.35*gr.lush).toFixed(2)+'" fill="none"/>';
+    s+='<path d="M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q-2.5 '+(-ht*.6).toFixed(1)+' -3.5 '+(-ht*.9).toFixed(1)+' M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q0 '+(-ht*.7).toFixed(1)+' .4 '+(-ht).toFixed(1)+' M'+gx.toFixed(1)+' '+gy.toFixed(1)+' q2.5 '+(-ht*.6).toFixed(1)+' 3.5 '+(-ht*.85).toFixed(1)+'" stroke="var(--leaf)" stroke-width="'+sw.toFixed(1)+'" stroke-linecap="round" opacity="'+(.5+.4*gr.lush).toFixed(2)+'" fill="none"/>';}
   var fc=["var(--seal)","var(--easy)","var(--hard)"];
   for(var q=0;q<gr.flowers;q++){var fx=20+((q*0.381966+.13)%1)*(W-40),fy=hill(fx)+9+(q%3)*5;
-    s+='<path d="M'+fx.toFixed(1)+' '+fy.toFixed(1)+' v-7" stroke="var(--accent)" stroke-width="1" opacity=".7"/><circle cx="'+fx.toFixed(1)+'" cy="'+(fy-8).toFixed(1)+'" r="3.3" fill="'+fc[q%3]+'"/><circle cx="'+fx.toFixed(1)+'" cy="'+(fy-8).toFixed(1)+'" r="1.2" fill="var(--sheet)"/>';}
+    s+='<path d="M'+fx.toFixed(1)+' '+fy.toFixed(1)+' v-7" stroke="var(--leaf)" stroke-width="1" opacity=".7"/><circle cx="'+fx.toFixed(1)+'" cy="'+(fy-8).toFixed(1)+'" r="3.3" fill="'+fc[q%3]+'"/><circle cx="'+fx.toFixed(1)+'" cy="'+(fy-8).toFixed(1)+'" r="1.2" fill="var(--sheet)"/>';}
   return {svg:s+'</svg>',trees:out};}
 function dropSvg(kind){ // done, rain, miss, today, fut
   var d='M8 1.5C8 1.5 2.5 8 2.5 11.2A5.5 5.5 0 0 0 13.5 11.2C13.5 8 8 1.5 8 1.5Z';
@@ -1136,7 +1138,7 @@ function renderSettings(){
   main.innerHTML=
   '<section class="panel"><h2>학습량</h2><div class="field"><label for="npd">하루 새 카드</label><div class="row"><input type="number" id="npd" min="0" max="100" value="'+s.newPerDay+'" style="width:6em"><span class="sub">장 · 복습 카드는 제한 없이 모두 나와요</span></div></div>'+
   '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div>'+
-  '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+["일","월","화","수","목","금","토"].map(function(n,i){return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드만 앞뒤로 하루~며칠 옮기기 때문에, 하루이틀 뒤 복습이나 밀린 복습은 그날에도 나올 수 있어요. 공부 정원에서는 이날 쉬어도 비가 와서 연속 기록이 이어져요. 고르지 않아도 복습이 덜 몰린 날로 알아서 나눠 잡아요.</span></div></section>'+
+  '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+[1,2,3,4,5,6,0].map(function(i){var n="일월화수목금토"[i];return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드만 앞뒤로 하루~며칠 옮기기 때문에, 하루이틀 뒤 복습이나 밀린 복습은 그날에도 나올 수 있어요. 공부 정원에서는 이날 쉬어도 비가 와서 연속 기록이 이어져요. 고르지 않아도 복습이 덜 몰린 날로 알아서 나눠 잡아요.</span></div></section>'+
   '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div><div class="field"><label>연습 탭</label><div class="checks"><label><input type="checkbox" id="showox"'+(s.showOx?" checked":"")+'> 변시 기출 OX 보이기</label></div><p class="muted" style="margin:6px 0 0;font-size:.82rem">꺼 두어도 풀이 기록은 그대로 남아요.</p></div></section>'+
   '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-selected="'+(themePref()===o[0])+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
@@ -1164,7 +1166,7 @@ function renderSettings(){
   };
   function keepEmail(){var i=document.getElementById("em");if(i)authEmail=i.value;}
   var so=document.getElementById("signout");if(so)so.onclick=function(){if(AUTH.signOut)AUTH.signOut();};
-  main.querySelectorAll("[data-wd]").forEach(function(el){el.onchange=function(){var a=(s.easyDays||[]).filter(function(x){return x!==+el.dataset.wd;});if(el.checked)a.push(+el.dataset.wd);a.sort();if(a.length>=7){el.checked=false;toast("모든 요일을 쉴 수는 없어요");return;}s.easyDays=a;scheduleSave();toast(a.length?"쉬는 요일: "+a.map(function(x){return "일월화수목금토"[x];}).join(", "):"쉬는 요일 없음");};});
+  main.querySelectorAll("[data-wd]").forEach(function(el){el.onchange=function(){var a=(s.easyDays||[]).filter(function(x){return x!==+el.dataset.wd;});if(el.checked)a.push(+el.dataset.wd);a.sort();if(a.length>=7){el.checked=false;toast("모든 요일을 쉴 수는 없어요");return;}s.easyDays=a;scheduleSave();toast(a.length?"쉬는 요일: "+a.slice().sort(function(x,y){return ((x+6)%7)-((y+6)%7);}).map(function(x){return "일월화수목금토"[x];}).join(", "):"쉬는 요일 없음");};});
   var npd=document.getElementById("npd");npd.onchange=function(){var v=Math.max(0,Math.min(100,parseInt(npd.value,10)||0));s.newPerDay=v;npd.value=v;scheduleSave();toast("하루 새 카드 "+v+"장");};
   var ret=document.getElementById("ret");ret.oninput=function(){document.getElementById("retv").textContent=ret.value+"%";};ret.onchange=function(){s.retention=(+ret.value)/100;scheduleSave();toast("목표 기억률 "+ret.value+"%");};
   var sox=document.getElementById("showox");if(sox)sox.onchange=function(){s.showOx=sox.checked;scheduleSave();toast(sox.checked?"연습 탭에 기출 OX가 보여요":"기출 OX를 숨겼어요");};
@@ -1628,7 +1630,8 @@ render();
 function themePref(){try{var t=localStorage.getItem("minbeop-theme");return t==="light"||t==="dark"?t:"auto";}catch(e){return "auto";}}
 function applyTheme(){var t=themePref(),root=document.documentElement;if(t==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",t);
   var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#1a1d21":"#ecebe4");}
+  // 자동이면 media 쿼리 두 개가 기기 설정을 따르고, 밝게/어둡게를 고르면 둘 다 그 색으로 맞춘다
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){var light=m.getAttribute("media")==="(prefers-color-scheme: light)";m.setAttribute("content",t==="auto"?(light?"#ecebe4":"#1a1d21"):(dark?"#1a1d21":"#ecebe4"));});}
 function setTheme(t){try{if(t==="auto")localStorage.removeItem("minbeop-theme");else localStorage.setItem("minbeop-theme",t);}catch(e){}applyTheme();}
 applyTheme();
 try{window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme);}catch(e){}
