@@ -97,6 +97,7 @@ main{padding-top:16px}
 .exq{font-size:1.05rem;line-height:1.7;margin:4px 0 10px}
 .exa{border-top:1px dashed var(--rule);padding-top:14px;line-height:1.7;font-size:.95rem}
 .exa b{color:var(--accent)}
+.foldbtn{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:left;flex:1;cursor:pointer}
 .panel.foldable>h2{cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:8px;user-select:none}
 .panel.foldable>h2::after{content:"접기 ▴";font-size:.8rem;font-weight:400;color:var(--ink-2)}
 .panel.folded>h2::after{content:"펼치기 ▾"}
@@ -186,7 +187,7 @@ body.hasact main{padding-bottom:var(--actH,140px)}
 .grp>summary .gbar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
 .grp>summary .gbar i{display:block;height:100%;background:var(--accent)}
 .grp>.list{padding:0 8px 8px}
-.parth{font-family:var(--f-display);font-size:1.05rem;margin:14px 2px 4px;display:flex;justify-content:space-between;align-items:baseline}
+.parth{font-family:var(--f-display);font-size:1.05rem;font-weight:700;margin:14px 2px 4px;display:flex;justify-content:space-between;align-items:baseline}
 .parth span{font-family:var(--f-body);font-size:.78rem;color:var(--ink-2);font-weight:400}
 .glist{display:flex;flex-direction:column;gap:8px}
 details.more>summary{list-style:none;cursor:pointer;padding:12px 4px;color:var(--ink-2);font-size:.9rem;text-align:center}
@@ -215,8 +216,10 @@ section.panel h2{font-size:.95rem;margin:0 0 10px;font-weight:600}
 .field .sub{font-size:.8rem;color:var(--ink-2)}
 input[type=number],input[type=search],select{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);max-width:100%}
 input[type=range]{width:100%;accent-color:var(--accent)}
-.checks{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.9rem}
-.checks label{display:flex;gap:6px;align-items:center}
+.checks{display:flex;flex-wrap:wrap;gap:0 14px;font-size:.9rem}
+.checks label{display:flex;gap:6px;align-items:center;min-height:40px;cursor:pointer}
+.checks input[type=checkbox]{width:18px;height:18px;margin:0}
+input[type=checkbox],input[type=range]{accent-color:var(--accent)}
 .checks.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px 4px}.checks.wk label{gap:3px}
 .list{display:flex;flex-direction:column;gap:6px}
 .item{background:var(--sheet);border:1px solid var(--rule);border-radius:10px}
@@ -251,7 +254,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .editf input[type=text]{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
 .editf textarea{font-family:var(--f-body);font-size:.9rem;min-height:70px}
 .item.off .a{opacity:.5;text-decoration:line-through}
-.cmode{margin-bottom:12px}.cmode small{font-size:.72rem;opacity:.7;margin-left:2px;font-variant-numeric:tabular-nums}
+.cmode{margin-bottom:12px}.cmode small{font-size:.72rem;color:var(--ink-2);margin-left:2px;font-variant-numeric:tabular-nums}
 .item.case .ct{font-weight:700;font-size:.98rem;min-width:0;word-break:keep-all;line-height:1.4}
 .item.case .st.bad{color:var(--again)}
 .item.case .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -265,7 +268,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .cnt{margin:0 2px 6px;font-size:.8rem}
 .seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--chip);margin-bottom:6px}
 .seg button{flex:1;font:inherit;font-size:.88rem;font-weight:500;padding:7px;border:none;border-radius:8px;background:transparent;color:var(--ink-2);cursor:pointer}
-.seg button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button[aria-selected="true"],.seg button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .editf input[type=password]{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
 .warn{color:var(--again);font-size:.85rem}
 .or{display:flex;align-items:center;gap:10px;margin:16px 0 12px;color:var(--ink-2);font-size:.8rem}
@@ -788,14 +791,14 @@ function drawList(){
     var html="",lastPart=null,openG=openGroups();
     if(openRow){var orow=rowById(openRow);if(orow)openG[orow.part+"|"+groupName(orow)]=1;}
     gs.forEach(function(g){
-      if(g.part!==lastPart){lastPart=g.part;var pr=rows.filter(function(r){return r.part===g.part;}),ps=pr.filter(function(r){return rowStarted(r.id);}).length;html+=(html?'</div>':'')+'<h3 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+ps+' / '+pr.length+' 시작</span></h3><div class="glist">';}
+      if(g.part!==lastPart){lastPart=g.part;var pr=rows.filter(function(r){return r.part===g.part;}),ps=pr.filter(function(r){return rowStarted(r.id);}).length;html+=(html?'</div>':'')+'<h2 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+ps+' / '+pr.length+' 시작</span></h2><div class="glist">';}
       var st=g.rows.filter(function(r){return rowStarted(r.id);}).length,due=0,lc=0,ex=g.rows.filter(function(r){return r.tags.indexOf("판례")>=0;}).length;
       g.rows.forEach(function(r){["-g","-n"].forEach(function(d){var c=cs(r.id+d);if(c&&c.st!=="new"&&c.due<=dayEnd(now()))due++;if(isLeech(r.id+d))lc++;});});
       var key=g.part+"|"+g.name;
       html+='<details class="grp" data-g="'+esc(key)+'"'+(openG[key]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+(ex?'판례 '+ex+' · ':'')+st+'/'+g.rows.length+(due?' · 오늘 '+due:'')+(lc?' · <span style="color:var(--again)">잊음 '+lc+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(st/g.rows.length*100)+'%"></i></span></summary><div class="list">'+g.rows.map(itemHtml).join("")+'</div></details>';
     });
     if(html)html+='</div>';
-    if(susRows.length)html+='<h3 class="parth">보류<span>'+susRows.length+'장 · 복습에서 빠져 있어요</span></h3><div class="glist"><details class="grp" data-g="__susp"'+(openG.__susp||susRows.some(function(r){return r.id===openRow;})?' open':'')+'><summary><span class="gn">보류한 카드</span><span class="gs">'+susRows.length+'장</span></summary><div class="list">'+susRows.map(itemHtml).join("")+'</div></details></div>';
+    if(susRows.length)html+='<h2 class="parth">보류<span>'+susRows.length+'장 · 복습에서 빠져 있어요</span></h2><div class="glist"><details class="grp" data-g="__susp"'+(openG.__susp||susRows.some(function(r){return r.id===openRow;})?' open':'')+'><summary><span class="gn">보류한 카드</span><span class="gs">'+susRows.length+'장</span></summary><div class="list">'+susRows.map(itemHtml).join("")+'</div></details></div>';
     list.innerHTML=html||'<p class="muted">찾는 카드가 없어요.</p>';
     list.querySelectorAll("details.grp").forEach(function(d){d.ontoggle=function(){var o=openGroups();if(d.open)o[d.dataset.g]=1;else delete o[d.dataset.g];saveOpenGroups(o);};});
   }
@@ -883,7 +886,7 @@ function drawCases(){
     if(openCase){var oc=caseList().filter(function(x){return x.id===openCase;})[0];if(oc)openG["c|"+oc.part+"|"+caseUnit(oc)]=1;}
     var html="",last=null;
     gs.forEach(function(g){
-      if(g.part!==last){last=g.part;var px=xs.filter(function(x){return x.part===g.part;}),pd=px.filter(function(x){var st=S[x.id];return st&&st.n;}).length;html+=(html?'</div>':'')+'<h3 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+pd+' / '+px.length+' 풀어 봄</span></h3><div class="glist">';}
+      if(g.part!==last){last=g.part;var px=xs.filter(function(x){return x.part===g.part;}),pd=px.filter(function(x){var st=S[x.id];return st&&st.n;}).length;html+=(html?'</div>':'')+'<h2 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+pd+' / '+px.length+' 풀어 봄</span></h2><div class="glist">';}
       var k="c|"+g.part+"|"+g.name,done=g.xs.filter(function(x){var st=S[x.id];return st&&st.n;}).length,wr=g.xs.filter(function(x){return caseStatus(x)==="틀림";}).length;
       html+='<details class="grp" data-g="'+esc(k)+'"'+(openG[k]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+done+'/'+g.xs.length+(wr?' · <span style="color:var(--again)">틀림 '+wr+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(done/g.xs.length*100)+'%"></i></span></summary><div class="list">'+g.xs.map(item).join("")+'</div></details>';
     });
@@ -1140,7 +1143,7 @@ function renderSettings(){
   '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div>'+
   '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+[1,2,3,4,5,6,0].map(function(i){var n="일월화수목금토"[i];return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드만 앞뒤로 하루~며칠 옮기기 때문에, 하루이틀 뒤 복습이나 밀린 복습은 그날에도 나올 수 있어요. 공부 정원에서는 이날 쉬어도 비가 와서 연속 기록이 이어져요. 고르지 않아도 복습이 덜 몰린 날로 알아서 나눠 잡아요.</span></div></section>'+
   '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div><div class="field"><label>연습 탭</label><div class="checks"><label><input type="checkbox" id="showox"'+(s.showOx?" checked":"")+'> 변시 기출 OX 보이기</label></div><p class="muted" style="margin:6px 0 0;font-size:.82rem">꺼 두어도 풀이 기록은 그대로 남아요.</p></div></section>'+
-  '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-selected="'+(themePref()===o[0])+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
+  '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
   '<details class="more" id="setmore"'+(setMore?' open':'')+'><summary><b>더 보기</b> · 백업, 간격 맞춤화, 원리, 기록 지우기</summary>'+
   '<section class="panel"><h2>기록 백업</h2><p class="muted" style="margin-top:0">'+(docRef?"기록은 계정에 저장돼서 다른 기기에서 열어도 이어져요. 만일을 위해 파일로도 받아 둘 수 있어요.":"지금은 이 기기에만 저장돼요. 기기를 바꾸기 전에 로그인하거나 백업 파일을 받아 두세요.")+" Claude 버전에서 받은 백업 파일과 복습 기록 파일도 여기서 불러올 수 있어요."+'</p><div class="row"><button class="btn" id="exp">'+(downloads?"백업 파일 받기":"백업 내용 보기")+'</button><label class="btn" for="imp" style="display:inline-flex;align-items:center">백업 불러오기<input type="file" id="imp" accept="application/json,.json" multiple hidden></label></div><textarea id="expbox" hidden readonly aria-label="백업 내용"></textarea></section>'+
@@ -1559,9 +1562,10 @@ var FOLD_KEY="minbeop-ex-open";
 function exOpenMap(){try{var o=JSON.parse(localStorage.getItem(FOLD_KEY)||"{}");return o&&typeof o==="object"?o:{};}catch(e){return {};}}
 function foldPanels(){var o=exOpenMap();
   main.querySelectorAll("section.panel>h2").forEach(function(t){var k=t.textContent,sec=t.parentNode,open=k in o?!!o[k]:k==="섞어서 풀기";
-    sec.classList.add("foldable");sec.classList.toggle("folded",!open);t.setAttribute("role","button");t.tabIndex=0;t.setAttribute("aria-expanded",String(open));
-    function tg(){var m=exOpenMap(),now=sec.classList.contains("folded");m[k]=now;try{localStorage.setItem(FOLD_KEY,JSON.stringify(m));}catch(e){}sec.classList.toggle("folded",!now);t.setAttribute("aria-expanded",String(now));}
-    t.onclick=tg;t.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();tg();}};});}
+    sec.classList.add("foldable");sec.classList.toggle("folded",!open);
+    var bt=document.createElement("button");bt.type="button";bt.className="foldbtn";while(t.firstChild)bt.appendChild(t.firstChild);t.appendChild(bt);bt.setAttribute("aria-expanded",String(open));
+    function tg(){var m=exOpenMap(),now=sec.classList.contains("folded");m[k]=now;try{localStorage.setItem(FOLD_KEY,JSON.stringify(m));}catch(e){}sec.classList.toggle("folded",!now);bt.setAttribute("aria-expanded",String(now));}
+    t.onclick=tg;});}
 /* ---------- 단원별 연습: 고른 단원은 계정에 저장돼 다음에도 그대로 ---------- */
 var unitOpenPart=null;
 function unitIndex(){ // 편 → 단원 목록(카드 순서) + 단원별 문제 수
