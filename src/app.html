@@ -587,7 +587,7 @@ function tagsHtml(c){ // 위치(편 › 단원)는 글자로, 표시는 판례·
   if(isLeech(c.id))b+='<span class="tag leech">자주 잊음</span>';
   if(isFlag(r.id))b+='<span class="tag flag" title="헷갈려서 표시한 카드">★ 표시</span>';
   if(r.tags.indexOf("전합")>=0)b+='<span class="tag jh">전합</span>';else if(r.tags.indexOf("판례")>=0)b+='<span class="tag">판례</span>';
-  if(r.exam)b+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'">변시 '+examCount(r)+'회</span>';
+  if(r.exam)b+='<span class="tag exam" title="변호사시험 '+esc(r.exam)+'">변시</span>';
   return '<span class="crumb">'+crumb+'</span>'+(b?'<span class="badges">'+b+'</span>':"");}
 function examCount(r){return (String(r.exam||"").match(/\d+/g)||[]).length;}
 var toastT=null;function toast(t){var el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},1800);}
