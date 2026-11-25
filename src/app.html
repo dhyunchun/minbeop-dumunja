@@ -258,9 +258,12 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .item.case .ct{font-weight:700;font-size:.98rem;min-width:0;word-break:keep-all;line-height:1.4}
 .item.case .st.bad{color:var(--again)}
 .item.case .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dg{min-width:0;max-width:100%;border:1px solid var(--rule);border-radius:10px;padding:10px;background:var(--sheet)}.dgsc{overflow-x:auto;-webkit-overflow-scrolling:touch}.dgsc.wide::after{content:"옆으로 밀어 전체를 보세요";display:block;position:sticky;left:0;font-size:.75rem;color:var(--ink-2);margin-top:4px}.dg svg{display:block;margin:0 auto;font-family:inherit}
+.dglg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem;color:var(--ink-2)}.dglg i{display:inline-block;width:22px;height:0;vertical-align:middle;margin-right:4px;border-top:1.6px solid var(--ink)}.dglg .l2{border-top:1.1px solid var(--ink-2)}.dglg .l3{border-top:1.2px dashed var(--ink-2)}.dglg .l4{border-top:2.2px dotted var(--ink)}
+.dgm{margin-top:6px;font-size:.8rem;color:var(--ink-2)}
 .item.case .cq{line-height:1.7;font-size:.95rem}.item.case .cq .qm{display:block;margin-top:8px;font-weight:600;color:var(--accent)}
 .item.case .exa{padding-top:12px;font-size:.92rem}
-.reveal-sm{justify-self:start}
+.reveal-sm{justify-self:start}.cbtns{display:flex;gap:8px;flex-wrap:wrap}
 .rels{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 .relbtn{font:inherit;font-size:.82rem;text-align:left;background:none;border:0;padding:2px 0;color:var(--ink-2);cursor:pointer}.relbtn b{color:var(--accent)}
 .relchip{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;margin:-4px 0 12px;border-radius:10px;background:var(--accent-soft);font-size:.85rem}.relchip b{color:var(--accent)}
@@ -609,7 +612,7 @@ function render(){
 function bindTapReveal(){ // 카드 아무 곳이나 눌러도 정답이 열린다
   var btn=document.getElementById("reveal")||document.getElementById("exreveal"),card=main.querySelector("article.card");
   if(!btn||!card)return;card.classList.add("tap");
-  card.onclick=function(e){if(e.target.closest("button,a,input,textarea,select,label,summary"))return;if(window.getSelection&&String(window.getSelection()).length)return;btn.click();};
+  card.onclick=function(e){if(e.target.closest("button,a,input,textarea,select,label,summary,.dg"))return;if(window.getSelection&&String(window.getSelection()).length)return;btn.click();};
 }
 function renderStudy(){
   if(practice){renderPractice();return;}
@@ -852,6 +855,7 @@ function renderCaseBrowse(){
   var rx=document.getElementById("relx");if(rx)rx.onclick=function(){caseRel=null;renderCaseBrowse();};
   drawCases();
 }
+var caseDg={};
 function drawCases(){
   var t=caseText.trim().toLowerCase().replace(/\s+/g," "),box=document.getElementById("clist"),S=exState();
   var xs=caseList().filter(function(x){
@@ -869,9 +873,9 @@ function drawCases(){
     var q=esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) ');
     var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<button class="relbtn" data-row="'+esc(rid)+'"><b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||"")+'</button>':"";}).join("");
     return '<details class="item case" data-c="'+esc(x.id)+'"'+(openCase===x.id?' open':'')+'><summary><span class="ct">'+esc(x.title)+'</span><span class="st'+(st==="틀림"?' bad':'')+'">'+st+'</span><span class="t">'+esc(caseIssue(x))+'</span></summary>'+
-      '<div class="body"><div class="cq">'+q+'</div>'+
+      '<div class="body"><div class="cq">'+q+'</div>'+(x.dg&&(shown||caseDg[x.id])?dgHtml(x.dg):'')+
       (shown?'<div class="exa">'+exBlock(x)+'<div class="exrel">관련 두문자'+(rels?'<div class="rels">'+rels+'</div>':' · '+esc(x.acr))+'</div>'+(x.kind==="case"?'<div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'')+'</div>'
-        :'<button class="btn reveal-sm" data-show="1">답 보기</button>')+'</div></details>';
+        :'<div class="cbtns">'+(x.dg&&!caseDg[x.id]?'<button class="btn reveal-sm" data-dgshow="1">도식 보기</button>':'')+'<button class="btn reveal-sm" data-show="1">답 보기</button></div>')+'</div></details>';
   }
   var grouped=!t&&!caseRel&&(casePart===""||parts4(casePart));
   function parts4(p){return /^제\d편/.test(p);}
@@ -893,6 +897,7 @@ function drawCases(){
     box.querySelectorAll("details.grp").forEach(function(d){d.ontoggle=function(){var o=openGroups();if(d.open)o[d.dataset.g]=1;else delete o[d.dataset.g];saveOpenGroups(o);};});
   }
   box.querySelectorAll("details.case").forEach(function(d){d.ontoggle=function(){if(d.open)openCase=d.dataset.c;else if(openCase===d.dataset.c)openCase=null;};});
+  box.querySelectorAll("[data-dgshow]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;caseDg[id]=1;openCase=id;drawCases();};});
   box.querySelectorAll("[data-show]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;caseShown[id]=1;openCase=id;drawCases();};});
   box.querySelectorAll(".relbtn").forEach(function(b){b.onclick=function(){setCmode("acr");filterText="";filterPart="";openRow=b.dataset.row;editing=false;renderCards();var el=document.querySelector('details.item[data-r="'+openRow+'"]');if(el)el.scrollIntoView({block:"center"});};});
 }
@@ -1235,7 +1240,73 @@ function exClearPart(pt){var S=exState(),t=now();EX.forEach(function(x){var st=S
 function exAnswer(ok){
   var id=exSess.queue.shift(),S=exState(),st=S[id]||{n:0,w:0};
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[id]=st;if(ok)exSess.ok++;
-  exSess.shown=false;scheduleSave();render();window.scrollTo(0,0);
+  exSess.shown=false;exSess.dg=false;scheduleSave();render();window.scrollTo(0,0);
+}
+var DGN=0;
+function dgFit(){document.querySelectorAll(".dgsc").forEach(function(c){var s=c.querySelector("svg"),w=+s.getAttribute("width"),h=+s.getAttribute("height"),cw=c.clientWidth;
+  if(!cw)return;var f=cw/w;if(f<1&&f>=0.74){s.style.width=cw+"px";s.style.height=Math.round(h*f)+"px";}else{s.style.width=w+"px";s.style.height=h+"px";}
+  c.classList.toggle("wide",f<0.74);});}
+window.addEventListener("resize",function(){clearTimeout(dgFit.t);dgFit.t=setTimeout(dgFit,150);});
+function dgHtml(d){ // 사례 도식: 흑백·회색. 글자 폭을 재서 상자·간격을 정하고, 선이 상자를 지나거나 글자끼리 겹치면 곡선으로 돌리거나 간격을 넓힌다
+  if(!d||!d.n)return "";
+  var ff=getComputedStyle(document.body).fontFamily,cv=dgHtml.cv||(dgHtml.cv=document.createElement("canvas")),g=cv.getContext("2d");
+  function W(t,sz,wt){g.font=(wt||400)+" "+sz+"px "+ff;return Math.ceil(g.measureText(t).width);}
+  var N=d.n.map(function(a){var w=Math.max(W(a[0],14,600),a[1]?W(a[1],12):0)+26;return{l:a[0],s:a[1]||"",c:a[2],r:a[3],k:a[4]||"",w:Math.max(w,60),h:a[1]?48:34};});
+  var E=(d.e||[]).map(function(a,i){var e={i:i,a:a[0],b:a[1],l:a[2]||"",s:a[3]||"",k:a[4]||"c"};
+    e.lw=(e.l||e.s)?Math.max(e.l?W(e.l,12,600):0,e.s?W(e.s,11.5):0)+12:0;e.lh=(e.l||e.s)?(e.l?16:0)+(e.s?15:0)+6:0;return e;});
+  E.sort(function(x,y){return (x.k==="q")-(y.k==="q")||x.i-y.i;});
+  var nc=0,nr=0;N.forEach(function(n){nc=Math.max(nc,n.c+1);nr=Math.max(nr,n.r+1);});
+  var cw=[],rh=[],cg0=[],rg0=[],i;
+  for(i=0;i<nc;i++){cw[i]=70;cg0[i]=56;}for(i=0;i<nr;i++){rh[i]=34;rg0[i]=56;}
+  N.forEach(function(n){cw[n.c]=Math.max(cw[n.c],n.w);rh[n.r]=Math.max(rh[n.r],n.h);});
+  E.forEach(function(e){var A=N[e.a],B=N[e.b],c0=Math.min(A.c,B.c),c1=Math.max(A.c,B.c),r0=Math.min(A.r,B.r),r1=Math.max(A.r,B.r);
+    if(r0===r1&&c1>c0)for(var k=c0;k<c1;k++)cg0[k]=Math.max(cg0[k],(e.lw+30)/(c1-c0));
+    if(r1>r0)for(var k2=r0;k2<r1;k2++)rg0[k2]=Math.max(rg0[k2],(e.lh+(c0===c1?30:20))/(r1-r0));});
+  function ov(r,b){return r[0]<b[2]&&r[2]>b[0]&&r[1]<b[3]&&r[3]>b[1];}
+  function layout(f){
+    var M=10,X=[],Y=[],x=M,y=M,cg=cg0.map(function(v){return v*f;}),rg=rg0.map(function(v){return v*f;});
+    for(i=0;i<nc;i++){X[i]=x+cw[i]/2;x+=cw[i]+cg[i];}for(i=0;i<nr;i++){Y[i]=y+rh[i]/2;y+=rh[i]+rg[i];}
+    N.forEach(function(n){n.x=X[n.c];n.y=Y[n.r];});
+    var boxes=N.map(function(n){return[n.x-n.w/2-5,n.y-n.h/2-5,n.x+n.w/2+5,n.y+n.h/2+5];}),labs=[],used={},bad=0,R=[];
+    function clip(n,tx,ty){var dx=tx-n.x,dy=ty-n.y,t=Math.min(dx?(n.w/2+3)/Math.abs(dx):1e9,dy?(n.h/2+3)/Math.abs(dy):1e9);return[n.x+dx*t,n.y+dy*t];}
+    E.forEach(function(e){
+      var A=N[e.a],B=N[e.b],dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,key=Math.min(e.a,e.b)+"-"+Math.max(e.a,e.b),sg=e.a<e.b?1:-1;
+      var U=used[key]||(used[key]=[]),offs=[0,26,-26,44,-44,64,-64,88,-88,116,-116],pick=null;
+      for(var j=0;j<offs.length&&!pick;j++){
+        var o=offs[j];if(U.some(function(u){return Math.abs(u.o-o)<(u.h+e.lh)/2+6||Math.abs(u.o-o)<14;}))continue;
+        var mx=(A.x+B.x)/2+nx*o*sg*2,my=(A.y+B.y)/2+ny*o*sg*2,p=clip(A,o?mx:B.x,o?my:B.y),q=clip(B,o?mx:A.x,o?my:A.y);
+        var pt=function(t){var u=1-t;return[u*u*p[0]+2*u*t*mx+t*t*q[0],u*u*p[1]+2*u*t*my+t*t*q[1]];};
+        if(!o)pt=function(t){return[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t];};
+        var through=false;for(var s=1;s<12&&!through;s++){var P=pt(s/12);N.forEach(function(n,k){if(k!==e.a&&k!==e.b&&ov([P[0],P[1],P[0],P[1]],boxes[k]))through=true;});}
+        if(through)continue;
+        var lab=null;if(e.lw){var ts=[.5,.42,.58,.34,.66,.26,.74];for(var t=0;t<ts.length&&!lab;t++){var C=pt(ts[t]),r=[C[0]-e.lw/2,C[1]-e.lh/2,C[0]+e.lw/2,C[1]+e.lh/2];if(!boxes.some(function(b){return ov(r,b);})&&!labs.some(function(b){return ov(r,b);}))lab=r;}if(!lab)continue;}
+        pick={o:o,p:p,q:q,mx:mx,my:my,lab:lab};}
+      if(!pick){bad++;var p0=clip(A,B.x,B.y),q0=clip(B,A.x,A.y);pick={o:0,p:p0,q:q0,lab:e.lw?[(p0[0]+q0[0])/2-e.lw/2,(p0[1]+q0[1])/2-e.lh/2,(p0[0]+q0[0])/2+e.lw/2,(p0[1]+q0[1])/2+e.lh/2]:null};}
+      U.push({o:pick.o,h:e.lh});if(pick.lab)labs.push(pick.lab);R.push({e:e,k:pick});});
+    return{bad:bad,R:R,W:x-cg[nc-1]+M,H:y-rg[nr-1]+M};
+  }
+  var L=null;for(var f=1;f<2.3;f*=1.2){L=layout(f);if(!L.bad)break;}
+  var id="dg"+(++DGN),out=[],minx=0,miny=0,maxx=L.W,maxy=L.H;
+  function grow(x,y){minx=Math.min(minx,x);miny=Math.min(miny,y);maxx=Math.max(maxx,x);maxy=Math.max(maxy,y);}
+  L.R.forEach(function(z){var e=z.e,k=z.k,p=k.p,q=k.q;
+    var st=e.k==="c"?'stroke-width="1.6"':e.k==="r"?'stroke-width="1.1"':e.k==="t"?'stroke-width="1.2" stroke-dasharray="5 4"':'stroke-width="2.2" stroke-dasharray="1.5 3.5" stroke-linecap="round"';
+    var col=e.k==="r"||e.k==="t"?"var(--ink-2)":"var(--ink)",dd=k.o?'M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+'Q'+k.mx.toFixed(1)+' '+k.my.toFixed(1)+' '+q[0].toFixed(1)+' '+q[1].toFixed(1):'M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+'L'+q[0].toFixed(1)+' '+q[1].toFixed(1);
+    if(k.o)grow(k.mx,k.my);
+    out.push('<path d="'+dd+'" fill="none" style="stroke:'+col+'" '+st+(e.k==="c"?'':' marker-end="url(#'+id+(e.k==="q"?'q':'a')+')"')+'/>');});
+  L.R.forEach(function(z){var e=z.e,b=z.k.lab;if(!b)return;grow(b[0],b[1]);grow(b[2],b[3]);
+    var mx=(b[0]+b[2])/2,yy=b[1]+3;
+    out.push('<rect x="'+b[0].toFixed(1)+'" y="'+b[1].toFixed(1)+'" width="'+e.lw+'" height="'+e.lh+'" rx="3" style="fill:var(--sheet)"/>');
+    if(e.l){out.push('<text x="'+mx.toFixed(1)+'" y="'+(yy+12).toFixed(1)+'" text-anchor="middle" font-size="12" font-weight="600"'+(e.k==="q"?' font-style="italic"':'')+' style="fill:var(--ink)">'+esc(e.l)+'</text>');yy+=16;}
+    if(e.s)out.push('<text x="'+mx.toFixed(1)+'" y="'+(yy+11).toFixed(1)+'" text-anchor="middle" font-size="11.5" style="fill:var(--ink-2)">'+esc(e.s)+'</text>');});
+  N.forEach(function(n){var o=n.k==="o";
+    out.push('<rect x="'+(n.x-n.w/2)+'" y="'+(n.y-n.h/2)+'" width="'+n.w+'" height="'+n.h+'" rx="'+(o?2:7)+'" style="fill:'+(o?'var(--paper)':'var(--sheet)')+';stroke:'+(o?'var(--ink-2)':'var(--ink)')+'" stroke-width="'+(o?1:1.3)+'"'+(o?' stroke-dasharray="4 2"':'')+'/>');
+    out.push('<text x="'+n.x+'" y="'+(n.y+(n.s?-5:5))+'" text-anchor="middle" font-size="14" font-weight="600" style="fill:var(--ink)">'+esc(n.l)+'</text>');
+    if(n.s)out.push('<text x="'+n.x+'" y="'+(n.y+14)+'" text-anchor="middle" font-size="12" style="fill:var(--ink-2)">'+esc(n.s)+'</text>');});
+  minx-=4;miny-=4;maxx+=4;maxy+=4;var vw=Math.ceil(maxx-minx),vh=Math.ceil(maxy-miny);
+  var defs='<defs><marker id="'+id+'a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" style="stroke:var(--ink-2)" stroke-width="1.5"/></marker><marker id="'+id+'q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9z" style="fill:var(--ink)"/></marker></defs>';
+  setTimeout(dgFit,0);
+  return '<div class="dg"><div class="dgsc"><svg width="'+vw+'" height="'+vh+'" viewBox="'+minx.toFixed(1)+' '+miny.toFixed(1)+' '+vw+' '+vh+'" role="img" aria-label="사례 도식">'+defs+out.join("")+'</svg></div>'+
+    '<div class="dglg"><span><i class="l1"></i>계약</span><span><i class="l2"></i>권리·등기</span><span><i class="l3"></i>사실행위·불법행위</span><span><i class="l4"></i>묻는 청구</span></div>'+(d.m?'<div class="dgm">'+esc(d.m)+'</div>':'')+'</div>';
 }
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
@@ -1520,12 +1591,14 @@ function renderEx(){
     var front='<div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'</span><span class="badges"><span class="tag">'+(x.kind==="card"?"카드":x.kind!=="pair"?"사례":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span></span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
       '<div class="exq">'+(x.kind==="card"?(x.q?esc(x.q):'두문자 <b>'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</b>는 무엇의 두문자인가요?'):esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) '))+'</div><div class="ask">'+(x.kind==="card"?(x.q?'요건과 결론을 떠올려 보세요.':'뜻과 결론까지 떠올려 보세요.'):x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요.':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
+    if(x.dg&&(p.shown||p.dg))front+=dgHtml(x.dg);
     var back=p.shown?'<div class="exa">'+(x.kind==="card"?'<div class="acr" style="margin-bottom:6px">'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</div>':x.kind==="toc"?'<div class="acr" style="margin-bottom:6px">'+esc(x.acr)+'</div>':x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div>'+(x.kind==="case"?'<div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'')+'</div>':'';
-    var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
+    var acts=!p.shown?(x.dg&&!p.dg?'<button class="btn" id="exdg">도식 보기</button>':'')+'<button class="reveal" id="exreveal">답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
       :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>'+(x.kind==="toc"?'빠졌거나 순서가 달라요':'쟁점·결론을 놓쳤어요')+'</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>'+(x.kind==="toc"?'목차를 모두':'쟁점과 결론 모두')+'</small></button></div><div class="hint">키보드 1 · 2</div>';
     main.innerHTML=bar+'<article class="card" aria-live="polite">'+front+back+'</article><div class="actions">'+acts+'</div>';
     document.getElementById("exq").onclick=function(){exSess=null;render();};
     var rv=document.getElementById("exreveal");if(rv)rv.onclick=function(){p.shown=true;render();};
+    var dgb=document.getElementById("exdg");if(dgb)dgb.onclick=function(e){e.stopPropagation();p.dg=true;render();};
     var a=document.getElementById("exno");if(a)a.onclick=function(){exAnswer(false);};
     var o=document.getElementById("exok");if(o)o.onclick=function(){exAnswer(true);};
     return;

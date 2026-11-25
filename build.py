@@ -32,6 +32,19 @@ for x in ex:
         assert k in x, f"연습문제 {x.get('id')}에 {k} 가 없어요"
     assert all(r in row_ids for r in x["rel"]), f"연습문제 {x['id']}의 관련 카드 id가 없어요"
 assert len({x["id"] for x in ex}) == len(ex), "연습문제 id가 중복됐어요"
+dgp = root / "src" / "diagrams.json"
+if dgp.exists():
+    dgs = json.loads(dgp.read_text(encoding="utf-8"))
+    exid = {x["id"]: x for x in ex}
+    for k, d in dgs.items():
+        assert k in exid, f"도식 {k}에 맞는 사례가 없어요"
+        nn = len(d["n"])
+        for e in d.get("e", []):
+            assert 0 <= e[0] < nn and 0 <= e[1] < nn and e[0] != e[1], f"도식 {k}의 선이 잘못됐어요: {e}"
+            assert len(e) < 5 or e[4] in ("c", "r", "t", "q"), f"도식 {k}의 선 종류가 잘못됐어요: {e}"
+        cells = [(n[2], n[3]) for n in d["n"]]
+        assert len(set(cells)) == len(cells), f"도식 {k}에서 상자 자리가 겹쳐요"
+        exid[k]["dg"] = d
 exdata = json.dumps(ex, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 assert "__EXDATA__" in html
 man = root / "static" / "audio" / "manifest.json"
