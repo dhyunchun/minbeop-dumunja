@@ -580,7 +580,6 @@ function pick(){
 function esc(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];});}
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
 function cloze(s,acr){var a=Array.from(String(acr||"").replace(/[\s·\/]/g,"")),p=0;return esc(s).replace(/\*\*(.+?)\*\*/g,function(_,x){return Array.from(x).map(function(ch){if(ch===" ")return " ";if(p<a.length&&(a[p]==="X"||a[p]==="O")&&ch!==a[p])p++;if(p<a.length&&ch===a[p]){p++;return '<span class="blank">○</span>';}return "<b>"+ch+"</b>";}).join("");});}
-function letters(acr){return Array.from(acr.replace(/\([^)]*\)/g,"").replace(/[^가-힣0-9A-Za-z]/g,"")).length;}
 /* 자주 잊는 카드: 딱지를 떼려면 무엇이 남았는지(정답을 연 뒤 카드 아래에 보여 준다) */
 function leechHint(c,inPractice){if(!isLeech(c.id))return "";var s=cs(c.id),ok=s.ok||0,d=new Date(s.due),due=(d.getMonth()+1)+"/"+d.getDate(),today=dayKey(now());
   var t=s.st!=="review"?"딱지 떼기: 다시 익히는 중이에요. 다음 정식 복습부터 세기 시작해요."
@@ -649,8 +648,8 @@ function faceHtml(c,isRevealed,tools){
   var r=c.row,front,back='',acr=dispAcr(r),cu=custom(r);
   if(c.dir==="g"){
     if(r.mine&&!acr)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">답을 떠올려 보세요.</div>';
-    else if(r.q)front='<div class="prompt">'+esc(r.q)+'</div><div class="ask">'+(r.tags.indexOf("목차")>=0?'청구원인·항변·재항변과 두문자는?':'결론과 두문자는?')+' <span class="muted">('+letters(acr)+'글자)</span></div>';
-    else if(r.topic)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">두문자는? <span class="muted">('+letters(acr)+'글자)</span></div>';
+    else if(r.q)front='<div class="prompt">'+esc(r.q)+'</div><div class="ask">'+(r.tags.indexOf("목차")>=0?'청구원인·항변·재항변과 두문자는?':'결론과 두문자는?')+'</div>';
+    else if(r.topic)front='<div class="prompt">'+esc(r.topic)+'</div><div class="ask">두문자는?</div>';
     else front='<div class="prompt cloze">'+cloze(r.mean,r.acr)+'</div><div class="ask">빈칸 글자를 모은 두문자는? <span class="muted">(X·O는 부정·긍정 표시)</span></div>';
   }else{
     front='<div class="acr">'+esc(acr)+'</div><div class="ask">각 글자가 뜻하는 것과 '+(r.mine?'내용을':r.tags.indexOf("판례")>=0?'판례 법리를':r.tags.indexOf("목차")>=0?'청구원인·항변·재항변을':'요건·효과를')+' 떠올려 보세요.</div>';
@@ -1520,7 +1519,7 @@ function renderEx(){
     var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||""):"";}).filter(Boolean);
     var front='<div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'</span><span class="badges"><span class="tag">'+(x.kind==="card"?"카드":x.kind!=="pair"?"사례":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span></span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
-      '<div class="exq">'+(x.kind==="card"?(x.q?esc(x.q):'두문자 <b>'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</b>는 무엇의 두문자인가요?'):esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) '))+'</div><div class="ask">'+(x.kind==="card"?(x.q?'요건과 결론을 떠올려 보세요.':'뜻과 결론까지 떠올려 보세요.'):x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요. <span class="muted">(두문자 '+letters(x.acr)+'글자)</span>':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
+      '<div class="exq">'+(x.kind==="card"?(x.q?esc(x.q):'두문자 <b>'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</b>는 무엇의 두문자인가요?'):esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) '))+'</div><div class="ask">'+(x.kind==="card"?(x.q?'요건과 결론을 떠올려 보세요.':'뜻과 결론까지 떠올려 보세요.'):x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요.':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
     var back=p.shown?'<div class="exa">'+(x.kind==="card"?'<div class="acr" style="margin-bottom:6px">'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</div>':x.kind==="toc"?'<div class="acr" style="margin-bottom:6px">'+esc(x.acr)+'</div>':x.kind!=="pair"?'<div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>':'')+exBlock(x)+'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div>'+(x.kind==="case"?'<div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'')+'</div>':'';
     var acts=!p.shown?'<button class="reveal" id="exreveal">답 보기</button><div class="hint">카드를 눌러도 열려요 · 스페이스바</div>'
       :'<div class="rates two"><button class="rate r1" id="exno"><span>틀렸어요</span><small>'+(x.kind==="toc"?'빠졌거나 순서가 달라요':'쟁점·결론을 놓쳤어요')+'</small></button><button class="rate r3" id="exok"><span>맞혔어요</span><small>'+(x.kind==="toc"?'목차를 모두':'쟁점과 결론 모두')+'</small></button></div><div class="hint">키보드 1 · 2</div>';
