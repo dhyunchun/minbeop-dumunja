@@ -260,6 +260,7 @@ textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:.75rem;b
 .item.case .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .dg{min-width:0;max-width:100%;border:1px solid var(--rule);border-radius:10px;padding:10px;background:var(--sheet)}.dgsc{overflow-x:auto;-webkit-overflow-scrolling:touch}.dgsc svg{cursor:zoom-in}.dgsc::after{content:"누르면 크게 볼 수 있어요";display:block;position:sticky;left:0;font-size:.75rem;color:var(--ink-2);margin-top:4px}.dgsc.wide::after{content:"옆으로 밀거나 눌러서 크게 보세요"}.dg svg{display:block;margin:0 auto;font-family:inherit}
 .dglg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem;color:var(--ink-2)}.dglg span{display:inline-flex;align-items:center;gap:4px}.dglg svg{display:inline-block;margin:0}
+.dgparts{display:grid;gap:10px;min-width:0}.dgpart{min-width:0}.dgt{font-weight:600;font-size:.85rem;margin:0 0 4px 2px}
 .dgm{margin-top:6px;font-size:.8rem;color:var(--ink-2);line-height:1.6}
 .dgl{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:3px;font-size:.82rem;line-height:1.5}.dgl li{display:flex;gap:6px;align-items:baseline}.dgl .dgi{flex:none;position:relative;top:1px}.dgl .dgq{font-style:italic}.dgn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--ink);border-radius:50%;font-size:.68rem;font-style:normal;font-weight:600;margin-right:4px;vertical-align:1px}
 .dgov{position:fixed;inset:0;z-index:50;background:var(--sheet);display:flex;flex-direction:column;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}.dgovbar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--rule);font-size:.8rem}.dgovb{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}.dgovb svg{display:block;margin:0 auto;cursor:default}
@@ -1260,6 +1261,7 @@ function dgOpen(svg){ // 크게 보기: 화면 전체에 띄우고 +/−로 확�
   document.body.appendChild(ov);}
 document.addEventListener("click",function(e){var s=e.target.closest&&e.target.closest(".dgsc svg");if(s){e.stopPropagation();dgOpen(s);}},true);
 function dgHtml(d){ // 사례 도식(흑백). 글자 폭을 재서 상자·간격을 정하고, 선이 상자를 지나거나 글자가 선·글자를 덮으면 곡선·자리 이동·간격 확장으로 피한다
+  if(d&&d.p)return '<div class="dgparts">'+d.p.map(function(x){return '<div class="dgpart">'+(x.t?'<div class="dgt">'+esc(x.t)+'</div>':'')+dgHtml(x)+'</div>';}).join("")+'</div>';
   if(!d||!d.n)return "";
   var ff=getComputedStyle(document.body).fontFamily,cv=dgHtml.cv||(dgHtml.cv=document.createElement("canvas")),g=cv.getContext("2d");
   function W(t,sz,wt){g.font=(wt||400)+" "+sz+"px "+ff;return Math.ceil(g.measureText(t).width);}

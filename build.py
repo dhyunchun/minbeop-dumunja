@@ -39,22 +39,19 @@ if dgp.exists():
     exid = {x["id"]: x for x in ex}
     for k, d in dgs.items():
         assert k in exid, f"도식 {k}에 맞는 사례가 없어요"
-        nn = len(d["n"])
-        for e in d.get("e", []):
-            assert 0 <= e[0] < nn and 0 <= e[1] < nn and e[0] != e[1], f"도식 {k}의 선이 잘못됐어요: {e}"
-            assert len(e) == 4 and e[3] in ("l", "r", "k"), f"도식 {k}의 선 종류가 잘못됐어요: {e}"
-        cells = [(n[2], n[3]) for n in d["n"]]
-        assert len(set(cells)) == len(cells), f"도식 {k}에서 상자 자리가 겹쳐요"
+        for d1 in (d["p"] if "p" in d else [d]):
+            nn = len(d1["n"])
+            for e in d1.get("e", []):
+                assert 0 <= e[0] < nn and 0 <= e[1] < nn and e[0] != e[1], f"도식 {k}의 선이 잘못됐어요: {e}"
+                assert len(e) == 4 and e[3] in ("l", "r", "k"), f"도식 {k}의 선 종류가 잘못됐어요: {e}"
+            cells = [(n[2], n[3]) for n in d1["n"]]
+            assert len(set(cells)) == len(cells), f"도식 {k}에서 상자 자리가 겹쳐요"
+            seen = set()
+            for e in d1.get("e", []):
+                key = (min(e[0], e[1]), max(e[0], e[1]), e[2])
+                if key in seen: print(f"경고: 도식 {k} 같은 두 상자 사이에 같은 이름 '{e[2]}' 선이 둘")
+                seen.add(key)
         exid[k]["dg"] = d
-        seen = set()
-        for e in d.get("e", []):
-            key = (min(e[0], e[1]), max(e[0], e[1]), e[2])
-            if key in seen: print(f"경고: 도식 {k} 같은 두 상자 사이에 같은 이름 '{e[2]}' 선이 둘")
-            seen.add(key)
-        txt = [e[2] for e in d.get("e", [])]
-        for t in txt:
-            for mm in re.finditer(r"(?<![\d.])(\d{4}\. )?(?<!\d)\d{1,2}\. \d{1,2}\.", t or ""):
-                if not mm.group(1): print(f"경고: 도식 {k} 연도 없는 날짜 '{mm.group(0)}' in '{t}'")
 exdata = json.dumps(ex, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 assert "__EXDATA__" in html
 man = root / "static" / "audio" / "manifest.json"
