@@ -42,7 +42,7 @@ if dgp.exists():
         nn = len(d["n"])
         for e in d.get("e", []):
             assert 0 <= e[0] < nn and 0 <= e[1] < nn and e[0] != e[1], f"도식 {k}의 선이 잘못됐어요: {e}"
-            assert len(e) < 5 or e[4] in ("c", "r", "t", "x", "q"), f"도식 {k}의 선 종류가 잘못됐어요: {e}"
+            assert len(e) == 4 and e[3] in ("l", "r", "k"), f"도식 {k}의 선 종류가 잘못됐어요: {e}"
         cells = [(n[2], n[3]) for n in d["n"]]
         assert len(set(cells)) == len(cells), f"도식 {k}에서 상자 자리가 겹쳐요"
         exid[k]["dg"] = d
@@ -51,7 +51,7 @@ if dgp.exists():
             key = (min(e[0], e[1]), max(e[0], e[1]), e[2])
             if key in seen: print(f"경고: 도식 {k} 같은 두 상자 사이에 같은 이름 '{e[2]}' 선이 둘")
             seen.add(key)
-        txt = [t for e in d.get("e", []) for t in e[2:4]] + [d.get("m", "")]
+        txt = [e[2] for e in d.get("e", [])]
         for t in txt:
             for mm in re.finditer(r"(?<![\d.])(\d{4}\. )?(?<!\d)\d{1,2}\. \d{1,2}\.", t or ""):
                 if not mm.group(1): print(f"경고: 도식 {k} 연도 없는 날짜 '{mm.group(0)}' in '{t}'")

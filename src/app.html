@@ -1244,7 +1244,7 @@ function exAnswer(ok){
   st.n=(st.n||0)+1;if(!ok)st.w=(st.w||0)+1;st.r=ok?1:0;st.last=now();S[id]=st;if(ok)exSess.ok++;
   exSess.shown=false;exSess.dg=false;scheduleSave();render();window.scrollTo(0,0);
 }
-var DGN=0,DGK={c:["계약",'stroke-width="1.8"',"var(--ink)",""],r:["권리·등기",'stroke-width="1.1"',"var(--ink-2)","a"],t:["사실행위",'stroke-width="1.2" stroke-dasharray="5 4"',"var(--ink-2)","a"],x:["집행(압류·전부·경매)",'stroke-width="1.7" stroke-dasharray="9 3 2.5 3"',"var(--ink-2)","a"],q:["묻는 청구",'stroke-width="2.4" stroke-dasharray="1.5 3.5" stroke-linecap="round"',"var(--ink)","q"]};
+var DGN=0,DGK={l:["관계",'stroke-width="1.4"',"var(--ink)",""],r:["권리",'stroke-width="1.2"',"var(--ink-2)","a"],k:["쟁점 권리",'stroke-width="2.6"',"var(--ink)","q"]};
 function dgFit(){document.querySelectorAll(".dgsc").forEach(function(c){var s=c.querySelector("svg"),w=+s.getAttribute("width"),h=+s.getAttribute("height"),cw=c.clientWidth;
   if(!cw)return;var f=cw/w;if(f<1&&f>=0.55){s.style.width=cw+"px";s.style.height=Math.round(h*f)+"px";}else{s.style.width=w+"px";s.style.height=h+"px";}
   c.classList.toggle("wide",f<0.55);});}
@@ -1264,9 +1264,9 @@ function dgHtml(d){ // 사례 도식(흑백). 글자 폭을 재서 상자·간�
   var ff=getComputedStyle(document.body).fontFamily,cv=dgHtml.cv||(dgHtml.cv=document.createElement("canvas")),g=cv.getContext("2d");
   function W(t,sz,wt){g.font=(wt||400)+" "+sz+"px "+ff;return Math.ceil(g.measureText(t).width);}
   var N=d.n.map(function(a){var w=Math.max(W(a[0],14,600),a[1]?W(a[1],12):0)+26;return{l:a[0],s:a[1]||"",c:a[2],r:a[3],k:a[4]||"",w:Math.max(w,60),h:a[1]?48:34};});
-  var E=(d.e||[]).map(function(a,i){var e={i:i,a:a[0],b:a[1],l:a[2]||"",s:a[3]||"",k:DGK[a[4]]?a[4]:"c"};
-    e.tag=e.l;e.lw=20+(e.l?W(e.l,12,600)+4:0)+4;e.lh=18;return e;});
-  E.sort(function(x,y){return (x.k==="q")-(y.k==="q")||x.i-y.i;});
+  var E=(d.e||[]).map(function(a,i){var e={i:i,a:a[0],b:a[1],l:a[2]||"",k:DGK[a[3]]?a[3]:"l"};
+    e.lw=e.l?W(e.l,12,e.k==="k"?700:500)+10:0;e.lh=e.l?18:0;return e;});
+  E.sort(function(x,y){return (x.k==="k")-(y.k==="k")||x.i-y.i;});
   var nc=0,nr=0,i;N.forEach(function(n){nc=Math.max(nc,n.c+1);nr=Math.max(nr,n.r+1);});
   var cw=[],rh=[],cg0=[],rg0=[];
   for(i=0;i<nc;i++){cw[i]=70;cg0[i]=50;}for(i=0;i<nr;i++){rh[i]=34;rg0[i]=50;}
@@ -1327,24 +1327,19 @@ function dgHtml(d){ // 사례 도식(흑백). 글자 폭을 재서 상자·간�
   E.forEach(function(e){var K=DGK[e.k],p=e.p,q=e.q;kinds[e.k]=1;e.S.forEach(function(P){grow(P[0],P[1]);});
     var dd='M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+(e.o?'Q'+e.mx.toFixed(1)+' '+e.my.toFixed(1)+' ':'L')+q[0].toFixed(1)+' '+q[1].toFixed(1);
     out.push('<path d="'+dd+'" fill="none" style="stroke:'+K[2]+'" '+K[1]+(K[3]?' marker-end="url(#'+id+K[3]+')"':'')+'/>');});
-  E.forEach(function(e){var b=e.lab;grow(b[0],b[1]);grow(b[2],b[3]);var mx=(b[0]+b[2])/2;
+  E.forEach(function(e){var b=e.lab;if(!b)return;grow(b[0],b[1]);grow(b[2],b[3]);var mx=(b[0]+b[2])/2;
     out.push('<rect x="'+b[0].toFixed(1)+'" y="'+b[1].toFixed(1)+'" width="'+e.lw+'" height="'+e.lh+'" rx="3" style="fill:var(--sheet)"/>');
-    var cx=b[0]+11,cy=b[1]+9;out.push('<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="7.5" fill="none" style="stroke:var(--ink)" stroke-width="1"/><text x="'+cx.toFixed(1)+'" y="'+(cy+3.6).toFixed(1)+'" text-anchor="middle" font-size="'+(e.i>8?9:10.5)+'" font-weight="600" style="fill:var(--ink)">'+(e.i+1)+'</text>');
-    if(e.l)out.push('<text x="'+(b[0]+22).toFixed(1)+'" y="'+(b[1]+13.5).toFixed(1)+'" font-size="12" font-weight="600"'+(e.k==="q"?' font-style="italic"':'')+' style="fill:var(--ink)">'+esc(e.l)+'</text>');});
+    out.push('<text x="'+mx.toFixed(1)+'" y="'+(b[1]+13.5).toFixed(1)+'" text-anchor="middle" font-size="12" font-weight="'+(e.k==="k"?700:500)+'" style="fill:'+(e.k==="r"?'var(--ink-2)':'var(--ink)')+'">'+esc(e.l)+'</text>');});
   var hasO=false;
-  N.forEach(function(n){var o=n.k==="o";if(o)hasO=true;
-    out.push('<rect x="'+(n.x-n.w/2)+'" y="'+(n.y-n.h/2)+'" width="'+n.w+'" height="'+n.h+'" rx="'+(o?2:7)+'" style="fill:'+(o?'var(--rule)':'var(--sheet)')+';stroke:'+(o?'var(--ink-2)':'var(--ink)')+'" stroke-width="'+(o?1:1.3)+'"/>');
+  N.forEach(function(n){var o=n.k==="o"||n.k==="m",j=n.k==="j";
+    out.push('<rect x="'+(n.x-n.w/2)+'" y="'+(n.y-n.h/2)+'" width="'+n.w+'" height="'+n.h+'" rx="'+(o||j?1.5:9)+'" style="fill:'+(o?'var(--rule)':'var(--sheet)')+';stroke:'+(o?'var(--ink-2)':'var(--ink)')+'" stroke-width="'+(j?2.4:o?1.1:1.3)+'"'+(n.k==="m"?' stroke-dasharray="4 3"':'')+'/>');
     out.push('<text x="'+n.x+'" y="'+(n.y+(n.s?-5:5))+'" text-anchor="middle" font-size="14" font-weight="600" style="fill:var(--ink)">'+esc(n.l)+'</text>');
     if(n.s)out.push('<text x="'+n.x+'" y="'+(n.y+14)+'" text-anchor="middle" font-size="12" style="fill:var(--ink-2)">'+esc(n.s)+'</text>');});
   minx-=4;miny-=4;maxx+=4;maxy+=4;var vw=Math.ceil(maxx-minx),vh=Math.ceil(maxy-miny);
   var defs='<defs><marker id="'+id+'a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" style="stroke:var(--ink-2)" stroke-width="1.5"/></marker><marker id="'+id+'q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9z" style="fill:var(--ink)"/></marker></defs>';
-  function ico(k){var K=DGK[k];return '<svg width="28" height="12" aria-hidden="true"><path d="M1 6L25 6" fill="none" style="stroke:'+K[2]+'" '+K[1]+'/>'+(K[3]?'<path d="M20 2L26 6L20 10" style="'+(K[3]==="q"?'fill:var(--ink)':'fill:none;stroke:var(--ink-2)')+'"/>':'')+'</svg>';}
-  var lst=E.slice().sort(function(x,y){return x.i-y.i;}).map(function(e){return '<li><span class="dgi" title="'+DGK[e.k][0]+'">'+ico(e.k)+'</span><span><i class="dgn">'+(e.i+1)+'</i><b'+(e.k==="q"?' class="dgq"':'')+'>'+esc(e.l)+'</b>'+(e.s?' '+esc(e.s):'')+'</span></li>';}).join("");
-  var lg=(hasO?'<span><svg width="20" height="12" aria-hidden="true"><rect x="1" y="1" width="18" height="10" rx="1" style="fill:var(--rule);stroke:var(--ink-2)"/></svg>물건</span>':'')+
-    ["c","r","t","x","q"].filter(function(k){return kinds[k];}).map(function(k){var K=DGK[k];return '<span><svg width="28" height="12" aria-hidden="true"><path d="M1 6L25 6" fill="none" style="stroke:'+K[2]+'" '+K[1]+'/>'+(K[3]?'<path d="M20 2L26 6L20 10" style="'+(K[3]==="q"?'fill:var(--ink)':'fill:none;stroke:var(--ink-2)')+'"/>':'')+'</svg>'+K[0]+'</span>';}).join("");
   setTimeout(dgFit,0);
   return '<div class="dg"><div class="dgsc"><svg width="'+vw+'" height="'+vh+'" viewBox="'+minx.toFixed(1)+' '+miny.toFixed(1)+' '+vw+' '+vh+'" role="img" aria-label="사례 도식" data-bad="'+L.bad+'">'+defs+out.join("")+'</svg></div>'+
-    '<ol class="dgl">'+lst+'</ol>'+(d.m?'<div class="dgm">'+d.m.split(" / ").map(esc).join("<br>")+'</div>':'')+'<div class="dglg">'+lg+'</div></div>';
+    '</div>';
 }
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
