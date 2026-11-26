@@ -902,7 +902,7 @@ function drawCases(){
   }
   box.querySelectorAll("details.case").forEach(function(d){d.ontoggle=function(){if(d.open)openCase=d.dataset.c;else if(openCase===d.dataset.c)openCase=null;};});
   box.querySelectorAll("[data-dgshow]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;caseDg[id]=caseDg[id]?0:1;openCase=id;drawCases();};});
-  box.querySelectorAll("[data-show]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;var s0=caseShown[id]||0;caseShown[id]=s0>=3?0:s0+1;openCase=id;drawCases();};});
+  box.querySelectorAll("[data-show]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;var s0=caseShown[id]||0;caseShown[id]=s0?0:3;openCase=id;drawCases();};});
   box.querySelectorAll("[data-hide]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;caseShown[id]=0;openCase=id;drawCases();};});
   box.querySelectorAll("[data-mark]").forEach(function(b){b.onclick=function(e){e.preventDefault();var id=b.closest("details").dataset.c;exToggleMark(id);openCase=id;drawCases();};});
   box.querySelectorAll(".relbtn").forEach(function(b){b.onclick=function(){setCmode("acr");filterText="";filterPart="";openRow=b.dataset.row;editing=false;renderCards();var el=document.querySelector('details.item[data-r="'+openRow+'"]');if(el)el.scrollIntoView({block:"center"});};});
@@ -1346,10 +1346,10 @@ function dgHtml(d){ // 사례 도식(흑백). 글자 폭을 재서 상자·간�
 }
 function exBlock(x){return x.a.split("\n").map(function(l){return md(l);}).join("<br>");}
 /* 답을 쟁점 → 법리 → 결론 순으로 한 단계씩 연다(n=1~3) */
-var STEPN=["쟁점 보기","법리 보기","결론 보기"];
+var STEPN=["답 보기"];
 function exStepBlock(x,n){var g=[[],[],[]];x.a.split("\n").forEach(function(l){if(!l.trim())return;g[/^\*\*쟁점/.test(l)?0:/^\*\*법리/.test(l)?1:2].push(md(l));});
   return g.slice(0,n).filter(function(a){return a.length;}).map(function(a){return a.join("<br>");}).join("<br>");}
-function stepLabel(n){return n<3?STEPN[n]:"답 접기";}
+function stepLabel(n){return n?"답 접기":"답 보기";}
 function rowById(rid){for(var i=0;i<ROWS.length;i++)if(ROWS[i].id===rid)return ROWS[i];return null;}
 /* ---------- 듣기 모드: 구글 음성(없으면 기기 음성)으로 주제 → (생각할 시간) → 두문자 → 뜻 ---------- */
 var listenSess=null,LS_RATE=[0.85,1,1.2],LS_GAP=[2,4,7],APP_BUILD="__BUILD__";
@@ -1638,10 +1638,10 @@ function renderEx(){
     var back=p.shown?'<div class="exa"><div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>'+exStepBlock(x,p.shown)+(p.shown>=3?'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div><div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'<div class="exmore"><button class="link" id="exhide2">답 접기</button></div>')+'</div>':'';
     var mkd=exMarked(exState()[x.id]);
     var acts='<div class="exnav"><div class="exnav1">'+(x.dg?'<button class="btn" id="exdg" aria-expanded="'+!!p.dg+'">'+(p.dg?'도식 접기':'도식 보기')+'</button>':'')+'<button class="btn'+(p.shown>=3?'':' primary')+'" id="'+(!p.shown?'exreveal':p.shown<3?'exstep':'exhide')+'" aria-expanded="'+(p.shown>=3)+'">'+stepLabel(p.shown||0)+'</button><button class="btn mark'+(mkd?' on':'')+'" id="exmark" aria-pressed="'+mkd+'">'+(mkd?'★ 다시 볼':'☆ 다시 볼')+'</button></div>'+
-      '<div class="exnav2"><button class="btn" id="exprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn'+(p.shown>=3?' primary':'')+'" id="exnext">'+(p.queue.length>1?'다음 사례':'마치기')+'</button></div></div><div class="hint">'+(p.shown?'':'카드를 눌러도 열려요 · ')+'스페이스 다음 단계 · D 도식 · S 다시 볼</div>';
+      '<div class="exnav2"><button class="btn" id="exprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn'+(p.shown>=3?' primary':'')+'" id="exnext">'+(p.queue.length>1?'다음 사례':'마치기')+'</button></div></div><div class="hint">'+(p.shown?'':'카드를 눌러도 열려요 · ')+'스페이스 답 · D 도식 · S 다시 볼</div>';
     main.innerHTML=bar+'<article class="card" aria-live="polite">'+front+back+'</article><div class="actions">'+acts+'</div>';
     document.getElementById("exq").onclick=function(){exSess=null;render();};
-    var rv=document.getElementById("exreveal")||document.getElementById("exstep");if(rv)rv.onclick=function(){p.shown=(p.shown||0)+1;render();};
+    var rv=document.getElementById("exreveal")||document.getElementById("exstep");if(rv)rv.onclick=function(){p.shown=3;render();};
     ["exhide","exhide2"].forEach(function(k){var hd=document.getElementById(k);if(hd)hd.onclick=function(){p.shown=0;render();};});
     var dgb=document.getElementById("exdg");if(dgb)dgb.onclick=function(e){e.stopPropagation();p.dg=!p.dg;render();};
     document.getElementById("exmark").onclick=function(){exToggleMark(x.id);render();};
@@ -1664,7 +1664,7 @@ function renderEx(){
       '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'개</button></div>'+
       '<p class="oxclr">본 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'개 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
   main.innerHTML='<section class="panel"><h2>섞어서 보기</h2><p class="muted" style="margin-top:0">다시 볼 사례와 안 본 사례부터 섞여 나와요. 맞히고 틀리는 퀴즈가 아니라 훑어보며 쟁점을 익히는 곳이에요. 복습 일정과는 따로예요.</p><div class="exhome">'+
-    box("case","사례","쟁점 → 법리 → 결론 순으로 답을 한 단계씩 열며 훑어봐요. 새 사례에 다시 볼 사례가 몇 개씩 섞여 나와요. 관련 두문자를 모두 배운 사례만 나와요.")+
+    box("case","사례","쟁점 → 법리 → 결론 흐름을 훑어봐요. 새 사례에 다시 볼 사례가 몇 개씩 섞여 나와요. 관련 두문자를 모두 배운 사례만 나와요.")+
     (settings().showOx?oxBox():'')+
     '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
@@ -1732,7 +1732,7 @@ document.addEventListener("keydown",function(e){
     if(kk==="s"||kk==="ㄴ")oxToggleStar(oxSess.queue[0]);
     return;}
   if(view==="ex"){if(!exSess||!exSess.queue.length)return;var k2=e.key.toLowerCase();
-    if(e.key===" "||e.key==="Enter"){e.preventDefault();exSess.shown=(exSess.shown||0)>=3?0:(exSess.shown||0)+1;render();}
+    if(e.key===" "||e.key==="Enter"){e.preventDefault();exSess.shown=exSess.shown?0:3;render();}
     else if(e.key==="ArrowRight"){e.preventDefault();exNext();}
     else if(e.key==="ArrowLeft"){e.preventDefault();exPrev();}
     else if(k2==="d"||k2==="ㅇ"){var x0=EX.filter(function(y){return y.id===exSess.queue[0];})[0];if(x0&&x0.dg){exSess.dg=!exSess.dg;render();}}
