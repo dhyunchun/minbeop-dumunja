@@ -5,7 +5,7 @@ import re
 - static/sw.js 의 __BUILD__ 를 빌드 번호로 바꿔 새 버전이 캐시를 갈아끼우게 한다.
 사용법: python3 build.py [빌드번호]
 """
-import json, shutil, sys, time
+import hashlib, json, shutil, sys, time
 from pathlib import Path
 
 root = Path(__file__).parent
@@ -23,6 +23,67 @@ for c in cards:
     for k in ("id", "part", "acr", "mean", "note", "ref", "tags"):
         assert k in c, f"{c.get('id')} 카드에 {k} 가 없어요"
 
+# 목차 카드: src/toc.txt(공통 골격 개요)에서 하위 항목이 둘 이상인 제목마다 한 장. 편마다 두문자 카드 사이에 고르게 섞는다.
+def parse_toc(text):
+    """들여쓰기 개요를 트리로 읽는다. 하위가 있는 줄의 제목이 같은 편의 앞선 '잎'과 같으면 그 잎을 펼친 것으로 본다."""
+    lines=[]
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"): continue
+        ind=len(raw)-len(raw.lstrip(" ")); assert ind%2==0, raw
+        t=raw.strip(); title,_,desc=t.partition(" — ")
+        lines.append((ind//2,title.strip(),desc.strip()))
+    nodes=[]; stack=[]; leaves={}; warn=[]
+    for i,(d,title,desc) in enumerate(lines):
+        has_kids=i+1<len(lines) and lines[i+1][0]>d
+        while stack and stack[-1][0]>=d: stack.pop()
+        parent=stack[-1][1] if stack else None
+        node=None
+        if has_kids and d>0:
+            part=stack[0][1]["title"]
+            cand=[n for n in leaves.get((part,title),[]) if not n["kids"] and n is not parent]
+            if cand: node=cand[-1]; leaves[(part,title)].remove(node)
+            elif d<=1 and parent is not None and d==1: pass
+        if node is None:
+            node={"title":title,"desc":desc,"kids":[],"parent":parent}
+            if parent is not None: parent["kids"].append(node)
+            else: nodes.append(node)
+            if d>0: leaves.setdefault((stack[0][1]["title"],title),[]).append(node)
+        stack.append((d,node))
+    return nodes
+def path(n):
+    p=[]
+    while n: p.append(n["title"]); n=n["parent"]
+    return p[::-1]
+def toc_rows(text):
+    tops=parse_toc(text); rows={}
+    def walk(n):
+        if len(n["kids"])>=2:
+            p=path(n); key=" › ".join(p)
+            acr="".join(k["title"][0] for k in n["kids"])
+            r={"id":"t-"+hashlib.md5(key.encode()).hexdigest()[:8],"part":p[0],"sub":"목차","acr":"",
+               "topic":" › ".join(p[1:]) or p[0],"mean":" / ".join(k["title"]+(" ("+k["desc"]+")" if k["desc"] else "") for k in n["kids"]),
+               "note":n["desc"],"ref":"","tags":["목차카드"],"toc":1,
+               "path":p,"kids":[[k["title"],k["desc"],1 if len(k["kids"])>=2 else 0] for k in n["kids"]]}
+            rows.setdefault(p[0],[]).append(r)
+        for k in n["kids"]: walk(k)
+    for t in tops: walk(t)
+    return rows
+
+tocp = root / "src" / "toc.txt"
+if tocp.exists():
+    trows = toc_rows(tocp.read_text(encoding="utf-8"))
+    tids = [r["id"] for l in trows.values() for r in l]
+    assert len(tids) == len(set(tids)) and not (set(tids) & set(ids)), "목차 카드 id가 겹쳐요"
+    merged = []
+    for part in dict.fromkeys(c["part"] for c in cards):
+        E = [c for c in cards if c["part"] == part]; T = trows.pop(part, [])
+        n, m = len(E), len(T); j = 0
+        for i, c in enumerate(E):
+            while j < m and j * n <= i * m: merged.append(T[j]); j += 1
+            merged.append(c)
+        merged.extend(T[j:])
+    assert not trows, f"목차의 편 이름이 카드와 달라요: {list(trows)}"
+    cards = merged
 data = json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 html = (root / "src" / "app.html").read_text(encoding="utf-8")
 assert "__DATA__" in html
