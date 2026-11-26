@@ -23,7 +23,7 @@ for c in cards:
     for k in ("id", "part", "acr", "mean", "note", "ref", "tags"):
         assert k in c, f"{c.get('id')} 카드에 {k} 가 없어요"
 
-# 목차 카드: src/toc.txt(공통 골격 개요)에서 하위 항목이 둘 이상인 제목마다 한 장. 편마다 두문자 카드 사이에 고르게 섞는다.
+# 목차 외우기(연습 탭): src/toc.txt 개요를 트리로 읽어 __TOC__ 자리에 넣는다. 두문자 카드와는 따로.
 def parse_toc(text):
     """들여쓰기 개요를 트리로 읽는다. 하위가 있는 줄의 제목이 같은 편의 앞선 '잎'과 같으면 그 잎을 펼친 것으로 본다."""
     lines=[]
@@ -50,40 +50,18 @@ def parse_toc(text):
             if d>0: leaves.setdefault((stack[0][1]["title"],title),[]).append(node)
         stack.append((d,node))
     return nodes
-def path(n):
-    p=[]
-    while n: p.append(n["title"]); n=n["parent"]
-    return p[::-1]
-def toc_rows(text):
-    tops=parse_toc(text); rows={}
-    def walk(n):
-        if len(n["kids"])>=2:
-            p=path(n); key=" › ".join(p)
-            acr="".join(k["title"][0] for k in n["kids"])
-            r={"id":"t-"+hashlib.md5(key.encode()).hexdigest()[:8],"part":p[0],"sub":"목차","acr":"",
-               "topic":" › ".join(p[1:]) or p[0],"mean":" / ".join(k["title"]+(" ("+k["desc"]+")" if k["desc"] else "") for k in n["kids"]),
-               "note":n["desc"],"ref":"","tags":["목차카드"],"toc":1,
-               "path":p,"kids":[[k["title"],k["desc"],1 if len(k["kids"])>=2 else 0] for k in n["kids"]]}
-            rows.setdefault(p[0],[]).append(r)
-        for k in n["kids"]: walk(k)
-    for t in tops: walk(t)
-    return rows
-
+def toc_json(n, path):
+    p = path + [n["title"]]
+    o = {"t": n["title"]}
+    if n["desc"]: o["d"] = n["desc"]
+    if n["kids"]:
+        o["k"] = [toc_json(k, p) for k in n["kids"]]
+        if len(n["kids"]) >= 2: o["i"] = "t-" + hashlib.md5(" › ".join(p).encode()).hexdigest()[:8]
+    return o
 tocp = root / "src" / "toc.txt"
-if tocp.exists():
-    trows = toc_rows(tocp.read_text(encoding="utf-8"))
-    tids = [r["id"] for l in trows.values() for r in l]
-    assert len(tids) == len(set(tids)) and not (set(tids) & set(ids)), "목차 카드 id가 겹쳐요"
-    merged = []
-    for part in dict.fromkeys(c["part"] for c in cards):
-        E = [c for c in cards if c["part"] == part]; T = trows.pop(part, [])
-        n, m = len(E), len(T); j = 0
-        for i, c in enumerate(E):
-            while j < m and j * n <= i * m: merged.append(T[j]); j += 1
-            merged.append(c)
-        merged.extend(T[j:])
-    assert not trows, f"목차의 편 이름이 카드와 달라요: {list(trows)}"
-    cards = merged
+toc = [toc_json(n, []) for n in parse_toc(tocp.read_text(encoding="utf-8"))] if tocp.exists() else []
+assert all(t["t"] in {c["part"] for c in cards} for t in toc), "목차의 편 이름이 카드와 달라요"
+tocdata = json.dumps(toc, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 data = json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 html = (root / "src" / "app.html").read_text(encoding="utf-8")
 assert "__DATA__" in html
@@ -126,7 +104,8 @@ if oxp.exists():
     oxp.write_text(json.dumps(oxd, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 audio = json.dumps({"files": audio.get("files", [])}, separators=(",", ":"))
 assert "__AUDIO__" in html
-html = html.replace("__AUDIO__", audio)
+assert "__TOC__" in html
+html = html.replace("__AUDIO__", audio).replace("__TOC__", tocdata)
 html = html.replace("__BUILD__", build)
 (out / "index.html").write_text(html.replace("__EXDATA__", exdata).replace("__DATA__", data), encoding="utf-8")
 shutil.copy(root / "src" / "firebase.js", out / "firebase.js")
