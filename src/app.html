@@ -196,7 +196,7 @@ details.more>summary b{color:var(--accent)}
 .reveal{font:inherit;font-weight:600;font-size:1rem;padding:14px;border-radius:12px;border:1px solid var(--rv-line,transparent);background:var(--rv-bg,var(--ink));color:var(--rv-ink,var(--sheet));cursor:pointer}
 .rates{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .rates.two{grid-template-columns:repeat(2,1fr)}
-.exnav{display:grid;gap:8px}.exnav1,.exnav2{display:flex;gap:8px}.exnav1 .btn,.exnav2 .btn{flex:1;min-height:44px}.exnav2 #exprev{flex:0 0 30%}.btn.mark.on{border-color:var(--ink);font-weight:700}.exmore{margin-top:8px}
+.exnav{display:grid;gap:8px}.exnav1,.exnav2{display:flex;gap:8px}.exnav1 .btn,.exnav2 .btn{flex:1;min-height:44px}.exnav2 #exprev{flex:0 0 30%}.btn.mark.on{border-color:var(--ink);font-weight:700}.exmore{margin-top:8px}.tocases{margin-top:10px}
 .rate{font:inherit;padding:10px 4px 8px;border-radius:10px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 .rate span{font-weight:600;font-size:.92rem}
 .rate small{font-size:.72rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
@@ -331,7 +331,8 @@ function mineRows(){var m=(typeof state!=="undefined"&&state&&state.mine)||{};
     .map(function(x){return {id:x.id,part:x.part,acr:x.acr||"",topic:x.q,mean:x.a,note:x.note||"",ref:"",tags:["내 카드"],mine:true};});}
 function buildCards(){
   ROWS=CARDS_RAW.concat(mineRows());CARDS=[];BYID={};
-  ROWS.forEach(function(r,i){(r.mine&&!r.acr?["g"]:["g","n"]).forEach(function(dir){var c={id:r.id+"-"+dir,row:r,dir:dir,order:(r.mine?-1000000:0)+i*2+(dir==="g"?0:1)};CARDS.push(c);BYID[c.id]=c;});});
+  ROWS.forEach(function(r,i){["g"].forEach( // (나) 두문자 → 뜻 방향은 2026-11 사용자 요청으로 없앰(예전 기록은 state에 남지만 쓰지 않음)
+function(dir){var c={id:r.id+"-"+dir,row:r,dir:dir,order:(r.mine?-1000000:0)+i*2+(dir==="g"?0:1)};CARDS.push(c);BYID[c.id]=c;});});
   if(typeof current!=="undefined"&&current)current=BYID[current.id]||null;
 }
 buildCards();
@@ -352,7 +353,7 @@ function migrateParts(ps){ // 계약·법정채권 편을 '제4편 채권각론'
   if(ps[o1]===false&&ps[o2]===false)ps["제4편 채권각론"]=false;
   delete ps[o1];delete ps[o2];
 }
-function cardOn(c){var s=settings();return (s.dirs[c.dir]!==false||(c.row.mine&&!c.row.acr))&&partOn(c.row.part)&&!state.susp[c.row.id];}
+function cardOn(c){return partOn(c.row.part)&&!state.susp[c.row.id];}
 function custom(r){return state.custom[r.id]||{};}
 function dispAcr(r){return custom(r).acr||r.acr;}
 function cs(id){return state.cards[id];}
@@ -648,7 +649,7 @@ function renderStudy(){
   ["edit","edit2"].forEach(function(x){var ed=document.getElementById(x);if(ed)ed.onclick=function(){editing=!editing;render();var i=document.getElementById("cu-acr");if(i)i.focus();};});
   var fg=document.getElementById("flag");if(fg)fg.onclick=function(){var on=!isFlag(r.id);flagRow(r,on);render();toast(on?"표시했어요 · 카드 목록과 연습에서 모아 볼 수 있어요":"표시를 해제했어요");};
   var sp=document.getElementById("susp");if(sp)sp.onclick=function(){suspendRow(r,true);undoStack.push({type:"susp",row:r.id,card:c.id});current=null;revealed=false;editing=false;render();toast("보류했어요 · 카드 목록에서 다시 켤 수 있어요");};
-  bindEditForm(r,function(){render();});
+  bindEditForm(r,function(){render();});bindJumps();
 }
 var editing=false, undoStack=[];
 function faceHtml(c,isRevealed,tools){
@@ -664,6 +665,7 @@ function faceHtml(c,isRevealed,tools){
   if(isRevealed){
     back='<div class="answer">'+(c.dir==="g"&&acr?'<div class="acr">'+esc(acr)+'</div>':'')+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+'</div>';
     if(tools&&isLeech(c.id)&&!cu.acr&&!cu.memo&&!editing)back+='<div class="leechtip">자주 잊는 카드예요. 나만의 두문자나 연상 메모를 달면 훨씬 잘 외워져요. <button class="link" id="edit2">지금 만들기</button></div>';
+    var ncs=r.mine?0:caseCountFor(r.id);if(ncs)back+='<div class="tocases"><button class="link" data-tocases="'+esc(r.id)+'">관련 사례 '+ncs+'개 보기</button></div>';
     if(tools)back+='<div class="tools"><button class="link" id="flag">'+(isFlag(r.id)?'★ 표시 해제':'☆ 헷갈림 표시')+'</button><button class="link" id="edit">내 두문자·메모</button><button class="link" id="susp">이 카드 보류</button></div>'+(editing?editForm(r):'');
   }
   return {front:front,back:back};
@@ -696,7 +698,7 @@ function renderPractice(){
   document.getElementById("pq").onclick=function(){practice=null;revealed=false;render();};
   var rv=document.getElementById("reveal");if(rv)rv.onclick=function(){revealed=true;render();};
   var a=document.getElementById("p-again");if(a)a.onclick=function(){practiceAnswer(false);};
-  var o=document.getElementById("p-ok");if(o)o.onclick=function(){practiceAnswer(true);};
+  var o=document.getElementById("p-ok");if(o)o.onclick=function(){practiceAnswer(true);};bindJumps();
 }
 /* 잔디: 자율 복습(새 카드+자주 잊는 카드, 무작위, 자주 잊는 카드 연습)에서 떠올린 카드 수를 날마다 hist[dk].pc 에 센다.
    같은 카드는 마지막으로 센 뒤 GRASS_GAP(1시간)이 지나야 다시 센다(이 기기 기준) — 바로 「한 번 더」로 숫자만 불리는 것은 막고,
@@ -781,12 +783,12 @@ function renderCards(){
 }
 function drawList(){
   var t=filterText.trim(), list=document.getElementById("list");
-  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__flag"){if(!isFlag(r.id))return false;}else if(filterPart==="__leech"){if(!["-g","-n"].some(function(x){var c=BYID[r.id+x];return c&&cardOn(c)&&isLeech(c.id);}))return false;}else if(filterPart==="__exam"){if(!r.exam)return false;}else if(filterPart==="__susp"){if(!state.susp[r.id])return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.part+(r.sub||"")+r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
+  var rows=ROWS.filter(function(r){if(filterPart==="__mine"){if(!r.mine)return false;}else if(filterPart==="__flag"){if(!isFlag(r.id))return false;}else if(filterPart==="__leech"){if(!(BYID[r.id+"-g"]&&cardOn(BYID[r.id+"-g"])&&isLeech(r.id+"-g")))return false;}else if(filterPart==="__exam"){if(!r.exam)return false;}else if(filterPart==="__susp"){if(!state.susp[r.id])return false;}else if(filterPart&&r.part!==filterPart)return false;if(!t)return true;return (r.part+(r.sub||"")+r.acr+r.mean+r.note+r.ref+(r.topic||"")+(r.q||"")+(custom(r).acr||"")+(custom(r).memo||"")).indexOf(t)>=0;});
   if(filterPart==="__exam")rows.sort(function(a,b){return examCount(b)-examCount(a);});
   var grouped=!t&&(filterPart===""||PARTS.indexOf(filterPart)>=0);
   function itemHtml(r){
     var cu=custom(r),sus=!!state.susp[r.id];
-    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+(isFlag(r.id)?'<i class="fstar" aria-label="표시">★</i>':'')+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':(r.mine&&!r.acr)?stateLabel(r.id+"-g"):(stateLabel(r.id+"-g")===stateLabel(r.id+"-n")?'가·나 '+stateLabel(r.id+"-g"):'가 '+stateLabel(r.id+"-g")+' · 나 '+stateLabel(r.id+"-n")))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
+    return '<details class="item'+(sus?' off':'')+'" data-r="'+esc(r.id)+'"'+(openRow===r.id?' open':'')+'><summary><span class="a">'+(isFlag(r.id)?'<i class="fstar" aria-label="표시">★</i>':'')+esc(dispAcr(r)||"내 카드")+'</span><span class="st">'+(sus?'보류 중':stateLabel(r.id+"-g"))+'</span><span class="t">'+esc(r.topic||(r.sub||"").replace(/^판례 두문자 — /,"판례 · ").replace(/^보충 단원 — /,"보충 · "))+'</span></summary><div class="body">'+(cu.acr?'<div class="muted">원래 두문자: '+esc(r.acr)+'</div>':'')+'<div class="mean">'+md(r.mean)+'</div>'+(r.note?'<div class="note">'+md(r.note)+'</div>':'')+(r.burden?'<div class="burden"><b>증명책임</b> '+esc(r.burden)+'</div>':'')+(r.exam?'<div class="exam"><b>변시 기출</b> '+esc(r.exam)+'</div>':'')+(r.ref&&r.ref!=="—"?'<div class="ref">'+esc(r.ref)+'</div>':'')+(cu.memo?'<div class="memo">'+esc(cu.memo)+'</div>':'')+
       (caseCountFor(r.id)?'<button class="link caselink" data-act="cases">관련 사례 '+caseCountFor(r.id)+'개 보기</button>':'')+'<div class="tools">'+(r.mine?'<button class="link" data-act="medit">수정</button><button class="link" data-act="mdel">'+(mineDelArm===r.id?'한 번 더 누르면 삭제':'삭제')+'</button>':'<button class="link" data-act="edit">내 두문자·메모</button>')+'<button class="link" data-act="flag">'+(isFlag(r.id)?'★ 표시 해제':'☆ 헷갈림 표시')+'</button><button class="link" data-act="susp">'+(sus?'보류 해제':'보류')+'</button></div>'+(openRow===r.id&&editing?editForm(r):'')+(r.mine&&mineEdit===r.id?mineForm(r.id):'')+'</div></details>';
   }
   if(!rows.length)list.innerHTML='<p class="muted">찾는 카드가 없어요. 검색어를 줄여 보세요.</p>';
@@ -799,7 +801,7 @@ function drawList(){
     gs.forEach(function(g){
       if(g.part!==lastPart){lastPart=g.part;var pr=rows.filter(function(r){return r.part===g.part;}),ps=pr.filter(function(r){return rowStarted(r.id);}).length;html+=(html?'</div>':'')+'<h2 class="parth">'+esc(g.part.replace(/^제\d편 /,""))+'<span>'+ps+' / '+pr.length+' 시작</span></h2><div class="glist">';}
       var st=g.rows.filter(function(r){return rowStarted(r.id);}).length,due=0,lc=0,ex=g.rows.filter(function(r){return r.tags.indexOf("판례")>=0;}).length;
-      g.rows.forEach(function(r){["-g","-n"].forEach(function(d){var c=cs(r.id+d);if(c&&c.st!=="new"&&c.due<=dayEnd(now()))due++;if(isLeech(r.id+d))lc++;});});
+      g.rows.forEach(function(r){["-g"].forEach(function(d){var c=cs(r.id+d);if(c&&c.st!=="new"&&c.due<=dayEnd(now()))due++;if(isLeech(r.id+d))lc++;});});
       var key=g.part+"|"+g.name;
       html+='<details class="grp" data-g="'+esc(key)+'"'+(openG[key]?' open':'')+'><summary><span class="gn">'+esc(g.name)+'</span><span class="gs">'+(ex?'판례 '+ex+' · ':'')+st+'/'+g.rows.length+(due?' · 오늘 '+due:'')+(lc?' · <span style="color:var(--again)">잊음 '+lc+'</span>':'')+'</span><span class="gbar"><i style="width:'+Math.round(st/g.rows.length*100)+'%"></i></span></summary><div class="list">'+g.rows.map(itemHtml).join("")+'</div></details>';
     });
@@ -823,6 +825,11 @@ function drawList(){
 var openRow=null, mineEdit=null, mineDelArm=null;
 /* ---------- 카드 탭: 사례 찾아보기 (두문자 카드처럼 검색·열람) ---------- */
 function setCmode(m){cardMode=m;try{localStorage.setItem("minbeop-cmode",m);}catch(e){}}
+/* 복습 카드·사례 세션에서 카드 탭으로 건너가기(진행 중인 세션은 그대로 남아 돌아오면 이어서 본다) */
+function goCases(rid){view="cards";setCmode("case");caseText="";casePart="";caseRel=rid;openCase=null;render();window.scrollTo(0,0);}
+function goRow(rid){view="cards";setCmode("acr");filterText="";filterPart="";openRow=rid;editing=false;render();var el=document.querySelector('details.item[data-r="'+rid+'"]');if(el)el.scrollIntoView({block:"center"});}
+function bindJumps(){main.querySelectorAll("[data-tocases]").forEach(function(b){b.onclick=function(e){e.stopPropagation();goCases(b.dataset.tocases);};});
+  main.querySelectorAll("[data-torow]").forEach(function(b){b.onclick=function(e){e.stopPropagation();goRow(b.dataset.torow);};});}
 /* 사례 출처: 기출을 바꾼 사례는 src, 직접 만든 사례는 관련 카드의 변시 출제 회차를 모아 보여 준다 */
 function caseSrc(x){
   if(x.src)return x.src;
@@ -1086,7 +1093,7 @@ function renderStats(){
   var today=state.hist[dayKey(t)]||{r:0,a:0,n:0};
   var max=Math.max(1,Math.max.apply(null,fc));
   var bars=fc.map(function(v,i){var dd=new Date(end-DAY+i*DAY);return '<div class="bar" title="'+v+'장"><em>'+(v||"")+'</em><i style="height:'+Math.round(v/max*90)+'px"></i><small>'+(i===0?"오늘":(i%2===0?(dd.getMonth()+1)+"/"+dd.getDate():"&nbsp;"))+'</small></div>';}).join("");
-  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 방향·편의 카드만 세요. 두문자 하나에 카드가 두 방향으로 한 장씩 있어요.</p>';
+  var prog=PARTS.filter(partOn).map(function(p){var tot=0,l=0;CARDS.forEach(function(c){if(c.row.part!==p||!cardOn(c))return;tot++;var s=cs(c.id);if(s&&s.st!=="new")l++;});return '<div><span>'+esc(p.replace(/^제\d편 /,""))+'</span><span class="track"><i style="width:'+Math.round(l/tot*100)+'%"></i></span><span class="muted">'+l+'/'+tot+'</span></div>';}).join("")+'<p class="muted" style="margin:8px 0 0">켜 둔 편의 카드만 세요.</p>';
   // 연속 공부 일수
   function rOn(k){return (state.hist[k]&&state.hist[k].r)||0;}
   var noon=end-DAY+12*3600000, streak=0, d0=rOn(dayKey(t))?0:1;
@@ -1143,7 +1150,7 @@ function renderSettings(){
   '<section class="panel"><h2>학습량</h2><div class="field"><label for="npd">하루 새 카드</label><div class="row"><input type="number" id="npd" min="0" max="100" value="'+s.newPerDay+'" style="width:6em"><span class="sub">장 · 복습 카드는 제한 없이 모두 나와요</span></div></div>'+
   '<div class="field"><label for="ret">목표 기억률 <b id="retv">'+Math.round(s.retention*100)+'%</b></label><input type="range" id="ret" min="80" max="97" step="1" value="'+Math.round(s.retention*100)+'"><span class="sub">복습할 때 떠올릴 확률을 이만큼으로 유지하도록 간격을 정해요. 높일수록 복습이 잦아져요.</span></div>'+
   '<div class="field"><label>쉬는 요일</label><div class="checks wk">'+[1,2,3,4,5,6,0].map(function(i){var n="일월화수목금토"[i];return '<label><input type="checkbox" data-wd="'+i+'"'+((s.easyDays||[]).indexOf(i)>=0?" checked":"")+'> '+n+'</label>';}).join("")+'</div><span class="sub">고른 요일에는 며칠 뒤 복습을 되도록 잡지 않아요. 간격이 3일 이상인 카드만 앞뒤로 하루~며칠 옮기기 때문에, 하루이틀 뒤 복습이나 밀린 복습은 그날에도 나올 수 있어요. 공부 정원에서는 이날 쉬어도 비가 와서 연속 기록이 이어져요. 고르지 않아도 복습이 덜 몰린 날로 알아서 나눠 잡아요.</span></div></section>'+
-  '<section class="panel"><h2>카드 방향과 범위</h2><div class="field"><div class="checks"><label><input type="checkbox" id="dir-g"'+(s.dirs.g!==false?" checked":"")+'> (가) 주제 → 두문자</label><label><input type="checkbox" id="dir-n"'+(s.dirs.n!==false?" checked":"")+'> (나) 두문자 → 뜻</label></div></div><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div><div class="field"><label>연습 탭</label><div class="checks"><label><input type="checkbox" id="showox"'+(s.showOx?" checked":"")+'> 변시 기출 OX 보이기</label></div><p class="muted" style="margin:6px 0 0;font-size:.82rem">꺼 두어도 풀이 기록은 그대로 남아요.</p></div></section>'+
+  '<section class="panel"><h2>범위</h2><div class="field"><label>포함할 편</label><div class="checks">'+parts+'</div></div><div class="field"><label>연습 탭</label><div class="checks"><label><input type="checkbox" id="showox"'+(s.showOx?" checked":"")+'> 변시 기출 OX 보이기</label></div><p class="muted" style="margin:6px 0 0;font-size:.82rem">꺼 두어도 풀이 기록은 그대로 남아요.</p></div></section>'+
   '<section class="panel"><h2>화면</h2><div class="seg" role="radiogroup" aria-label="화면 테마">'+[["auto","자동"],["light","밝게"],["dark","어둡게"]].map(function(o){return '<button type="button" role="radio" data-th="'+o[0]+'" aria-checked="'+(themePref()===o[0])+'">'+o[1]+'</button>';}).join("")+'</div><p class="muted" style="margin:6px 0 0">자동은 휴대폰 설정을 따라가요. 이 기기에만 적용돼요.</p></section>'+
   '<section class="panel"><h2>계정</h2>'+acct+'</section>'+
   '<details class="more" id="setmore"'+(setMore?' open':'')+'><summary><b>더 보기</b> · 백업, 간격 맞춤화, 원리, 기록 지우기</summary>'+
@@ -1174,7 +1181,6 @@ function renderSettings(){
   var npd=document.getElementById("npd");npd.onchange=function(){var v=Math.max(0,Math.min(100,parseInt(npd.value,10)||0));s.newPerDay=v;npd.value=v;scheduleSave();toast("하루 새 카드 "+v+"장");};
   var ret=document.getElementById("ret");ret.oninput=function(){document.getElementById("retv").textContent=ret.value+"%";};ret.onchange=function(){s.retention=(+ret.value)/100;scheduleSave();toast("목표 기억률 "+ret.value+"%");};
   var sox=document.getElementById("showox");if(sox)sox.onchange=function(){s.showOx=sox.checked;scheduleSave();toast(sox.checked?"연습 탭에 기출 OX가 보여요":"기출 OX를 숨겼어요");};
-  ["g","n"].forEach(function(d){var el=document.getElementById("dir-"+d);el.onchange=function(){s.dirs[d]=el.checked;if(!s.dirs.g&&!s.dirs.n){s.dirs[d]=true;el.checked=true;toast("한 방향은 켜 두어야 해요");return;}current=null;scheduleSave();};});
   main.querySelectorAll("[data-p]").forEach(function(el){el.onchange=function(){s.parts[el.dataset.p]=el.checked;current=null;scheduleSave();};});
   document.getElementById("exp").onclick=function(){
     var text=JSON.stringify(state);
@@ -1198,10 +1204,7 @@ function renderSettings(){
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(listenSess){listenStop();listenSess=null;}view=b.dataset.v;render();window.scrollTo(0,0);};});
 /* ---------- 연습문제: 미니 사례·헷갈리는 쌍 (복습 일정과 별개) ---------- */
 var EX=[];try{EX=JSON.parse(document.getElementById("ex-data").textContent)||[];}catch(e){EX=[];}
-// 사례·비교 문제가 없는 카드는 단원별 연습에 카드 문제로 자동 포함(카드가 바뀌면 함께 바뀜)
-(function(){var linked={};EX.forEach(function(x){(x.rel||[]).forEach(function(r){linked[r]=1;});});
-  CARDS_RAW.forEach(function(r){if(!r.unit||linked[r.id])return;
-    EX.push({id:"k-"+r.id,kind:"card",part:r.part,rel:[r.id],title:r.topic||"",q:r.q||"",a:r.mean+(r.note?"\n"+r.note:""),acr:r.acr});});})();
+// (2026-11) 사례가 없는 카드를 카드 문제로 섞던 기능은 없앴다. 연습 탭은 사례만 다룬다.
 var exSess=null, EX_N=10, EXNAME={case:"사례",pair:"기간·숫자, 헷갈리는 개념",card:"카드 문제"};
 function exState(){if(!state.ex)state.ex={};return state.ex;}
 function rowStarted(rid){var a=cs(rid+"-g"),b=cs(rid+"-n");return !!((a&&a.st!=="new")||(b&&b.st!=="new"));}
@@ -1238,11 +1241,11 @@ function exStart(kind,onlyWrong){ // kind: "case"/"pair" 또는 단원 선택 {u
 }
 /* 사례 문제 편별 풀이 기록 지우기(기출 OX와 같은 방식: n=0 기록을 최신 시각으로 남겨 동기화로 되살아나지 않게) */
 var exClrArm=null;
-function exClearPart(pt){var S=exState(),t=now();EX.forEach(function(x){var st=S[x.id];if(x.kind!=="case"||x.part!==pt||!st||!st.n)return;S[x.id]={n:0,w:0,last:t};});exClrArm=null;scheduleSave();render();}
+function exClearPart(pt){var S=exState(),t=now();EX.forEach(function(x){var st=S[x.id];if(x.kind!=="case"||x.part!==pt||!st||!st.n)return;var o={n:0,w:0,last:t};if(exMarked(st)){o.f=1;o.ft=st.ft||t;}else if(st.f!==undefined){o.f=0;o.ft=st.ft||t;}S[x.id]=o;});exClrArm=null;scheduleSave();render();}
 /* 사례는 맞힘·틀림 없이 훑어본다: 다음으로 넘기면 「봄」으로 기록, ☆는 다시 볼 사례 표시 */
 function exNext(){var p=exSess;if(!p||!p.queue.length)return;
   var id=p.queue.shift(),S=exState(),st=S[id]||{n:0,w:0};
-  st.n=(st.n||0)+1;st.last=now();if(st.f===undefined&&st.r!==undefined)st.f=st.r===0?1:0;S[id]=st;p.hist.push(id);
+  if(!p.seen)p.seen={};if(!p.seen[id]){p.seen[id]=1;st.n=(st.n||0)+1;st.last=now();}if(st.f===undefined&&st.r!==undefined)st.f=st.r===0?1:0;S[id]=st;p.hist.push(id);
   p.shown=0;p.dg=false;scheduleSave();render();window.scrollTo(0,0);}
 function exPrev(){var p=exSess;if(!p||!p.hist.length)return;p.queue.unshift(p.hist.pop());p.shown=0;p.dg=false;render();window.scrollTo(0,0);}
 function exToggleMark(id){var S=exState(),st=S[id]||{n:0,w:0};st.f=exMarked(st)?0:1;st.ft=now();S[id]=st;scheduleSave();}
@@ -1618,7 +1621,7 @@ function renderEx(){
   if(listenSess){renderListen();return;}
   if(oxSess){renderOx();return;}
   if(exSess){
-    var p=exSess,label=typeof p.kind==="string"?(p.kind.slice(0,3)==="re:"?"다시 풀기 · "+(p.kind.slice(3)?p.kind.slice(3).replace(/^제\d편 /,""):"전체"):(EXNAME[p.kind]||"연습")):"단원별 · "+unitLabel(p.kind.units);
+    var p=exSess,label=typeof p.kind==="string"?(p.kind.slice(0,3)==="re:"?"다시 보기 · "+(p.kind.slice(3)?p.kind.slice(3).replace(/^제\d편 /,""):"전체"):(EXNAME[p.kind]||"연습")):"단원별 · "+unitLabel(p.kind.units);
     var pos=p.total-p.queue.length+(p.queue.length?1:0);
     var bar='<div class="undo"><span class="muted">'+label+(p.wrong?' · 다시 볼 사례':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="exq">그만 보기</button></div>';
     if(!p.queue.length){
@@ -1630,12 +1633,12 @@ function renderEx(){
       return;
     }
     var x=null;for(var i=0;i<EX.length;i++)if(EX[i].id===p.queue[0])x=EX[i];
-    var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||""):"";}).filter(Boolean);
+    var rels=x.rel.map(function(rid){var r=rowById(rid);return r?'<button class="relbtn" data-torow="'+esc(rid)+'"><b>'+esc(dispAcr(r))+'</b> '+esc(r.topic||r.q||"")+'</button>':"";}).filter(Boolean);
     var front='<div class="meta"><span class="crumb">'+esc(x.part.replace(/^제\d편 /,""))+'</span><span class="badges"><span class="tag">'+(x.kind==="card"?"카드":x.kind!=="pair"?"사례":(/^\[(기간|숫자)\]/.test(x.title)?"기간·숫자":"비교"))+'</span></span></div>'+
       (x.kind==="pair"?'<div class="muted" style="font-size:.85rem;margin-bottom:4px">'+esc(x.title)+'</div>':'')+
       '<div class="exq">'+(x.kind==="card"?(x.q?esc(x.q):'두문자 <b>'+esc(dispAcr(rowById(x.rel[0])||{acr:x.acr}))+'</b>는 무엇의 두문자인가요?'):esc(x.q).replace(/\n?〈문제〉\s*/g,'<span class="qm">〈문제〉</span>').replace(/\n/g,"<br>").replace(/\s\((\d)\)\s/g,'<br>($1) '))+'</div><div class="ask">'+(x.kind==="card"?(x.q?'요건과 결론을 떠올려 보세요.':'뜻과 결론까지 떠올려 보세요.'):x.kind==="toc"?'청구원인 → 항변 → 재항변 순서로 떠올려 보세요.':x.kind!=="pair"?'쟁점을 찾고, 요건을 따져 결론까지 떠올려 보세요.':(/^\[(기간|숫자)\]/.test(x.title)?'기간과 숫자를 조문까지 떠올려 보세요.':'두 제도가 갈리는 지점을 떠올려 보세요.'))+'</div>';
     if(x.dg&&p.dg)front+=dgHtml(x.dg);
-    var back=p.shown?'<div class="exa"><div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>'+exStepBlock(x,p.shown)+(p.shown>=3?'<div class="exrel">관련 두문자'+(rels.length?'<br>'+rels.join('<br>'):' · '+esc(x.acr))+'</div><div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'<div class="exmore"><button class="link" id="exhide2">답 접기</button></div>')+'</div>':'';
+    var back=p.shown?'<div class="exa"><div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>'+exStepBlock(x,p.shown)+(p.shown>=3?'<div class="exrel">관련 두문자'+(rels.length?'<div class="rels">'+rels.join('')+'</div>':' · '+esc(x.acr))+'</div><div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'<div class="exmore"><button class="link" id="exhide2">답 접기</button></div>')+'</div>':'';
     var mkd=exMarked(exState()[x.id]);
     var acts='<div class="exnav"><div class="exnav1">'+(x.dg?'<button class="btn" id="exdg" aria-expanded="'+!!p.dg+'">'+(p.dg?'도식 접기':'도식 보기')+'</button>':'')+'<button class="btn'+(p.shown>=3?'':' primary')+'" id="'+(!p.shown?'exreveal':p.shown<3?'exstep':'exhide')+'" aria-expanded="'+(p.shown>=3)+'">'+stepLabel(p.shown||0)+'</button><button class="btn mark'+(mkd?' on':'')+'" id="exmark" aria-pressed="'+mkd+'">'+(mkd?'★ 다시 볼':'☆ 다시 볼')+'</button></div>'+
       '<div class="exnav2"><button class="btn" id="exprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn'+(p.shown>=3?' primary':'')+'" id="exnext">'+(p.queue.length>1?'다음 사례':'마치기')+'</button></div></div><div class="hint">'+(p.shown?'':'카드를 눌러도 열려요 · ')+'스페이스 답 · D 도식 · S 다시 볼</div>';
@@ -1645,7 +1648,7 @@ function renderEx(){
     ["exhide","exhide2"].forEach(function(k){var hd=document.getElementById(k);if(hd)hd.onclick=function(){p.shown=0;render();};});
     var dgb=document.getElementById("exdg");if(dgb)dgb.onclick=function(e){e.stopPropagation();p.dg=!p.dg;render();};
     document.getElementById("exmark").onclick=function(){exToggleMark(x.id);render();};
-    document.getElementById("exprev").onclick=exPrev;document.getElementById("exnext").onclick=exNext;
+    document.getElementById("exprev").onclick=exPrev;document.getElementById("exnext").onclick=exNext;bindJumps();
     return;
   }
   var S=exState();
@@ -1663,10 +1666,10 @@ function renderEx(){
       parts.map(function(pt){var n=exPool("re:"+pt).length;return n?'<button class="btn" data-ex="re:'+esc(pt)+'">'+esc(pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각"))+' '+n+'</button>':'';}).join("")+
       '<button class="btn primary" data-ex="re:">한번에 '+Math.min(EX_N,tot)+'개</button></div>'+
       '<p class="oxclr">본 기록 지우기: '+parts.map(function(pt){var n=exPool("re:"+pt).length,s=pt.replace(/^제\d편 /,"").replace("채권총론","채총").replace("채권각론","채각");return n?'<button class="link" data-exclr="'+esc(pt)+'">'+(exClrArm===pt?'한 번 더 누르면 '+esc(s)+' '+n+'개 기록이 지워져요':esc(s))+'</button>':'';}).filter(Boolean).join(" · ")+'</p></details>';}
-  main.innerHTML='<section class="panel"><h2>섞어서 보기</h2><p class="muted" style="margin-top:0">다시 볼 사례와 안 본 사례부터 섞여 나와요. 맞히고 틀리는 퀴즈가 아니라 훑어보며 쟁점을 익히는 곳이에요. 복습 일정과는 따로예요.</p><div class="exhome">'+
+  main.innerHTML='<section class="panel"><h2>섞어서 보기</h2><p class="muted" style="margin-top:0">다시 볼 사례와 안 본 사례부터 섞여 나와요. 복습 일정과는 따로예요.</p><div class="exhome">'+
     box("case","사례","쟁점 → 법리 → 결론 흐름을 훑어봐요. 새 사례에 다시 볼 사례가 몇 개씩 섞여 나와요. 관련 두문자를 모두 배운 사례만 나와요.")+
     (settings().showOx?oxBox():'')+
-    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 문제도 열기</label></section>'+unitPanel()+listenPanel();
+    '</div><label class="muted" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.85rem"><input type="checkbox" id="exall"'+(settings().exAll?' checked':'')+'> 아직 배우지 않은 두문자의 사례도 열기</label></section>'+unitPanel()+listenPanel();
   main.querySelectorAll("[data-ex]").forEach(function(b){b.onclick=function(){exStart(b.dataset.ex,false);};});
   main.querySelectorAll("[data-exw]").forEach(function(b){b.onclick=function(){exStart(b.dataset.exw,true);};});
   main.querySelectorAll("[data-exclr]").forEach(function(b){b.onclick=function(){var pt=b.dataset.exclr;if(exClrArm===pt)exClearPart(pt);else{exClrArm=pt;render();}};});
@@ -1701,14 +1704,14 @@ function unitPanel(){
   var spec={units:sel,kf:kf},pool=sel.length?exPool(spec):[],wrong=sel.length?exPool(spec,true):[];
   var last=se.exLast&&se.exLast.units&&se.exLast.units.filter(function(k){return valid[k];});
   var lastSame=last&&last.length&&last.join()===sel.join();
-  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">고른 단원의 모든 카드가 문제로 나와요(아직 안 배운 카드 포함). ★는 다시 볼 사례 수예요.</p>';
+  var h='<section class="panel unitp"><h2>단원별 연습</h2><p class="muted" style="margin-top:0">고른 단원의 사례가 모두 나와요(아직 안 배운 두문자의 사례 포함). ★는 다시 볼 사례 수예요.</p>';
   if(last&&last.length&&!lastSame)h+='<button class="btn resume" id="uresume">↻ 지난번 단원 다시: '+esc(unitLabel(last))+'</button>';
   h+='<div class="ptabs" role="tablist">'+parts.map(function(P){var c=P.units.filter(function(u){return sel.indexOf(u.key)>=0;}).length;return '<button role="tab" data-up="'+esc(P.part)+'" aria-selected="'+(P.part===unitOpenPart)+'">'+esc(P.part.replace(/^제\d편 /,""))+(c?' <b>'+c+'</b>':'')+'</button>';}).join("")+'</div>';
   parts.forEach(function(P){if(P.part!==unitOpenPart)return;
     var us=P.units.filter(function(u){return u.n;}),allOn=us.length&&us.every(function(u){return sel.indexOf(u.key)>=0;});
     h+='<div class="uchips">'+us.map(function(u){var on=sel.indexOf(u.key)>=0;return '<button class="uchip" data-u="'+esc(u.key)+'" aria-pressed="'+on+'">'+esc(u.name)+'<small>'+u.n+(u.w?' · <i>★'+u.w+'</i>':'')+'</small></button>';}).join("")+
       '<button class="uchip all" data-uall="'+esc(P.part)+'" aria-pressed="'+allOn+'">'+(allOn?'이 편 해제':'이 편 전체')+'</button></div>';});
-  h+='<div class="ufoot">'+(sel.length?'<div class="muted usel">'+sel.length+'개 단원 · '+pool.length+'문제<button class="link" id="uclear">선택 해제</button></div>':'<div class="muted usel">단원을 눌러 고르세요 · 여러 개 가능</div>')+
+  h+='<div class="ufoot">'+(sel.length?'<div class="muted usel">'+sel.length+'개 단원 · '+pool.length+'개 사례<button class="link" id="uclear">선택 해제</button></div>':'<div class="muted usel">단원을 눌러 고르세요 · 여러 개 가능</div>')+
     '<div class="row"><button class="btn primary" id="ustart"'+(pool.length?'':' disabled')+'>'+(pool.length?Math.min(EX_N,pool.length)+'개 보기':'사례 보기')+'</button>'+(wrong.length?'<button class="btn" id="uwrong">★ 다시 볼 사례 '+wrong.length+'개</button>':'')+'</div></div></section>';
   return h;
 }
