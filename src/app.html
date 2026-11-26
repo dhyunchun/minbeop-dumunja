@@ -618,11 +618,7 @@ function render(){document.body.classList.toggle("reading",view==="ex"&&!!(exSes
   var act=main.querySelector(".actions");document.body.classList.toggle("hasact",!!act);
   if(act)requestAnimationFrame(function(){document.body.style.setProperty("--actH",(act.offsetHeight+16)+"px");});
 }
-function bindTapReveal(){ // 연습 탭 사례만: 카드 아무 곳이나 눌러도 답이 열린다(복습 카드는 2026-11 사용자 요청으로 뺌)
-  var btn=document.getElementById("exreveal"),card=main.querySelector("article.card");
-  if(!btn||!card)return;card.classList.add("tap");
-  card.onclick=function(e){if(e.target.closest("button,a,input,textarea,select,label,summary,.dg"))return;if(window.getSelection&&String(window.getSelection()).length)return;btn.click();};
-}
+function bindTapReveal(){} // 카드를 눌러 답 열기는 2026-11 사용자 요청으로 모두 없앰(버튼·스페이스바만)
 function renderStudy(){
   if(practice){renderPractice();return;}
   var q=queue();
@@ -1648,7 +1644,7 @@ function renderEx(){
     var back=p.shown?'<div class="exa"><div class="muted" style="margin-bottom:6px;font-size:.85rem">'+esc(x.title)+'</div>'+exStepBlock(x,p.shown)+(p.shown>=3?'<div class="exrel">관련 두문자'+(rels.length?'<div class="rels">'+rels.join('')+'</div>':' · '+esc(x.acr))+'</div><div class="exsrc">출처 · '+esc(caseSrc(x))+'</div>':'<div class="exmore"><button class="link" id="exhide2">답 접기</button></div>')+'</div>':'';
     var mkd=exMarked(exState()[x.id]);
     var acts='<div class="exnav"><div class="exnav1">'+(x.dg?'<button class="btn" id="exdg" aria-expanded="'+!!p.dg+'">'+(p.dg?'도식 접기':'도식 보기')+'</button>':'')+'<button class="btn'+(p.shown>=3?'':' primary')+'" id="'+(!p.shown?'exreveal':p.shown<3?'exstep':'exhide')+'" aria-expanded="'+(p.shown>=3)+'">'+stepLabel(p.shown||0)+'</button><button class="btn mark'+(mkd?' on':'')+'" id="exmark" aria-pressed="'+mkd+'">'+(mkd?'★ 다시 볼':'☆ 다시 볼')+'</button></div>'+
-      '<div class="exnav2"><button class="btn" id="exprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn'+(p.shown>=3?' primary':'')+'" id="exnext">'+(p.queue.length>1?'다음 사례':'마치기')+'</button></div></div><div class="hint">'+(p.shown?'<span class="kb">스페이스 답 · D 도식 · S 다시 볼</span>':'카드를 눌러도 열려요<span class="kb"> · 스페이스 답 · D 도식 · S 다시 볼</span>')+'</div>';
+      '<div class="exnav2"><button class="btn" id="exprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn'+(p.shown>=3?' primary':'')+'" id="exnext">'+(p.queue.length>1?'다음 사례':'마치기')+'</button></div></div><div class="hint">'+(p.shown?'<span class="kb">스페이스 답 · D 도식 · S 다시 볼</span>':'<span class="kb">스페이스 답 · D 도식 · S 다시 볼</span>')+'</div>';
     main.innerHTML=bar+'<article class="card" aria-live="polite">'+front+back+'</article><div class="actions">'+acts+'</div>';
     document.getElementById("exq").onclick=function(){exSess=null;render();};
     var rv=document.getElementById("exreveal")||document.getElementById("exstep");if(rv)rv.onclick=function(){p.shown=3;render();};
