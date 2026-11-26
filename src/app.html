@@ -618,8 +618,8 @@ function render(){document.body.classList.toggle("reading",view==="ex"&&!!(exSes
   var act=main.querySelector(".actions");document.body.classList.toggle("hasact",!!act);
   if(act)requestAnimationFrame(function(){document.body.style.setProperty("--actH",(act.offsetHeight+16)+"px");});
 }
-function bindTapReveal(){ // 카드 아무 곳이나 눌러도 정답이 열린다
-  var btn=document.getElementById("reveal")||document.getElementById("exreveal"),card=main.querySelector("article.card");
+function bindTapReveal(){ // 연습 탭 사례만: 카드 아무 곳이나 눌러도 답이 열린다(복습 카드는 2026-11 사용자 요청으로 뺌)
+  var btn=document.getElementById("exreveal"),card=main.querySelector("article.card");
   if(!btn||!card)return;card.classList.add("tap");
   card.onclick=function(e){if(e.target.closest("button,a,input,textarea,select,label,summary,.dg"))return;if(window.getSelection&&String(window.getSelection()).length)return;btn.click();};
 }
@@ -641,7 +641,7 @@ function renderStudy(){
   }
   var c=current,r=c.row,f=faceHtml(c,revealed,true),front=f.front,back=f.back;
   var acts;
-  if(!revealed)acts='<button class="reveal" id="reveal">정답 보기</button><div class="hint">카드를 눌러도 열려요<span class="kb"> · 스페이스바</span></div>';
+  if(!revealed)acts='<button class="reveal" id="reveal">정답 보기</button><div class="hint kb">스페이스바</div>';
   else{
     var labels=["다시","어려움","알맞음","쉬움"];
     acts='<div class="rates">'+[1,2,3,4].map(function(g){return '<button class="rate r'+g+'" data-g="'+g+'"><span>'+labels[g-1]+'</span><small>'+fmtIvl(preview(c.id,g))+'</small></button>';}).join("")+'</div><div class="hint">떠올린 정도대로 고르세요<span class="kb"> · 키보드 1~4 · S 헷갈림 표시</span></div>';
@@ -696,7 +696,7 @@ function renderPractice(){
     return;
   }
   var c=BYID[p.queue[0]],f=faceHtml(c,revealed,false);
-  var acts=!revealed?'<button class="reveal" id="reveal">정답 보기</button><div class="hint">카드를 눌러도 열려요<span class="kb"> · 스페이스바</span></div>'
+  var acts=!revealed?'<button class="reveal" id="reveal">정답 보기</button><div class="hint kb">스페이스바</div>'
     :'<div class="rates two"><button class="rate r1" id="p-again"><span>다시 볼게요</span><small>몇 장 뒤에 다시</small></button><button class="rate r3" id="p-ok"><span>기억났어요</span><small>이번 연습에서 빼기</small></button></div><div class="hint kb">키보드 1 · 2</div>';
   main.innerHTML=bar+'<article class="card'+(revealed?'':' front')+'" aria-live="polite"><div class="meta">'+tagsHtml(c)+'</div>'+f.front+f.back+'</article>'+(revealed?leechHint(c,true):'')+'<div class="actions">'+acts+'</div>';
   document.getElementById("pq").onclick=function(){practice=null;revealed=false;render();};
