@@ -63,7 +63,7 @@ main{padding-top:16px}
 .meta .crumb{display:flex;align-items:center;gap:5px;min-width:0}
 .meta .sep{opacity:.55}
 .meta .badges{display:flex;gap:6px;margin-left:auto;align-items:center}
-.unitp .resume{width:100%;margin:2px 0 12px;text-align:left}
+.unitp .resume,.tocp .resume{width:100%;margin:2px 0 12px;text-align:left}
 .seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-bottom:10px}
 .seg button{font:inherit;font-size:.82rem;padding:6px 12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
@@ -119,13 +119,15 @@ main{padding-top:16px}
 .exbox{padding:14px;border-radius:12px;background:var(--paper)}.exbox.flat{padding:0;background:none}details.more{display:inline}details.more summary{display:inline;cursor:pointer;color:var(--accent);list-style:none}details.more summary::-webkit-details-marker{display:none}details.more[open]{display:block;margin-top:4px}
 .exbox h3{margin:0 0 4px;font-size:1rem}
 .tdepth{display:flex;align-items:center;gap:10px;margin-bottom:6px}.tdepth>.muted{font-size:.85rem;white-space:nowrap}.tdepth .seg{margin:0;flex:1}.tdepth .seg button{white-space:nowrap;padding:7px 4px}.done h2{text-wrap:balance}
-.tdot{display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--rule);flex:none}.tdot.ok{background:var(--accent);border-color:var(--accent)}.tdot.no{background:var(--seal);border-color:var(--seal)}
+.tstart{width:100%;margin:2px 0 10px}
 .ttree{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
-.ttree li{border-bottom:1px solid var(--rule)}
-.ttree button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;text-align:left;background:none;border:0;color:var(--ink);cursor:pointer;padding:8px 4px 8px calc(4px + var(--lv)*16px);min-height:40px}
-.ttree li[style*="--lv:0"] button{font-weight:700}.ttree li:not([style*="--lv:0"]) button{font-size:.9rem}
-.ttree button span{flex:1}.ttree small{color:var(--ink-2);font-variant-numeric:tabular-nums}
-.ttree button:hover span{color:var(--accent)}
+.ttree>li{border-bottom:1px solid var(--rule)}
+.trow{display:flex;align-items:stretch}
+.tgo{display:flex;align-items:center;gap:8px;flex:1;font:inherit;text-align:left;background:none;border:0;color:var(--ink);cursor:pointer;padding:8px 4px;min-height:42px}
+.trow .tgo{font-weight:600}.tgo span{flex:1}.tgo small{color:var(--ink-2);font-weight:400;font-variant-numeric:tabular-nums;font-size:.78rem}
+.tgo:hover span{color:var(--accent)}
+.ttog{flex:0 0 44px;font:inherit;background:none;border:0;border-left:1px solid var(--rule);color:var(--ink-2);cursor:pointer;margin:8px 0}
+.tsubl{list-style:none;margin:0 0 6px;padding:0}.tsubl .tgo{width:100%;padding-right:52px;font-size:.88rem;min-height:36px;padding-top:5px;padding-bottom:5px;padding-left:calc(14px + var(--lv)*14px)}
 .tladder{list-style:none;margin:2px 0 6px;padding:0;font-size:.86rem;color:var(--ink-2)}
 .tladder li{padding:1px 0 1px calc(var(--lv)*14px);position:relative}
 .tladder li+li::before{content:"";position:absolute;left:calc(var(--lv)*14px - 9px);top:0;width:6px;height:.8em;border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -443,7 +445,6 @@ function mergeStates(a,b){
   });
   var ma2=a.mine||{},mb2=b.mine||{};Object.keys(ma2).concat(Object.keys(mb2)).forEach(function(k){var x=ma2[k],y=mb2[k];out.mine=out.mine||{};out.mine[k]=!x?y:!y?x:((x.u||0)>=(y.u||0)?x:y);});
   var ea=a.ex||{},eb=b.ex||{};Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){var x=ea[k],y=eb[k];out.ex=out.ex||{};if(!x||!y){out.ex[k]=x||y;return;}var m=JSON.parse(JSON.stringify((x.last||0)>=(y.last||0)?x:y)),s=(x.ft||0)>=(y.ft||0)?x:y;if(s.ft){m.f=s.f;m.ft=s.ft;}out.ex[k]=m;});
-  var ta=a.tc||{},tb=b.tc||{};Object.keys(ta).concat(Object.keys(tb)).forEach(function(k){var x=ta[k],y=tb[k];out.tc=out.tc||{};out.tc[k]=!x?y:!y?x:((x.t||0)>=(y.t||0)?x:y);});
   return out;
 }
 function sameState(x,y){var a=JSON.parse(JSON.stringify(x)),b=JSON.parse(JSON.stringify(y));delete a.updatedAt;delete b.updatedAt;return JSON.stringify(a)===JSON.stringify(b);}
@@ -1643,76 +1644,75 @@ function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.on
   main.querySelectorAll("[data-oxre]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.oxre||null,"re");};});
   var sr=document.getElementById("oxstarrun");if(sr)sr.onclick=oxStartStar;
   main.querySelectorAll("[data-oxun]").forEach(function(b){b.onclick=function(){var x=OX.filter(function(y){return y.id===b.dataset.oxun;})[0];if(x)oxToggleStar(x);};});}
-/* ---------- 목차 외우기(연습 탭): 제목을 보고 바로 아래 목차를 순서대로. 위에서부터 한 단계씩 내려간다 ---------- */
+/* ---------- 목차 외우기(연습 탭): 제목을 보고 바로 아래 목차를 순서대로 떠올리며 틈틈이 훑는다. 채점 없음 ---------- */
 var TOC=[];try{TOC=JSON.parse(document.getElementById("toc-data").textContent)||[];}catch(e){TOC=[];}
-var TN={},tocSess=null,tocPart=null,TOC_DEPTH=[[1,"1단계"],[2,"2단계"],[3,"3단계"],[99,"끝까지"]];
+var TN={},tocSess=null,tocPart=null,tocExp={},TOC_DEPTH=[[1,"1단계"],[2,"2단계"],[3,"3단계"],[99,"끝까지"]],TOC_LAST="minbeop-toc-last";
 (function idx(){function walk(n,path,par,lv){var pa=path.concat(n.t);if(n.i){TN[n.i]={id:n.i,n:n,path:pa,parent:par,lv:lv};par=n.i;lv++;}(n.k||[]).forEach(function(k,j){k._no=j+1;walk(k,pa,par,lv);});}TOC.forEach(function(p){walk(p,[],null,0);});})();
-function tcState(){if(!state.tc)state.tc={};return state.tc;}
 function tocShort(p){return p.replace(/^제\d편 /,"");}
 function tocSeq(root,depth){var out=[];function go(n,lv){if(n.i){if(lv>=depth)return;out.push(n.i);lv++;}(n.k||[]).forEach(function(k){go(k,lv);});}go(TN[root].n,0);return out;}
 function tocDepth(){var d=settings().tocDepth;return d===1||d===2||d===3||d===99?d:2;}
 function tocPartRoot(part){for(var i=0;i<TOC.length;i++)if(TOC[i].t===part)return TOC[i].i;return null;}
-function tocStart(root,depth,onlyMiss){var q=tocSeq(root,depth);if(onlyMiss){var S=tcState();q=tocSeq(root,99).filter(function(id){return S[id]&&S[id].r===0;});}
-  if(!q.length)return;tocSess={root:root,depth:depth,miss:!!onlyMiss,queue:q,hist:[],open:0,res:{},total:q.length};render();window.scrollTo(0,0);}
-function tocGrade(r){var p=tocSess,id=p.queue[0];p.res[id]=r;tcState()[id]={r:r,t:now()};scheduleSave();p.hist.push(p.queue.shift());p.open=0;render();window.scrollTo(0,0);}
-function tocPrev(){var p=tocSess;if(!p.hist.length)return;p.queue.unshift(p.hist.pop());p.open=0;render();window.scrollTo(0,0);}
+function tocLast(){try{var o=JSON.parse(localStorage.getItem(TOC_LAST)||"null");return o&&TN[o.root]&&TN[o.at]?o:null;}catch(e){return null;}}
+function tocMark(){var p=tocSess;try{if(p&&p.queue.length)localStorage.setItem(TOC_LAST,JSON.stringify({root:p.root,depth:p.depth,at:p.queue[0]}));else localStorage.removeItem(TOC_LAST);}catch(e){}}
+function tocStart(root,depth,at){var q=tocSeq(root,depth);if(!q.length)return;tocSess={root:root,depth:depth,queue:q,hist:[],open:0,total:q.length};
+  if(at&&q.indexOf(at)>0)while(tocSess.queue[0]!==at)tocSess.hist.push(tocSess.queue.shift());tocMark();render();window.scrollTo(0,0);}
+function tocNext(){var p=tocSess;p.hist.push(p.queue.shift());p.open=0;tocMark();render();window.scrollTo(0,0);}
+function tocPrev(){var p=tocSess;if(!p.hist.length)return;p.queue.unshift(p.hist.pop());p.open=0;tocMark();render();window.scrollTo(0,0);}
 function tocOpen(all){var p=tocSess,n=TN[p.queue[0]].n.k.length;p.open=all?n:Math.min(n,p.open+1);render();}
-function tocDot(id){var s=tcState()[id];return '<i class="tdot'+(s?(s.r?' ok':' no'):'')+'" aria-label="'+(s?(s.r?'다 떠올림':'다시 볼 것'):'아직 안 함')+'"></i>';}
-function tocKidsCount(k){return k.i?k.k.length:0;}
+function tocNoAt(path,i){var n=null,arr=TOC;for(var j=0;j<=i;j++){n=null;for(var q=0;q<arr.length;q++)if(arr[q].t===path[j]){n=arr[q];break;}if(!n)return "";arr=n.k||[];}return n._no?n._no+".":"";}
 function renderToc(){
-  var p=tocSess,R=TN[p.root],lab=R.path.map(tocShort).join(" › ");
+  var p=tocSess,R=TN[p.root],lab=R.path.slice(-1).map(tocShort)[0];
   var pos=p.total-p.queue.length+(p.queue.length?1:0);
-  var bar='<div class="undo"><span class="muted">목차 · '+esc(lab)+(p.miss?' · 다시 볼 것':'')+' · '+pos+' / '+p.total+'</span><button class="link" id="tq">그만 보기</button></div>';
+  var bar='<div class="undo"><span class="muted">목차 · '+esc(lab)+' · '+pos+' / '+p.total+'</span><button class="link" id="tq">그만 보기</button></div>';
   if(!p.queue.length){
-    var ok=0,no=0;p.hist.forEach(function(id){if(p.res[id]===1)ok++;else if(p.res[id]===0)no++;});
-    var deeper=!p.miss&&p.depth<99&&tocSeq(p.root,99).length>p.total;
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+esc(tocShort(R.path[R.path.length-1]))+' 목차를 '+(p.miss?'다시 ':'')+'훑었어요</h2><p>'+p.total+'개 가운데 '+ok+'개는 다 떠올렸고'+(no?', '+no+'개는 다시 볼 것으로 남겼어요.':', 다시 볼 것은 없어요.')+'</p>'+(deeper?'<p class="muted">한 단계 더 내려가면 그 아래 목차까지 이어서 외워요.</p>':'')+
-      '<div class="row" style="justify-content:center;margin-top:16px">'+(no?'<button class="btn primary" id="tmiss">다시 볼 것 '+no+'개 한 번 더</button>':'')+(deeper?'<button class="btn'+(no?'':' primary')+'" id="tdeep">한 단계 더 깊이</button>':'')+'<button class="btn" id="tagain">처음부터 다시</button><button class="btn" id="tback">돌아가기</button></div></div></div>';
-    var missIds=p.hist.filter(function(id){return p.res[id]===0;});
-    var tm=document.getElementById("tmiss");if(tm)tm.onclick=function(){tocSess={root:p.root,depth:p.depth,miss:true,queue:missIds,hist:[],open:0,res:{},total:missIds.length};render();window.scrollTo(0,0);};
-    var td=document.getElementById("tdeep");if(td)td.onclick=function(){var d=p.depth>=3?99:p.depth+1;settings().tocDepth=d;scheduleSave();tocStart(p.root,d,false);};
-    document.getElementById("tagain").onclick=function(){if(p.miss){tocSess={root:p.root,depth:p.depth,miss:true,queue:p.hist.slice(),hist:[],open:0,res:{},total:p.hist.length};render();}else tocStart(p.root,p.depth,false);};
+    var deeper=p.depth<99&&tocSeq(p.root,99).length>p.total;
+    main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+esc(lab)+' 목차를 한 번 훑었어요</h2><p>'+p.total+'개 제목을 봤어요.'+(deeper?' 한 단계 더 내려가면 그 아래 목차까지 이어서 봐요.':'')+'</p>'+
+      '<div class="row" style="justify-content:center;margin-top:16px">'+(deeper?'<button class="btn primary" id="tdeep">한 단계 더 깊이</button>':'')+'<button class="btn'+(deeper?'':' primary')+'" id="tagain">처음부터 다시</button><button class="btn" id="tback">돌아가기</button></div></div></div>';
+    var td=document.getElementById("tdeep");if(td)td.onclick=function(){var d=p.depth>=3?99:p.depth+1;settings().tocDepth=d;scheduleSave();tocStart(p.root,d);};
+    document.getElementById("tagain").onclick=function(){tocStart(p.root,p.depth);};
     document.getElementById("tback").onclick=document.getElementById("tq").onclick=function(){tocSess=null;render();};
     return;
   }
   var N=TN[p.queue[0]],n=N.n,kids=n.k,all=p.open>=kids.length;
-  // 위 단계 사다리: 편부터 지금 제목 바로 위까지, 각 단계의 순번과 함께
   var ladder='';for(var i=0;i<N.path.length-1;i++){ladder+='<li style="--lv:'+i+'">'+(i?'<span class="no">'+(tocNoAt(N.path,i))+'</span>':'')+esc(i?N.path[i]:tocShort(N.path[i]))+'</li>';}
   var me=N.path.length>1?'<span class="no">'+tocNoAt(N.path,N.path.length-1)+'</span>':'';
-  var front='<div class="meta"><span class="crumb">'+esc(tocShort(N.path[0]))+'<span class="sep">›</span>목차</span><span class="badges">'+tocDot(N.id)+'</span></div>'+
+  var front='<div class="meta"><span class="crumb">'+esc(tocShort(N.path[0]))+'<span class="sep">›</span>목차</span></div>'+
     (ladder?'<ol class="tladder">'+ladder+'</ol>':'')+
     '<div class="prompt tcur" style="--lv:'+(N.path.length-1)+'">'+me+esc(N.path.length>1?n.t:tocShort(n.t))+'</div>'+(n.d?'<div class="tdesc">'+esc(n.d)+'</div>':'')+
     '<div class="ask">'+(N.path.length===1?'장':'바로 아래 목차')+' '+kids.length+'개를 순서대로 떠올려 보세요.</div>'+
     '<ol class="tslots">'+kids.map(function(k,j){var o=j<p.open;return '<li class="'+(o?'on':'')+'">'+(o?'<b>'+esc(k.t)+'</b>'+(k.i?'<span class="tsub">아래 '+k.k.length+'개</span>':'')+(k.d?'<span class="d">'+esc(k.d)+'</span>':''):'<span class="blank" aria-label="가려짐"></span>')+'</li>';}).join("")+'</ol>';
-  var acts='<div class="exnav"><div class="exnav1">'+(all?'<button class="btn" id="tno">다시 볼게요</button><button class="btn primary" id="tok">다 떠올렸어요</button>':'<button class="btn" id="tall">모두 열기</button><button class="btn primary" id="tone">하나씩 열기 <small>'+p.open+' / '+kids.length+'</small></button>')+'</div>'+
-    '<div class="exnav2"><button class="btn" id="tprev"'+(p.hist.length?'':' disabled')+'>이전</button>'+(all?'':'<button class="btn" id="tskip">'+(p.queue.length>1?'넘어가기':'마치기')+'</button>')+'</div></div><div class="hint"><span class="kb">'+(all?'1 다시 볼게요 · 2 다 떠올렸어요 · ← 이전':'스페이스 하나씩 · 엔터 모두 · ← 이전')+'</span></div>';
+  var last=p.queue.length===1;
+  var acts='<div class="exnav"><div class="exnav1">'+(all?'<button class="btn" id="tprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn primary" id="tnext">'+(last?'마치기':'다음')+'</button>':'<button class="btn" id="tall">모두 열기</button><button class="btn primary" id="tone">하나씩 열기 <small>'+p.open+' / '+kids.length+'</small></button>')+'</div>'+
+    (all?'':'<div class="exnav2"><button class="btn" id="tprev"'+(p.hist.length?'':' disabled')+'>이전</button><button class="btn" id="tnext">'+(last?'마치기':'넘어가기')+'</button></div>')+'</div><div class="hint"><span class="kb">스페이스 '+(all?'다음':'하나씩')+' · 엔터 '+(all?'다음':'모두')+' · ← 이전</span></div>';
   main.innerHTML=bar+'<article class="card tcard" aria-live="polite">'+front+'</article><div class="actions">'+acts+'</div>';
   document.getElementById("tq").onclick=function(){tocSess=null;render();};
   var b;if(b=document.getElementById("tone"))b.onclick=function(){tocOpen(false);};
   if(b=document.getElementById("tall"))b.onclick=function(){tocOpen(true);};
-  if(b=document.getElementById("tok"))b.onclick=function(){tocGrade(1);};
-  if(b=document.getElementById("tno"))b.onclick=function(){tocGrade(0);};
-  if(b=document.getElementById("tskip"))b.onclick=function(){p.hist.push(p.queue.shift());p.open=0;render();window.scrollTo(0,0);};
-  document.getElementById("tprev").onclick=tocPrev;
+  document.getElementById("tnext").onclick=tocNext;document.getElementById("tprev").onclick=tocPrev;
 }
-function tocNoAt(path,i){var n=null,arr=TOC;for(var j=0;j<=i;j++){n=null;for(var q=0;q<arr.length;q++)if(arr[q].t===path[j]){n=arr[q];break;}if(!n)return "";arr=n.k||[];}return n._no?n._no+".":"";}
 function tocPanel(){
   if(!TOC.length)return "";
-  var se=settings(),S=tcState(),dep=tocDepth();if(!tocPart||!tocPartRoot(tocPart))tocPart=TOC[0].t;
-  var root=tocPartRoot(tocPart),seq=tocSeq(root,dep),allIds=tocSeq(root,99),miss=allIds.filter(function(id){return S[id]&&S[id].r===0;}).length;
-  var h='<section class="panel tocp"><h2>목차 외우기</h2><p class="muted" style="margin-top:0">편 제목을 보고 장을, 장을 보고 그 아래를 떠올려요. 위에서부터 한 단계씩 내려가며 외워요.</p>';
-  h+='<div class="ptabs" role="tablist">'+TOC.map(function(P){var ids=tocSeq(P.i,99),ok=ids.filter(function(id){return S[id]&&S[id].r===1;}).length;return '<button role="tab" data-tp="'+esc(P.t)+'" aria-selected="'+(P.t===tocPart)+'">'+esc(tocShort(P.t).replace("채권총론","채총").replace("채권각론","채각"))+' <small class="muted">'+ok+'/'+ids.length+'</small></button>';}).join("")+'</div>';
-  h+='<div class="tdepth"><span class="muted">한 번에 내려갈 깊이</span><div class="seg" role="group" aria-label="얼마나 깊이">'+TOC_DEPTH.map(function(d){return '<button data-td="'+d[0]+'" aria-pressed="'+(d[0]===dep)+'">'+d[1]+'</button>';}).join("")+'</div></div>';
-  h+='<div class="row" style="margin:4px 0 12px"><button class="btn primary" data-troot="'+root+'">'+esc(tocShort(tocPart))+' 처음부터 · '+seq.length+'개</button>'+(miss?'<button class="btn" id="tmissall">다시 볼 것 '+miss+'개</button>':'')+'</div>';
-  h+='<p class="muted" style="margin:0 0 6px;font-size:.82rem">아래 제목을 누르면 거기서부터 시작해요. 점은 지난번 결과예요(초록 다 떠올림 · 빨강 다시 볼 것).</p><ul class="ttree">'+
-    allIds.map(function(id){var N=TN[id];if(N.lv===0)return '';return '<li style="--lv:'+(N.lv-1)+'"><button data-troot="'+id+'">'+tocDot(id)+'<span>'+esc(N.n.t)+'</span><small>'+N.n.k.length+'</small></button></li>';}).join("")+'</ul></section>';
+  var dep=tocDepth(),L=tocLast();if(!tocPart||!tocPartRoot(tocPart))tocPart=L?TN[L.root].path[0]:TOC[0].t;
+  var root=tocPartRoot(tocPart),seq=tocSeq(root,dep);
+  var h='<section class="panel tocp"><h2>목차 외우기</h2><p class="muted" style="margin-top:0">제목을 보고 바로 아래 목차를 떠올려요. 위에서부터 한 단계씩 내려가요.</p>';
+  if(L){var LR=TN[L.root],pos=tocSeq(L.root,L.depth).indexOf(L.at);h+='<button class="btn resume" id="tresume">↻ 이어 보기: '+esc(tocShort(LR.path[LR.path.length-1]))+' · '+esc(TN[L.at].n.t.replace(/^제\d편 /,""))+(pos>=0?' ('+(pos+1)+'/'+tocSeq(L.root,L.depth).length+')':'')+'</button>';}
+  h+='<div class="ptabs" role="tablist">'+TOC.map(function(P){return '<button role="tab" data-tp="'+esc(P.t)+'" aria-selected="'+(P.t===tocPart)+'">'+esc(tocShort(P.t).replace("채권총론","채총").replace("채권각론","채각"))+'</button>';}).join("")+'</div>';
+  h+='<div class="tdepth"><span class="muted">내려갈 깊이</span><div class="seg" role="group" aria-label="내려갈 깊이">'+TOC_DEPTH.map(function(d){return '<button data-td="'+d[0]+'" aria-pressed="'+(d[0]===dep)+'">'+d[1]+'</button>';}).join("")+'</div></div>';
+  h+='<button class="btn primary tstart" data-troot="'+root+'">'+esc(tocShort(tocPart))+' 처음부터 · '+seq.length+'개</button>';
+  // 장만 한 줄씩. 그 아래는 ▾를 눌러야 펼친다(스크롤을 줄이려고)
+  var ch=tocSeq(root,99).filter(function(id){return TN[id].lv===1;});
+  h+='<ul class="ttree">'+ch.map(function(id){var subs=tocSeq(id,99).slice(1),op=!!tocExp[id];
+    return '<li><div class="trow"><button class="tgo" data-troot="'+id+'"><span>'+esc(TN[id].n.t)+'</span><small>'+(tocSeq(id,dep).length)+'개</small></button>'+(subs.length?'<button class="ttog" data-tx="'+id+'" aria-expanded="'+op+'" aria-label="'+esc(TN[id].n.t)+' 아래 제목 '+(op?'접기':'펼치기')+'">'+(op?'▴':'▾')+'</button>':'<span class="ttog"></span>')+'</div>'+
+      (op?'<ul class="tsubl">'+subs.map(function(s){return '<li style="--lv:'+(TN[s].lv-2)+'"><button class="tgo" data-troot="'+s+'"><span>'+esc(TN[s].n.t)+'</span><small>'+tocSeq(s,dep).length+'개</small></button></li>';}).join("")+'</ul>':'')+'</li>';}).join("")+'</ul>'+
+    '<p class="muted" style="margin:6px 0 0;font-size:.8rem">제목을 누르면 거기서부터, ▾는 그 아래 제목 보기예요.</p></section>';
   return h;
 }
 function bindTocPanel(){
   main.querySelectorAll("[data-tp]").forEach(function(b){b.onclick=function(){tocPart=b.dataset.tp;render();};});
   main.querySelectorAll("[data-td]").forEach(function(b){b.onclick=function(){settings().tocDepth=+b.dataset.td;scheduleSave();render();};});
-  main.querySelectorAll("[data-troot]").forEach(function(b){b.onclick=function(){tocStart(b.dataset.troot,tocDepth(),false);};});
-  var m=document.getElementById("tmissall");if(m)m.onclick=function(){tocStart(tocPartRoot(tocPart),99,true);};
+  main.querySelectorAll("[data-troot]").forEach(function(b){b.onclick=function(){tocStart(b.dataset.troot,tocDepth());};});
+  main.querySelectorAll("[data-tx]").forEach(function(b){b.onclick=function(){tocExp[b.dataset.tx]=!tocExp[b.dataset.tx];render();};});
+  var r=document.getElementById("tresume");if(r)r.onclick=function(){var L=tocLast();if(L)tocStart(L.root,L.depth,L.at);};
 }
 function renderEx(){
   if(listenSess){renderListen();return;}
@@ -1832,10 +1832,9 @@ document.addEventListener("keydown",function(e){
     else if(e.key===" "||e.key==="Enter"){e.preventDefault();oxNext();}
     if(kk==="s"||kk==="ㄴ")oxToggleStar(oxSess.queue[0]);
     return;}
-  if(view==="ex"&&tocSess){if(!tocSess.queue.length)return;var tk=TN[tocSess.queue[0]].n.k.length,tall=tocSess.open>=tk;
+  if(view==="ex"&&tocSess){if(!tocSess.queue.length)return;var tall=tocSess.open>=TN[tocSess.queue[0]].n.k.length;
     if(e.key==="ArrowLeft"){tocPrev();return;}
-    if(!tall){if(e.key===" "){e.preventDefault();tocOpen(false);}else if(e.key==="Enter"){e.preventDefault();tocOpen(true);}}
-    else if(e.key==="1")tocGrade(0);else if(e.key==="2"||e.key===" "||e.key==="Enter"){if(e.key!=="2")e.preventDefault();tocGrade(1);}
+    if(e.key===" "||e.key==="Enter"){e.preventDefault();if(tall)tocNext();else tocOpen(e.key==="Enter");}
     return;}
   if(view==="ex"){if(!exSess||!exSess.queue.length)return;var k2=e.key.toLowerCase();
     if(e.key===" "||e.key==="Enter"){e.preventDefault();exSess.shown=exSess.shown?0:3;render();}
