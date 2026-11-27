@@ -1650,18 +1650,18 @@ function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.on
 var TOC=[];try{TOC=JSON.parse(document.getElementById("toc-data").textContent)||[];}catch(e){TOC=[];}
 var TOC_DHINT={1:"고른 제목 한 장만 봐요.",2:"고른 제목과 그 바로 아래 제목들까지 봐요.",3:"바로 아래에서 한 층 더 내려가요.",99:"맨 아래 제목까지 모두 봐요."};
 function tocDepthName(d){return d===99?"끝까지":d+"단계";}
-var TN={},tocSess=null,tocPart=null,tocExp={},TOC_DEPTH=[[1,"1단계"],[2,"2단계"],[3,"3단계"],[99,"끝까지"]],TOC_LAST="minbeop-toc-last";
+var TN={},tocSess=null,tocPart=null,tocExp={},TOC_DEPTH=[[1,"1단계"],[2,"2단계"],[3,"3단계"],[99,"끝까지"]];
 (function idx(){function walk(n,path,par,lv){var pa=path.concat(n.t);if(n.i){TN[n.i]={id:n.i,n:n,path:pa,parent:par,lv:lv};par=n.i;lv++;}(n.k||[]).forEach(function(k,j){k._no=j+1;walk(k,pa,par,lv);});}TOC.forEach(function(p){walk(p,[],null,0);});})();
 function tocShort(p){return p.replace(/^제\d편 /,"");}
 function tocSeq(root,depth){var out=[];function go(n,lv){if(n.i){if(lv>=depth)return;out.push(n.i);lv++;}(n.k||[]).forEach(function(k){go(k,lv);});}go(TN[root].n,0);return out;}
 function tocDepth(){var d=settings().tocDepth;return d===1||d===2||d===3||d===99?d:2;}
 function tocPartRoot(part){for(var i=0;i<TOC.length;i++)if(TOC[i].t===part)return TOC[i].i;return null;}
-function tocLast(){try{var o=JSON.parse(localStorage.getItem(TOC_LAST)||"null");return o&&TN[o.root]&&TN[o.at]?o:null;}catch(e){return null;}}
-function tocMark(){var p=tocSess;try{if(p&&p.part)return;if(p&&p.queue.length)localStorage.setItem(TOC_LAST,JSON.stringify({root:p.root,depth:p.depth,at:p.queue[0]}));else localStorage.removeItem(TOC_LAST);}catch(e){}}
+try{localStorage.removeItem("minbeop-toc-last");}catch(e){} // 이어 보기는 2026-11-27 사용자 요청으로 없앰: 그만 보면 다음엔 처음부터
+
 function tocStart(root,depth,at,only){var q=only||tocSeq(root,depth);if(!q.length)return;tocSess={root:root,depth:depth,queue:q,hist:[],open:0,total:q.length,part:!!only};
-  if(at&&q.indexOf(at)>0)while(tocSess.queue[0]!==at)tocSess.hist.push(tocSess.queue.shift());if(at)tocMark();render();window.scrollTo(0,0);}
-function tocNext(){var p=tocSess;p.hist.push(p.queue.shift());p.open=0;tocMark();render();window.scrollTo(0,0);}
-function tocPrev(){var p=tocSess;if(!p.hist.length)return;p.queue.unshift(p.hist.pop());p.open=0;tocMark();render();window.scrollTo(0,0);}
+  if(at&&q.indexOf(at)>0)while(tocSess.queue[0]!==at)tocSess.hist.push(tocSess.queue.shift());render();window.scrollTo(0,0);}
+function tocNext(){var p=tocSess;p.hist.push(p.queue.shift());p.open=0;render();window.scrollTo(0,0);}
+function tocPrev(){var p=tocSess;if(!p.hist.length)return;p.queue.unshift(p.hist.pop());p.open=0;render();window.scrollTo(0,0);}
 function tocOpen(all){var p=tocSess,n=TN[p.queue[0]].n.k.length;p.open=all?n:Math.min(n,p.open+1);render();}
 function tocNoAt(path,i){var n=null,arr=TOC;for(var j=0;j<=i;j++){n=null;for(var q=0;q<arr.length;q++)if(arr[q].t===path[j]){n=arr[q];break;}if(!n)return "";arr=n.k||[];}return n._no?n._no+".":"";}
 function renderToc(){
@@ -1697,13 +1697,13 @@ function renderToc(){
 }
 function tocPanel(){
   if(!TOC.length)return "";
-  var dep=tocDepth(),L=tocLast();if(!tocPart||!tocPartRoot(tocPart))tocPart=L?TN[L.root].path[0]:TOC[0].t;
+  var dep=tocDepth();if(!tocPart||!tocPartRoot(tocPart))tocPart=TOC[0].t;
   var root=tocPartRoot(tocPart),seq=tocSeq(root,dep);
   var h='<section class="panel tocp"><h2>목차 외우기</h2><p class="muted" style="margin-top:0">제목을 보고 바로 아래 목차를 떠올려요. 위에서부터 한 단계씩 내려가요.</p>';
-  if(L){var LR=TN[L.root],pos=tocSeq(L.root,L.depth).indexOf(L.at);h+='<button class="btn primary resume" id="tresume">↻ 이어 보기 · '+esc(tocShort(LR.path[LR.path.length-1]))+' '+tocDepthName(L.depth)+(pos>=0?' '+(pos+1)+'/'+tocSeq(L.root,L.depth).length:'')+'<small>'+esc(tocShort(TN[L.at].n.t))+'부터</small></button>';}
+
   h+='<div class="ptabs" role="tablist">'+TOC.map(function(P){return '<button role="tab" data-tp="'+esc(P.t)+'" aria-selected="'+(P.t===tocPart)+'">'+esc(tocShort(P.t).replace("채권총론","채총").replace("채권각론","채각"))+'</button>';}).join("")+'</div>';
   h+='<div class="tdepth"><span class="muted">내려갈 깊이</span><div class="seg" role="group" aria-label="내려갈 깊이">'+TOC_DEPTH.map(function(d){return '<button data-td="'+d[0]+'" aria-pressed="'+(d[0]===dep)+'">'+d[1]+'</button>';}).join("")+'</div></div><p class="tdhint">'+TOC_DHINT[dep]+'</p>';
-  h+='<button class="btn'+(L?'':' primary')+' tstart" data-troot="'+root+'">'+esc(tocShort(tocPart))+' 처음부터 · '+seq.length+'장</button>';
+  h+='<button class="btn primary tstart" data-troot="'+root+'">'+esc(tocShort(tocPart))+' 처음부터 · '+seq.length+'장</button>';
   // 장만 한 줄씩. 그 아래는 ▾를 눌러야 펼친다(스크롤을 줄이려고)
   var ch=tocSeq(root,99).filter(function(id){return TN[id].lv===1;});
   h+='<ul class="ttree">'+ch.map(function(id){var subs=tocSeq(id,99).slice(1),op=!!tocExp[id];
@@ -1717,7 +1717,7 @@ function bindTocPanel(){
   main.querySelectorAll("[data-td]").forEach(function(b){b.onclick=function(){settings().tocDepth=+b.dataset.td;scheduleSave();render();};});
   main.querySelectorAll("[data-troot]").forEach(function(b){b.onclick=function(){tocStart(b.dataset.troot,tocDepth());};});
   main.querySelectorAll("[data-tx]").forEach(function(b){b.onclick=function(){tocExp[b.dataset.tx]=!tocExp[b.dataset.tx];render();};});
-  var r=document.getElementById("tresume");if(r)r.onclick=function(){var L=tocLast();if(L)tocStart(L.root,L.depth,L.at);};
+
 }
 function renderEx(){
   if(listenSess){renderListen();return;}
