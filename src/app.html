@@ -63,7 +63,7 @@ main{padding-top:16px}
 .meta .crumb{display:flex;align-items:center;gap:5px;min-width:0}
 .meta .sep{opacity:.55}
 .meta .badges{display:flex;gap:6px;margin-left:auto;align-items:center}
-.unitp .resume,.tocp .resume{width:100%;margin:2px 0 12px;text-align:left}
+.unitp .resume{width:100%;margin:2px 0 12px;text-align:left}
 .seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-bottom:10px}
 .seg button{font:inherit;font-size:.82rem;padding:6px 12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
@@ -118,29 +118,22 @@ main{padding-top:16px}
 .exhome{display:grid;gap:10px}
 .exbox{padding:14px;border-radius:12px;background:var(--paper)}.exbox.flat{padding:0;background:none}details.more{display:inline}details.more summary{display:inline;cursor:pointer;color:var(--accent);list-style:none}details.more summary::-webkit-details-marker{display:none}details.more[open]{display:block;margin-top:4px}
 .exbox h3{margin:0 0 4px;font-size:1rem}
-.tdhint{margin:0 0 10px;font-size:.82rem;color:var(--ink-2)}.tocp .resume small{display:block;font-weight:400;font-size:.8rem;opacity:.85}
-.tdepth{display:flex;align-items:center;gap:10px;margin-bottom:6px}.tdepth>.muted{font-size:.85rem;white-space:nowrap}.tdepth .seg{margin:0;flex:1}.tdepth .seg button{white-space:nowrap;padding:7px 4px}.done h2{text-wrap:balance}
-.tstart{width:100%;margin:2px 0 10px}
-.ttree{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
-.ttree>li{border-bottom:1px solid var(--rule)}
-.trow{display:flex;align-items:stretch}
-.tgo{display:flex;align-items:center;gap:8px;flex:1;font:inherit;text-align:left;background:none;border:0;color:var(--ink);cursor:pointer;padding:8px 4px;min-height:42px}
-.trow .tgo{font-weight:600}.tgo span{flex:1}.tgo small{color:var(--ink-2);font-weight:400;font-variant-numeric:tabular-nums;font-size:.78rem}
-.tgo:hover span{color:var(--accent)}
-.ttog{flex:0 0 46px;font:inherit;background:none;border:0;color:var(--ink-2);cursor:pointer;padding:0;position:relative}.ttog::before{content:"";position:absolute;left:0;top:10px;bottom:10px;border-left:1px solid var(--rule)}
-.tsubl{list-style:none;margin:0 0 6px;padding:0}.tsubl .tgo{width:100%;padding-right:52px;font-size:.88rem;min-height:42px;padding-top:5px;padding-bottom:5px;padding-left:calc(14px + var(--lv)*14px)}
-.tladder{list-style:none;margin:2px 0 6px;padding:0;font-size:.86rem;color:var(--ink-2)}
-.tladder li{padding:1px 0 1px calc(var(--lv)*14px);position:relative}
-.tladder li+li::before{content:"";position:absolute;left:calc(var(--lv)*14px - 9px);top:0;width:6px;height:.8em;border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-.tcur .no{font-family:var(--f-body)}.tladder .no,.tcur .no{font-variant-numeric:tabular-nums;margin-right:4px;color:var(--ink-2);font-weight:500}
-.tcur{margin-left:calc(min(var(--lv),4)*14px)}.tcur .no{font-size:.8em}
-.tdesc{font-size:.86rem;color:var(--ink-2);margin:-2px 0 4px}
-.tslots{margin:12px 0 0;padding-left:1.7em;border-top:1px dashed var(--rule);padding-top:10px}
-.tslots li{margin:6px 0;line-height:1.5;min-height:1.6em}.tslots.many li{margin:2px 0;line-height:1.4}
-.tslots .blank{display:inline-block;width:62%;height:.9em;vertical-align:middle;border-radius:4px;background:var(--ink-2);opacity:.22}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.tslots li.on b{font-weight:700}.tslots .tsub{margin-left:6px;font-size:.75rem;color:var(--accent);white-space:nowrap}.tslots .d{display:block;font-size:.85rem;color:var(--ink-2)}
-#tone small{font-weight:400;opacity:.8;margin-left:4px;font-variant-numeric:tabular-nums}
+.tocctl{gap:6px;margin:4px 0 10px}.tocctl .btn{flex:1;padding:8px 4px;font-size:.85rem;white-space:nowrap}
+.tt{list-style:none;margin:0;padding:0}
+.tt.lv0{border-top:1px solid var(--rule)}.tt.lv0>li{border-bottom:1px solid var(--rule)}
+.tt .tt{padding-left:16px;margin:0 0 6px 7px;border-left:1px solid var(--rule)}
+.tt summary,.tt li.leaf{display:grid;grid-template-columns:auto 1fr;column-gap:6px;padding:7px 2px;line-height:1.45}
+.tt summary{cursor:pointer;list-style:none;min-height:40px;align-content:center}.tt summary::-webkit-details-marker{display:none}
+.tt summary .no::before{content:"▸";display:inline-block;width:1em;color:var(--accent);transition:transform .15s}
+.tt details[open]>summary .no::before{transform:rotate(90deg)}
+.tt .no{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tt li.leaf .no{padding-left:1em}
+.tt .t{font-weight:600}.tt.lv0>li>details>summary .t{font-weight:700}.tt li.leaf .t{font-weight:500}
+.tt .cnt{margin-left:8px;font-size:.75rem;font-weight:400;color:var(--accent);white-space:nowrap}.tt details[open]>summary .cnt{display:none}
+.tt .d{grid-column:2;font-size:.82rem;color:var(--ink-2)}
+.tt summary:hover .t{color:var(--accent)}
+.tt summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){.tt summary .no::before{transition:none}}
 
 .exbox p{margin:0 0 10px;font-size:.85rem;color:var(--ink-2)}
 .exre{margin-top:10px;border-top:1px dashed var(--rule);padding-top:8px}
@@ -637,7 +630,7 @@ var toastT=null;function toast(t){var el=document.getElementById("toast");el.tex
 /* ---------- views ---------- */
 var view="study";
 var main=document.getElementById("main");
-function render(){document.body.classList.toggle("reading",view==="ex"&&!!((exSess&&exSess.queue.length)||(tocSess&&tocSess.queue.length)));
+function render(){document.body.classList.toggle("reading",view==="ex"&&!!((exSess&&exSess.queue.length)));
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.v===view));});
   if(view==="study")renderStudy();else if(view==="cards")renderCards();else if(view==="ex")renderEx();else if(view==="stats")renderStats();else renderSettings();
   bindTapReveal();
@@ -1646,82 +1639,40 @@ function bindOxBox(){main.querySelectorAll("[data-ox]").forEach(function(b){b.on
   main.querySelectorAll("[data-oxre]").forEach(function(b){b.onclick=function(){oxStart(b.dataset.oxre||null,"re");};});
   var sr=document.getElementById("oxstarrun");if(sr)sr.onclick=oxStartStar;
   main.querySelectorAll("[data-oxun]").forEach(function(b){b.onclick=function(){var x=OX.filter(function(y){return y.id===b.dataset.oxun;})[0];if(x)oxToggleStar(x);};});}
-/* ---------- 목차 외우기(연습 탭): 제목을 보고 바로 아래 목차를 순서대로 떠올리며 틈틈이 훑는다. 채점 없음 ---------- */
+/* ---------- 목차 외우기(연습 탭): 접힌 목차 나무. 펼치기 전에 아래 목차를 떠올려 보고, 눌러서 확인한다. 채점·순서 없음(2026-11-27) ---------- */
 var TOC=[];try{TOC=JSON.parse(document.getElementById("toc-data").textContent)||[];}catch(e){TOC=[];}
-var TOC_DHINT={1:"고른 제목 한 장만 봐요.",2:"고른 제목과 그 바로 아래 제목들까지 봐요.",3:"바로 아래에서 한 층 더 내려가요.",99:"맨 아래 제목까지 모두 봐요."};
-function tocDepthName(d){return d===99?"끝까지":d+"단계";}
-var TN={},tocSess=null,tocPart=null,tocExp={},TOC_DEPTH=[[1,"1단계"],[2,"2단계"],[3,"3단계"],[99,"끝까지"]];
-(function idx(){function walk(n,path,par,lv){var pa=path.concat(n.t);if(n.i){TN[n.i]={id:n.i,n:n,path:pa,parent:par,lv:lv};par=n.i;lv++;}(n.k||[]).forEach(function(k,j){k._no=j+1;walk(k,pa,par,lv);});}TOC.forEach(function(p){walk(p,[],null,0);});})();
+var tocPart=null,tocExp={};
+try{localStorage.removeItem("minbeop-toc-last");}catch(e){}
+(function idx(){function walk(n,key){n._key=key;(n.k||[]).forEach(function(k,j){k._no=j+1;walk(k,key+"/"+j);});}TOC.forEach(function(p,i){walk(p,"p"+i);});})();
 function tocShort(p){return p.replace(/^제\d편 /,"");}
-function tocSeq(root,depth){var out=[];function go(n,lv){if(n.i){if(lv>=depth)return;out.push(n.i);lv++;}(n.k||[]).forEach(function(k){go(k,lv);});}go(TN[root].n,0);return out;}
-function tocDepth(){var d=settings().tocDepth;return d===1||d===2||d===3||d===99?d:2;}
-function tocPartRoot(part){for(var i=0;i<TOC.length;i++)if(TOC[i].t===part)return TOC[i].i;return null;}
-try{localStorage.removeItem("minbeop-toc-last");}catch(e){} // 이어 보기는 2026-11-27 사용자 요청으로 없앰: 그만 보면 다음엔 처음부터
-
-function tocStart(root,depth,at,only){var q=only||tocSeq(root,depth);if(!q.length)return;tocSess={root:root,depth:depth,queue:q,hist:[],open:0,total:q.length,part:!!only};
-  if(at&&q.indexOf(at)>0)while(tocSess.queue[0]!==at)tocSess.hist.push(tocSess.queue.shift());render();window.scrollTo(0,0);}
-function tocNext(){var p=tocSess;p.hist.push(p.queue.shift());p.open=0;render();window.scrollTo(0,0);}
-function tocPrev(){var p=tocSess;if(!p.hist.length)return;p.queue.unshift(p.hist.pop());p.open=0;render();window.scrollTo(0,0);}
-function tocOpen(all){var p=tocSess,n=TN[p.queue[0]].n.k.length;p.open=all?n:Math.min(n,p.open+1);render();}
-function tocNoAt(path,i){var n=null,arr=TOC;for(var j=0;j<=i;j++){n=null;for(var q=0;q<arr.length;q++)if(arr[q].t===path[j]){n=arr[q];break;}if(!n)return "";arr=n.k||[];}return n._no?n._no+".":"";}
-function renderToc(){
-  var p=tocSess,R=TN[p.root],lab=R.path.slice(-1).map(tocShort)[0];
-  var pos=p.total-p.queue.length+(p.queue.length?1:0);
-  var bar='<div class="undo"><span class="muted">목차 · '+esc(lab)+' · '+pos+' / '+p.total+'</span><button class="link" id="tq">그만 보기</button></div>';
-  if(!p.queue.length){
-    var nd=p.depth>=3?99:p.depth+1,seen=tocSeq(p.root,p.depth),fresh=p.depth<99?tocSeq(p.root,nd).filter(function(id){return seen.indexOf(id)<0;}):[],deeper=fresh.length>0;
-    main.innerHTML=bar+'<div class="card"><div class="done"><h2>'+esc(lab)+' 목차를 한 번 훑었어요</h2><p>'+p.total+'장을 봤어요.'+(deeper?' 한 단계 더 내려가면 방금 본 제목들의 바로 아래 '+fresh.length+'장을 이어서 봐요.':'')+'</p>'+
-      '<div class="row" style="justify-content:center;margin-top:16px">'+(deeper?'<button class="btn primary" id="tdeep">한 단계 더 깊이 · '+fresh.length+'장</button>':'')+'<button class="btn'+(deeper?'':' primary')+'" id="tagain">처음부터 다시</button><button class="btn" id="tback">돌아가기</button></div></div></div>';
-    var td=document.getElementById("tdeep");if(td)td.onclick=function(){settings().tocDepth=nd;scheduleSave();tocStart(p.root,nd,null,fresh);};
-    document.getElementById("tagain").onclick=function(){tocStart(p.root,p.depth);};
-    document.getElementById("tback").onclick=document.getElementById("tq").onclick=function(){tocSess=null;render();};
-    return;
-  }
-  var N=TN[p.queue[0]],n=N.n,kids=n.k,all=p.open>=kids.length;
-  var ladder='';for(var i=0;i<N.path.length-1;i++){ladder+='<li style="--lv:'+i+'">'+(i?'<span class="no">'+(tocNoAt(N.path,i))+'</span>':'')+esc(i?N.path[i]:tocShort(N.path[i]))+'</li>';}
-  var me=N.path.length>1?'<span class="no">'+tocNoAt(N.path,N.path.length-1)+'</span>':'';
-  var front=(ladder?'<ol class="tladder">'+ladder+'</ol>':'')+
-    '<div class="prompt tcur" style="--lv:'+(N.path.length-1)+'">'+me+esc(N.path.length>1?n.t:tocShort(n.t))+'</div>'+(n.d?'<div class="tdesc">'+esc(n.d)+'</div>':'')+
-    '<div class="ask">'+(N.path.length===1?'장':'바로 아래 목차')+' '+kids.length+'개를 순서대로 떠올려 보세요.</div>'+
-    '<ol class="tslots'+(kids.length>8?' many':'')+'">'+kids.map(function(k,j){var o=j<p.open;return '<li class="'+(o?'on':'')+'">'+(o?'<b>'+esc(k.t)+'</b>'+(k.i?'<span class="tsub">아래 '+k.k.length+'개</span>':'')+(k.d?'<span class="d">'+esc(k.d)+'</span>':''):'<span class="blank" aria-hidden="true"></span><span class="sr">가려짐</span>')+'</li>';}).join("")+'</ol>';
-  var last=p.queue.length===1;
-  var prevB='<button class="btn" id="tprev"'+(p.hist.length?'':' disabled')+'>이전</button>';
-  // 주 버튼(모두 열기 → 다음)은 늘 맨 아래 오른쪽 같은 자리
-  var acts='<div class="exnav">'+(all?'':'<div class="exnav2">'+prevB+'<button class="btn" id="tnext">'+(last?'마치기':'넘어가기')+'</button></div>')+'<div class="exnav1">'+(all?prevB+'<button class="btn primary" id="tnext">'+(last?'마치기':'다음')+'</button>':'<button class="btn" id="tone">하나씩 열기 <small>'+p.open+' / '+kids.length+'</small></button><button class="btn primary" id="tall">모두 열기</button>')+'</div></div><div class="hint"><span class="kb">스페이스 '+(all?'다음':'모두 열기')+' · ← 이전 · → '+(last?'마치기':'다음')+'</span></div>';
-  main.innerHTML=bar+'<article class="card tcard" aria-live="polite">'+front+'</article><div class="actions">'+acts+'</div>';
-  document.getElementById("tq").onclick=function(){tocSess=null;render();};
-  var b;if(b=document.getElementById("tone"))b.onclick=function(){tocOpen(false);};
-  if(b=document.getElementById("tall"))b.onclick=function(){tocOpen(true);};
-  document.getElementById("tnext").onclick=tocNext;document.getElementById("tprev").onclick=tocPrev;
-  var fb=document.getElementById(all?"tnext":"tall");if(fb&&document.activeElement===document.body)try{fb.focus({preventScroll:true});}catch(e){}
+function tocNode(n,lv){
+  var kids=n.k||[],no='<span class="no">'+n._no+'.</span>',d=n.d?'<span class="d">'+esc(n.d)+'</span>':'';
+  if(!kids.length)return '<li class="leaf">'+no+'<span class="t">'+esc(n.t)+'</span>'+d+'</li>';
+  return '<li><details data-k="'+n._key+'"'+(tocExp[n._key]?' open':'')+'><summary>'+no+'<span class="t">'+esc(n.t)+'<span class="cnt">아래 '+kids.length+'개</span></span>'+d+'</summary><ol class="tt lv'+Math.min(lv+1,4)+'">'+kids.map(function(k){return tocNode(k,lv+1);}).join("")+'</ol></details></li>';
 }
 function tocPanel(){
   if(!TOC.length)return "";
-  var dep=tocDepth();if(!tocPart||!tocPartRoot(tocPart))tocPart=TOC[0].t;
-  var root=tocPartRoot(tocPart),seq=tocSeq(root,dep);
-  var h='<section class="panel tocp"><h2>목차 외우기</h2><p class="muted" style="margin-top:0">제목을 보고 바로 아래 목차를 떠올려요. 위에서부터 한 단계씩 내려가요.</p>';
-
-  h+='<div class="ptabs" role="tablist">'+TOC.map(function(P){return '<button role="tab" data-tp="'+esc(P.t)+'" aria-selected="'+(P.t===tocPart)+'">'+esc(tocShort(P.t).replace("채권총론","채총").replace("채권각론","채각"))+'</button>';}).join("")+'</div>';
-  h+='<div class="tdepth"><span class="muted">내려갈 깊이</span><div class="seg" role="group" aria-label="내려갈 깊이">'+TOC_DEPTH.map(function(d){return '<button data-td="'+d[0]+'" aria-pressed="'+(d[0]===dep)+'">'+d[1]+'</button>';}).join("")+'</div></div><p class="tdhint">'+TOC_DHINT[dep]+'</p>';
-  h+='<button class="btn primary tstart" data-troot="'+root+'">'+esc(tocShort(tocPart))+' 처음부터 · '+seq.length+'장</button>';
-  // 장만 한 줄씩. 그 아래는 ▾를 눌러야 펼친다(스크롤을 줄이려고)
-  var ch=tocSeq(root,99).filter(function(id){return TN[id].lv===1;});
-  h+='<ul class="ttree">'+ch.map(function(id){var subs=tocSeq(id,99).slice(1),op=!!tocExp[id];
-    return '<li><div class="trow"><button class="tgo" data-troot="'+id+'"><span>'+esc(TN[id].n.t)+'</span><small>'+(tocSeq(id,dep).length)+'장</small></button>'+(subs.length?'<button class="ttog" data-tx="'+id+'" aria-expanded="'+op+'" aria-label="'+esc(TN[id].n.t)+' 아래 제목 '+(op?'접기':'펼치기')+'">'+(op?'▴':'▾')+'</button>':'<span class="ttog"></span>')+'</div>'+
-      (op?'<ul class="tsubl">'+subs.map(function(s){return '<li style="--lv:'+(TN[s].lv-2)+'"><button class="tgo" data-troot="'+s+'"><span>'+esc(TN[s].n.t)+'</span><small>'+tocSeq(s,dep).length+'장</small></button></li>';}).join("")+'</ul>':'')+'</li>';}).join("")+'</ul>'+
-    '<p class="muted" style="margin:6px 0 0;font-size:.8rem">제목을 누르면 거기서부터 시작해요. 숫자는 지금 깊이로 볼 카드 수, ▾는 그 아래 제목 펼치기예요.</p></section>';
-  return h;
+  var P=null;TOC.forEach(function(x){if(x.t===tocPart)P=x;});if(!P){P=TOC[0];tocPart=P.t;}
+  return '<section class="panel tocp"><h2>목차 외우기</h2><p class="muted" style="margin-top:0">제목을 누르면 아래 목차가 펼쳐져요. 펼치기 전에 「아래 n개」를 먼저 떠올려 보세요.</p>'+
+    '<div class="ptabs" role="tablist">'+TOC.map(function(x){return '<button role="tab" data-tp="'+esc(x.t)+'" aria-selected="'+(x===P)+'">'+esc(tocShort(x.t).replace("채권총론","채총").replace("채권각론","채각"))+'</button>';}).join("")+'</div>'+
+    '<div class="row tocctl"><button class="btn" id="tcol">모두 접기</button><button class="btn" id="texp1">한 단계씩 펼치기</button><button class="btn" id="texp">모두 펼치기</button></div>'+
+    '<ol class="tt lv0">'+(P.k||[]).map(function(k){return tocNode(k,0);}).join("")+'</ol></section>';
 }
 function bindTocPanel(){
-  main.querySelectorAll("[data-tp]").forEach(function(b){b.onclick=function(){tocPart=b.dataset.tp;render();};});
-  main.querySelectorAll("[data-td]").forEach(function(b){b.onclick=function(){settings().tocDepth=+b.dataset.td;scheduleSave();render();};});
-  main.querySelectorAll("[data-troot]").forEach(function(b){b.onclick=function(){tocStart(b.dataset.troot,tocDepth());};});
-  main.querySelectorAll("[data-tx]").forEach(function(b){b.onclick=function(){tocExp[b.dataset.tx]=!tocExp[b.dataset.tx];render();};});
-
+  var box=main.querySelector(".tocp");if(!box)return;
+  box.querySelectorAll("[data-tp]").forEach(function(b){b.onclick=function(){tocPart=b.dataset.tp;render();};});
+  box.querySelectorAll("details[data-k]").forEach(function(d){d.addEventListener("toggle",function(){if(d.open)tocExp[d.dataset.k]=1;else delete tocExp[d.dataset.k];});});
+  var all=function(){return [].slice.call(box.querySelectorAll("details[data-k]"));};
+  document.getElementById("tcol").onclick=function(){all().forEach(function(d){d.open=false;});};
+  document.getElementById("texp").onclick=function(){all().forEach(function(d){d.open=true;});};
+  // 보이는 것 중 가장 얕은 닫힌 층을 한 번에 연다
+  document.getElementById("texp1").onclick=function(){
+    var vis=all().filter(function(d){return !d.open&&d.offsetParent!==null;});if(!vis.length)return;
+    var depth=function(d){var n=0,x=d.parentElement;while(x&&x!==box){if(x.tagName==="DETAILS")n++;x=x.parentElement;}return n;};
+    var m=Math.min.apply(null,vis.map(depth));vis.forEach(function(d){if(depth(d)===m)d.open=true;});};
 }
 function renderEx(){
   if(listenSess){renderListen();return;}
-  if(tocSess){renderToc();return;}
   if(oxSess){renderOx();return;}
   if(exSess){
     var p=exSess,label=typeof p.kind==="string"?(p.kind.slice(0,3)==="re:"?"다시 보기 · "+(p.kind.slice(3)?p.kind.slice(3).replace(/^제\d편 /,""):"전체"):(EXNAME[p.kind]||"연습")):"단원별 · "+unitLabel(p.kind.units);
@@ -1836,11 +1787,6 @@ document.addEventListener("keydown",function(e){
     if(oxSess.pick===null){if(kk==="o"||kk==="ㅐ"||kk==="1"){oxPick(true);}else if(kk==="x"||kk==="ㅌ"||kk==="2"){oxPick(false);}}
     else if(e.key===" "||e.key==="Enter"){e.preventDefault();oxNext();}
     if(kk==="s"||kk==="ㄴ")oxToggleStar(oxSess.queue[0]);
-    return;}
-  if(view==="ex"&&tocSess){if(!tocSess.queue.length)return;var tall=tocSess.open>=TN[tocSess.queue[0]].n.k.length;
-    if(e.key==="ArrowLeft"){tocPrev();return;}
-    if(e.key==="ArrowRight"){tocNext();return;}
-    if(e.key===" "||e.key==="Enter"){e.preventDefault();if(tall)tocNext();else tocOpen(true);}
     return;}
   if(view==="ex"){if(!exSess||!exSess.queue.length)return;var k2=e.key.toLowerCase();
     if(e.key===" "||e.key==="Enter"){e.preventDefault();exSess.shown=exSess.shown?0:3;render();}
